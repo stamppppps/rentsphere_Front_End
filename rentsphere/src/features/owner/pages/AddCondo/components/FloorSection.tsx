@@ -2,140 +2,92 @@ import type { Room } from "../types/addCondo.types";
 import RoomCard from "./RoomCard";
 
 type Props = {
-    floor: number;
-    rooms: Room[];
-    selectedRoomIds: string[];
-    onSelectFloor: () => void;
-    onUnselectFloor: () => void;
-    onToggleRoom: (id: string) => void;
+  floor: number;
+  rooms: Room[];
+  selectedRoomIds: string[];
+  onSelectFloor: () => void;
+  onUnselectFloor: () => void;
+  onToggleRoom: (id: string) => void;
 };
 
 export default function FloorSection({
-    floor,
-    rooms,
-    selectedRoomIds,
-    onSelectFloor,
-    onUnselectFloor,
-    onToggleRoom,
+  floor,
+  rooms,
+  selectedRoomIds,
+  onSelectFloor,
+  onUnselectFloor,
+  onToggleRoom,
 }: Props) {
-    return (
-        <div style={styles.wrap}>
-            <div style={styles.header}>
-                <div style={styles.floorText}>ชั้นที่ {floor}</div>
-
-                <div style={styles.actions}>
-                    <button style={styles.greenBtn} onClick={onSelectFloor}>
-                        <span style={styles.dotGreen} />
-                        เลือกทั้งชั้น
-                    </button>
-                    <button style={styles.redBtn} onClick={onUnselectFloor}>
-                        <span style={styles.dotRed} />
-                        ยกเลิกเลือกทั้งชั้น
-                    </button>
-                </div>
-            </div>
-
-            <div style={styles.inner}>
-                <div style={styles.roomsRow}>
-                    {rooms.map((r) => (
-                        <RoomCard
-                            key={r.id}
-                            room={r}
-                            selected={selectedRoomIds.includes(r.id)}
-                            onClick={() => onToggleRoom(r.id)}
-                        />
-                    ))}
-                </div>
-            </div>
+  return (
+    <section
+      className={[
+        // ✅ แยกชั้นให้ชัด: เงาลึกขึ้น + ขอบ + ระยะห่าง
+        "w-full overflow-hidden rounded-2xl",
+        "border border-slate-300/60",
+        "bg-white/60 backdrop-blur-sm",
+        "shadow-[0_18px_36px_rgba(0,0,0,0.14)]",
+        "ring-1 ring-black/5",
+        "mb-7", // ✅ ระยะระหว่างชั้น
+      ].join(" ")}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 bg-slate-200/70 border-b border-slate-300/50">
+        {/* ✅ ตัวอักษรใหญ่ขึ้น + ทำเป็น badge */}
+        <div className="inline-flex items-center gap-2">
+          <span className="h-9 w-1.5 rounded-full bg-blue-500/80" />
+          <div className="text-lg font-extrabold text-slate-800">
+            ชั้นที่ {floor}
+          </div>
         </div>
-    );
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onSelectFloor}
+            className={[
+              "flex items-center gap-2",
+              "h-10 px-4 rounded-xl",
+              "bg-white border border-slate-300",
+              "shadow-[0_10px_16px_rgba(0,0,0,0.10)]",
+              "hover:bg-emerald-50",
+              "text-sm font-extrabold text-slate-700", // ✅ ใหญ่ขึ้น
+            ].join(" ")}
+          >
+            <span className="h-3 w-3 rounded-full bg-emerald-500 shadow-[0_0_0_5px_rgba(34,197,94,0.16)]" />
+            เลือกทั้งชั้น
+          </button>
+
+          <button
+            type="button"
+            onClick={onUnselectFloor}
+            className={[
+              "flex items-center gap-2",
+              "h-10 px-4 rounded-xl",
+              "bg-white border border-slate-300",
+              "shadow-[0_10px_16px_rgba(0,0,0,0.10)]",
+              "hover:bg-rose-50",
+              "text-sm font-extrabold text-slate-700", // ✅ ใหญ่ขึ้น
+            ].join(" ")}
+          >
+            <span className="h-3 w-3 rounded-full bg-red-500 shadow-[0_0_0_5px_rgba(239,68,68,0.14)]" />
+            ยกเลิกเลือกทั้งชั้น
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="bg-slate-100/70 p-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {rooms.map((r) => (
+            <RoomCard
+              key={r.id}
+              room={r}
+              selected={selectedRoomIds.includes(r.id)}
+              onClick={() => onToggleRoom(r.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-    wrap: {
-        width: "100%",
-        boxSizing: "border-box",
-        borderRadius: 14,
-        border: "1px solid rgba(0,0,0,0.08)",
-        background: "rgba(255,248,232,0.92)",
-        boxShadow: "0 12px 24px rgba(0,0,0,0.10)",
-        overflow: "hidden",
-    },
-
-    header: {
-        height: 52,
-        background: "#FFF5DE",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 16px",
-        borderBottom: "1px solid rgba(0,0,0,0.08)",
-    },
-
-    floorText: {
-        fontWeight: 900,
-        fontSize: 14,
-        color: "rgba(0,0,0,0.8)",
-    },
-
-    actions: { display: "flex", gap: 10 },
-
-    greenBtn: {
-        height: 32,
-        padding: "0 14px",
-        borderRadius: 10,
-        border: "1px solid rgba(0,0,0,0.10)",
-        background: "#FFFFFF",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        fontSize: 13,
-        fontWeight: 700,
-        color: "rgba(0,0,0,0.75)",
-    },
-
-    redBtn: {
-        height: 32,
-        padding: "0 14px",
-        borderRadius: 10,
-        border: "1px solid rgba(0,0,0,0.10)",
-        background: "#FFFFFF",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        fontSize: 13,
-        fontWeight: 700,
-        color: "rgba(0,0,0,0.75)",
-    },
-
-    dotGreen: {
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        background: "#22C55E",
-        display: "inline-block",
-    },
-
-    dotRed: {
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        background: "#EF4444",
-        display: "inline-block",
-    },
-
-    inner: {
-        background: "#FFFFFF",
-        padding: 18,
-        boxSizing: "border-box",
-    },
-
-    roomsRow: {
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 18,
-        alignItems: "stretch",
-    },
-};

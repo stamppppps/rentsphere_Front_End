@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAddCondoStore } from "../store/addCondo.store";
 
 export default function Step_4() {
   const nav = useNavigate();
 
+  const setFloorCountStore = useAddCondoStore((s) => s.setFloorCount);
+  const setRoomsPerFloorStore = useAddCondoStore((s) => s.setRoomsPerFloor);
+
   const [floorCount, setFloorCount] = useState<number | "">("");
-  const canGoNext = floorCount !== "";
   const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
+
+  const canGoNext = floorCount !== "";
 
   const handleFloorChange = (value: number | "") => {
     setFloorCount(value);
@@ -16,16 +21,14 @@ export default function Step_4() {
       return;
     }
 
-    // สร้าง array ตามจำนวนชั้น
     setRoomsPerFloor(Array.from({ length: value }, () => 1));
   };
 
   const handleRoomChange = (index: number, value: number) => {
+    if (Number.isNaN(value)) return;
     if (value < 1 || value > 50) return;
 
-    setRoomsPerFloor((prev) =>
-      prev.map((v, i) => (i === index ? value : v))
-    );
+    setRoomsPerFloor((prev) => prev.map((v, i) => (i === index ? value : v)));
   };
 
   return (
@@ -67,7 +70,6 @@ export default function Step_4() {
             </select>
           </div>
 
-          {/* ===== กล่องกรอกจำนวนห้อง/ชั้น (อยู่ใต้ select) ===== */}
           {floorCount !== "" && (
             <div style={{ marginTop: 16 }}>
               {roomsPerFloor.map((room, i) => (
@@ -80,20 +82,20 @@ export default function Step_4() {
                     marginBottom: 10,
                   }}
                 >
-                  <span style={{ minWidth: 60 }}>ชั้นที่ {i + 1}</span>
+                  <span style={{ minWidth: 72, fontWeight: 600 }}>
+                    ชั้นที่ {i + 1}
+                  </span>
 
                   <input
                     type="number"
                     min={1}
                     max={50}
                     value={room}
-                    onChange={(e) =>
-                      handleRoomChange(i, Number(e.target.value))
-                    }
+                    onChange={(e) => handleRoomChange(i, Number(e.target.value))}
                     style={{ ...styles.input, width: 90 }}
                   />
 
-                  <span>ห้อง</span>
+                  <span style={{ fontWeight: 600 }}>ห้อง</span>
                 </div>
               ))}
             </div>
@@ -102,24 +104,31 @@ export default function Step_4() {
 
         {/* ===== Next Button ===== */}
         <div style={styles.nextRow}>
-            <button
-                style={{
-                    ...styles.nextBtn,
-                    opacity: canGoNext ? 1 : 0.5,
-                    cursor: canGoNext ? "pointer" : "not-allowed",
-                }}
-                disabled={!canGoNext}
-                onClick={() => nav("../step-5")}
-            >
-                ต่อไป
-            </button>
+          <button
+            style={{
+              ...styles.nextBtn,
+              opacity: canGoNext ? 1 : 0.5,
+              cursor: canGoNext ? "pointer" : "not-allowed",
+            }}
+            disabled={!canGoNext}
+            onClick={() => {
+              if (floorCount === "") return;
+
+              setFloorCountStore(floorCount);
+              setRoomsPerFloorStore(roomsPerFloor[0] ?? 1);
+
+              nav("../step-5");
+            }}
+          >
+            ต่อไป
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ================== styles (ชุดเดียวกับ Step 3) ================== */
+/* ================== styles ================== */
 
 const styles: Record<string, React.CSSProperties> = {
   content: {
@@ -160,6 +169,7 @@ const styles: Record<string, React.CSSProperties> = {
   list: {
     paddingLeft: 18,
     color: "#555",
+    lineHeight: 1.7,
   },
 
   field: {
@@ -175,10 +185,12 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     border: "1px solid #E5E7EB",
     background: "#FEFCE8",
+    outline: "none",
   },
 
   required: {
     color: "red",
+    fontWeight: 700,
   },
 
   nextRow: {

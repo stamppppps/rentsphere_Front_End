@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import FloorCard from "./AddCondo/components/FloorCard";
+import FloorCard from "../components/FloorCard";
 
 /* ================== types ================== */
 type Room = {

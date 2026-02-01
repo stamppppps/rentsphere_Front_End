@@ -1,11 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* hook (logic อย่างเดียว) */
-import { useBankAccountForm } from "./AddCondo/components/BankAccountForm";
+import { useBankAccountForm } from "../components/BankAccountForm";
+import BankAccountList from "../components/BankAccountList";
 
-/* list component */
-import BankAccountList from "./AddCondo/components/BankAccountList";
 
 export default function Step_3() {
   const nav = useNavigate();

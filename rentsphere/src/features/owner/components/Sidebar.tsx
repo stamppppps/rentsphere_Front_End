@@ -1,0 +1,76 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { OWNER_MENU } from "./ownerMenu";
+
+function SidebarItem({
+    label,
+    active,
+    onClick,
+}: {
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={[
+                "w-full text-left rounded-2xl",
+                "px-7 py-5",
+                "text-xl font-extrabold tracking-wide",
+                "transition-all duration-200",
+                "focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/40",
+                active
+                    ? "bg-white text-gray-900 shadow-md translate-x-0.5"
+                    : "text-gray-800/80 hover:bg-white/60 hover:text-gray-900 hover:translate-x-0.5",
+            ].join(" ")}
+        >
+            {label}
+        </button>
+    );
+}
+
+export default function Sidebar() {
+    const nav = useNavigate();
+    const { pathname } = useLocation();
+
+    const isActive = (itemPath: string) => {
+
+        return pathname === itemPath || pathname.startsWith(itemPath + "/");
+    };
+
+    return (
+        <aside className="w-[22rem] shrink-0 bg-[#D6E6FF] border-r border-blue-100/80 shadow-[2px_0_14px_rgba(0,0,0,0.05)]">
+            {/* Logo */}
+            <div className="h-24 flex items-center px-8">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-blue-600/20">
+                        RS
+                    </div>
+                    <span className="text-3xl font-extrabold tracking-tight text-gray-900">
+                        RentSphere
+                    </span>
+                </div>
+            </div>
+
+            <div className="px-6 pb-6">
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-5 pl-1">
+                    คอนโดมิเนียม
+                </h1>
+
+                <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
+                    <div className="flex flex-col gap-4">
+                        {OWNER_MENU.map((m) => (
+                            <SidebarItem
+                                key={m.key}
+                                label={m.label}
+                                active={isActive(m.path)}
+                                onClick={() => nav(m.path)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </aside>
+    );
+}
