@@ -1,48 +1,177 @@
 import { create } from "zustand";
-import type { AddCondoState, Room } from "../types/addCondo.types";
+import type { AddCondoState, Room, RoomStatus } from "../types/addCondo.types";
 
 function pad2(n: number) {
     return String(n).padStart(2, "0");
 }
 
-function buildRooms(floorCount: number, roomsPerFloor: number): Room[] {
+function buildRooms(floorCount: number, roomsPerFloor: number[]): Room[] {
     const rooms: Room[] = [];
+
     for (let floor = 1; floor <= floorCount; floor++) {
-        for (let i = 1; i <= roomsPerFloor; i++) {
-            const roomNo = `${floor}${pad2(i)}`;      // 101, 102, 103, ...
-            const id = `${floor}-${i}`;              // unique id
+        const count = roomsPerFloor[floor - 1] ?? 1;
+
+        for (let i = 1; i <= count; i++) {
             rooms.push({
-                id,
+                id: `${floor}-${i}`,
                 floor,
-                roomNo,
+                roomNo: `${floor}${pad2(i)}`,
                 price: null,
+                isActive: true,
+                status: "VACANT", // เพิ่มสถานะเริ่มต้น
             });
         }
     }
+
     return rooms;
 }
 
+// helper: re-generate roomNo & id in a floor based on current order
+function renumberFloorRooms(rooms: Room[], floor: number): Room[] {
+    const floorRooms = rooms.filter((r) => r.floor === floor);
+    const otherRooms = rooms.filter((r) => r.floor !== floor);
+
+    const sorted = floorRooms.slice().sort((a, b) => {
+        const ai = parseInt(a.id.split("-")[1] ?? "0", 10);
+        const bi = parseInt(b.id.split("-")[1] ?? "0", 10);
+        return ai - bi;
+    });
+
+    const renumbered = sorted.map((r, idx) => ({
+        ...r,
+        id: `${floor}-${idx + 1}`,
+        roomNo: `${floor}${pad2(idx + 1)}`,
+    }));
+
+    return [...otherRooms, ...renumbered].sort((a, b) => {
+        if (a.floor !== b.floor) return a.floor - b.floor;
+        const ai = parseInt(a.id.split("-")[1] ?? "0", 10);
+        const bi = parseInt(b.id.split("-")[1] ?? "0", 10);
+        return ai - bi;
+    });
+}
+
 export const useAddCondoStore = create<AddCondoState>((set, get) => ({
-    floorCount: 3,
-    roomsPerFloor: 3,
+    floorCount: 0,
+    roomsPerFloor: [],
 
     rooms: [],
     selectedRoomIds: [],
 
-    setFloorCount: (n) => set({ floorCount: n }),
-    setRoomsPerFloor: (n) => set({ roomsPerFloor: n }),
+    // Step 4: ตั้งค่าชั้น + ห้อง/ชั้น (รายชั้น) แล้วสร้าง rooms ใหม่
+    setFloorConfig: (floorCount, roomsPerFloor) => {
+        const normalizedRoomsPerFloor = Array.from({ length: floorCount }, (_, i) => {
+            const v = roomsPerFloor[i];
+            if (typeof v !== "number" || Number.isNaN(v)) return 1;
+            return Math.max(1, Math.min(50, v));
+        });
 
-    generateRoomsIfEmpty: () => {
-        const { rooms, floorCount, roomsPerFloor } = get();
-        if (rooms.length > 0) return;
         set({
-            rooms: buildRooms(floorCount, roomsPerFloor),
+            floorCount,
+            roomsPerFloor: normalizedRoomsPerFloor,
+            rooms: buildRooms(floorCount, normalizedRoomsPerFloor),
             selectedRoomIds: [],
         });
     },
 
+    // ถ้า rooms ยังว่าง ให้สร้างจาก config ปัจจุบัน
+    generateRoomsIfEmpty: () => {
+        const { rooms, floorCount, roomsPerFloor } = get();
+        if (rooms.length > 0) return;
+        if (floorCount <= 0) return;
+
+        const normalizedRoomsPerFloor = Array.from({ length: floorCount }, (_, i) => {
+            const v = roomsPerFloor[i];
+            if (typeof v !== "number" || Number.isNaN(v)) return 1;
+            return Math.max(1, Math.min(50, v));
+        });
+
+        set({
+            rooms: buildRooms(floorCount, normalizedRoomsPerFloor),
+            selectedRoomIds: [],
+        });
+    },
+
+    // =========================
+    // Step 5 actions
+    // =========================
+
+    toggleRoomActive: (roomId) => {
+        set((s) => ({
+            rooms: s.rooms.map((r) =>
+                r.id === roomId ? { ...r, isActive: !r.isActive } : r
+            ),
+            // ถ้าปิดห้องแล้วเคยถูกเลือกไว้ใน step6 ให้เอาออก
+            selectedRoomIds: s.selectedRoomIds.filter((id) => id !== roomId),
+        }));
+    },
+
+    changeRoomNo: (roomId, value) => {
+        set((s) => ({
+            rooms: s.rooms.map((r) => (r.id === roomId ? { ...r, roomNo: value } : r)),
+        }));
+    },
+
+    addRoomOnFloor: (floor) => {
+        set((s) => {
+            const current = s.rooms.filter((r) => r.floor === floor);
+            const nextIndex = current.length + 1;
+
+            // จำกัดไม่เกิน 50 ห้อง/ชั้น
+            if (nextIndex > 50) return s;
+
+            const newRoom: Room = {
+                id: `${floor}-${nextIndex}`,
+                floor,
+                roomNo: `${floor}${pad2(nextIndex)}`,
+                price: null,
+                isActive: true,
+                status: "VACANT", //เพิ่มสถานะ
+            };
+
+            const nextRooms = [...s.rooms, newRoom].sort((a, b) => {
+                if (a.floor !== b.floor) return a.floor - b.floor;
+                const ai = parseInt(a.id.split("-")[1] ?? "0", 10);
+                const bi = parseInt(b.id.split("-")[1] ?? "0", 10);
+                return ai - bi;
+            });
+
+            // sync roomsPerFloor
+            const rp = s.roomsPerFloor.slice();
+            rp[floor - 1] = (rp[floor - 1] ?? 0) + 1;
+
+            return { ...s, rooms: nextRooms, roomsPerFloor: rp };
+        });
+    },
+
+    deleteRoomOnFloor: (floor, roomId) => {
+        set((s) => {
+            const filtered = s.rooms.filter((r) => r.id !== roomId);
+            const renumbered = renumberFloorRooms(filtered, floor);
+
+            const rp = s.roomsPerFloor.slice();
+            rp[floor - 1] = Math.max(1, (rp[floor - 1] ?? 1) - 1);
+
+            return {
+                ...s,
+                rooms: renumbered,
+                roomsPerFloor: rp,
+                selectedRoomIds: s.selectedRoomIds.filter((id) => id !== roomId),
+            };
+        });
+    },
+
+    // =========================
+    //  Step 6 actions (เลือกห้อง)
+    // =========================
+
     toggleRoom: (roomId) => {
-        const { selectedRoomIds } = get();
+        const { selectedRoomIds, rooms } = get();
+        const room = rooms.find((r) => r.id === roomId);
+
+        // ถ้าห้องถูกปิด (inactive) ไม่ให้เลือก
+        if (!room || !room.isActive) return;
+
         const has = selectedRoomIds.includes(roomId);
         set({
             selectedRoomIds: has
@@ -53,15 +182,21 @@ export const useAddCondoStore = create<AddCondoState>((set, get) => ({
 
     selectAllOnFloor: (floor) => {
         const { rooms, selectedRoomIds } = get();
-        const idsOnFloor = rooms.filter((r) => r.floor === floor).map((r) => r.id);
+
+        const idsOnFloor = rooms
+            .filter((r) => r.floor === floor && r.isActive)
+            .map((r) => r.id);
+
         const next = new Set(selectedRoomIds);
         idsOnFloor.forEach((id) => next.add(id));
+
         set({ selectedRoomIds: Array.from(next) });
     },
 
     unselectAllOnFloor: (floor) => {
         const { rooms, selectedRoomIds } = get();
         const idsOnFloor = new Set(rooms.filter((r) => r.floor === floor).map((r) => r.id));
+
         set({ selectedRoomIds: selectedRoomIds.filter((id) => !idsOnFloor.has(id)) });
     },
 
@@ -69,8 +204,31 @@ export const useAddCondoStore = create<AddCondoState>((set, get) => ({
 
     setPriceForRooms: (roomIds, price) => {
         const ids = new Set(roomIds);
+
         set((s) => ({
             rooms: s.rooms.map((r) => (ids.has(r.id) ? { ...r, price } : r)),
+        }));
+    },
+
+    // =========================
+    // Step 7 actions (สถานะห้อง)
+    // =========================
+
+    setStatusForRooms: (roomIds: string[], status: RoomStatus) => {
+        const ids = new Set(roomIds);
+
+        set((s) => ({
+            rooms: s.rooms.map((r) => (ids.has(r.id) ? { ...r, status } : r)),
+        }));
+    },
+
+    toggleRoomStatus: (roomId: string) => {
+        set((s) => ({
+            rooms: s.rooms.map((r) =>
+                r.id === roomId
+                    ? { ...r, status: r.status === "VACANT" ? "OCCUPIED" : "VACANT" }
+                    : r
+            ),
         }));
     },
 }));

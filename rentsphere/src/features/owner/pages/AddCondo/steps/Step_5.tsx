@@ -1,239 +1,190 @@
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import FloorCard from "../components/FloorCard";
+import { useAddCondoStore } from "../store/addCondo.store";
 
-/* ================== types ================== */
-type Room = {
-  id: string;
-  number: string;
-  isActive: boolean;
-};
-
-type Floor = {
-  id: string;
-  floorNo: number;
-  rooms: Room[];
-};
-
-/* ================== helpers ================== */
-const generateRoomNo = (floorNo: number, index: number) =>
-  `${floorNo}${String(index + 1).padStart(2, "0")}`;
-
-/* ================== component ================== */
 export default function Step_5() {
   const nav = useNavigate();
 
-  const [floors, setFloors] = useState<Floor[]>([
-    {
-      id: crypto.randomUUID(),
-      floorNo: 1,
-      rooms: Array.from({ length: 3 }).map((_, i) => ({
-        id: crypto.randomUUID(),
-        number: generateRoomNo(1, i),
-        isActive: true,
-      })),
-    },
-  ]);
+  const floorCount = useAddCondoStore((s) => s.floorCount);
+  const rooms = useAddCondoStore((s) => s.rooms);
+  const generateRoomsIfEmpty = useAddCondoStore((s) => s.generateRoomsIfEmpty);
 
-  /* ================== handlers ================== */
+  const toggleRoomActive = useAddCondoStore((s) => s.toggleRoomActive);
+  const changeRoomNo = useAddCondoStore((s) => s.changeRoomNo);
+  const addRoomOnFloor = useAddCondoStore((s) => s.addRoomOnFloor);
+  const deleteRoomOnFloor = useAddCondoStore((s) => s.deleteRoomOnFloor);
 
-  // เพิ่มชั้น
-  const handleAddFloor = () => {
-    setFloors((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        floorNo: prev.length + 1,
-        rooms: [],
-      },
-    ]);
-  };
+  useEffect(() => {
+    generateRoomsIfEmpty();
+  }, [generateRoomsIfEmpty]);
 
-  // ลบชั้น + รีเลขชั้น / ห้องใหม่
-  const handleDeleteFloor = (floorId: string) => {
-    setFloors((prev) => {
-      if (prev.length === 1) return prev;
+  const roomsByFloor = useMemo(() => {
+    const map = new Map<number, typeof rooms>();
+    for (let f = 1; f <= floorCount; f++) map.set(f, []);
+    rooms.forEach((r) => map.get(r.floor)?.push(r));
+    map.forEach((arr) => arr.sort((a, b) => a.roomNo.localeCompare(b.roomNo)));
+    return map;
+  }, [rooms, floorCount]);
 
-      const remainingFloors = prev.filter((f) => f.id !== floorId);
+  const totalRooms = useMemo(() => rooms.length, [rooms]);
 
-      return remainingFloors.map((floor, floorIndex) => {
-        const newFloorNo = floorIndex + 1;
-
-        return {
-          ...floor,
-          floorNo: newFloorNo,
-          rooms: floor.rooms.map((room, roomIndex) => ({
-            ...room,
-            number: generateRoomNo(newFloorNo, roomIndex),
-          })),
-        };
-      });
-    });
-  };
-
-  // เพิ่มห้อง
-  const handleAddRoom = (floorId: string) => {
-    setFloors((prev) =>
-      prev.map((f) =>
-        f.id === floorId
-          ? {
-              ...f,
-              rooms: [
-                ...f.rooms,
-                {
-                  id: crypto.randomUUID(),
-                  number: generateRoomNo(f.floorNo, f.rooms.length),
-                  isActive: true,
-                },
-              ],
-            }
-          : f
-      )
-    );
-  };
-
-  // เปิด / ปิด ห้อง
-  const handleToggleRoom = (floorId: string, roomId: string) => {
-    setFloors((prev) =>
-      prev.map((f) =>
-        f.id === floorId
-          ? {
-              ...f,
-              rooms: f.rooms.map((r) =>
-                r.id === roomId
-                  ? { ...r, isActive: !r.isActive }
-                  : r
-              ),
-            }
-          : f
-      )
-    );
-  };
-
-  // ลบห้อง + รีเลขห้องใหม่
-  const handleDeleteRoom = (floorId: string, roomId: string) => {
-    setFloors((prev) =>
-      prev.map((f) => {
-        if (f.id !== floorId) return f;
-
-        const updatedRooms = f.rooms
-          .filter((r) => r.id !== roomId)
-          .map((r, index) => ({
-            ...r,
-            number: generateRoomNo(f.floorNo, index),
-          }));
-
-        return {
-          ...f,
-          rooms: updatedRooms,
-        };
-      })
-    );
-  };
-
-  // ⭐ แก้เลขห้อง (พิมพ์เอง)
-  const handleChangeRoomNumber = (
-    floorId: string,
-    roomId: string,
-    value: string
-  ) => {
-    setFloors((prev) =>
-      prev.map((f) =>
-        f.id === floorId
-          ? {
-              ...f,
-              rooms: f.rooms.map((r) =>
-                r.id === roomId
-                  ? { ...r, number: value }
-                  : r
-              ),
-            }
-          : f
-      )
-    );
-  };
-
-  /* ================== render ================== */
   return (
-    <div style={{ padding: "28px 40px" }}>
-      <h1
-        style={{
-          textAlign: "center",
-          fontSize: 34,
-          fontWeight: 800,
-          margin: "6px 0 22px",
-        }}
-      >
+    <div className="min-h-[calc(100vh-64px)] bg-[#eef5ff] px-10 py-8 font-sarabun">
+      {/* ===== title ===== */}
+      <h1 className="text-center text-4xl font-extrabold text-gray-900 tracking-tight mb-8">
         ตั้งค่าคอนโดมิเนียม
       </h1>
 
-      {/* ===== floors ===== */}
-      {floors.map((floor) => (
-        <div key={floor.id}>
-          <FloorCard
-            floor={floor}
-            onAddRoom={handleAddRoom}
-            onToggleRoom={handleToggleRoom}
-            onDeleteRoom={handleDeleteRoom}
-            onChangeRoomNumber={handleChangeRoomNumber}
-          />
-
-          {/* ===== delete floor ===== */}
-          <button
-            onClick={() => handleDeleteFloor(floor.id)}
-            disabled={floors.length === 1}
-            style={{
-              margin: "12px 0 20px",
-              width: "100%",
-              height: 40,
-              borderRadius: 10,
-              background:
-                floors.length === 1 ? "#D1D5DB" : "#5E2122",
-              color: "#FFFFFF",
-              border: "none",
-              fontWeight: 700,
-              cursor:
-                floors.length === 1 ? "not-allowed" : "pointer",
-              opacity: floors.length === 1 ? 0.6 : 1,
-            }}
-          >
-            ลบชั้นนี้
-          </button>
+      <div className="mx-auto w-full max-w-5xl flex flex-col gap-6 pb-28">
+        {/* ===== info card  ===== */}
+        <div className="bg-white rounded-2xl shadow-md p-8">
+          <h3 className="text-2xl font-extrabold mb-4">ผังห้อง</h3>
+          <ul className="list-disc pl-6 text-lg text-gray-700 space-y-2">
+            <li>เปิด/ปิดห้องได้</li>
+            <li>แก้เลขห้องได้</li>
+            <li>เพิ่ม/ลบห้องในแต่ละชั้นได้</li>
+          </ul>
         </div>
-      ))}
 
-      {/* ===== add floor ===== */}
-      <button
-        onClick={handleAddFloor}
-        style={{
-          width: "100%",
-          height: 44,
-          borderRadius: 12,
-          background: "#1F1B3A",
-          color: "#fff",
-          border: "none",
-          fontWeight: 700,
-          marginBottom: 16,
-        }}
-      >
-        เพิ่มชั้น
-      </button>
+        {/* ===== floors ===== */}
+        {Array.from(roomsByFloor.entries()).map(([floor, floorRooms]) => (
+          <div
+            key={floor}
+            className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden"
+          >
+            {/* header */}
+            <div className="flex items-center justify-between px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
+                <div className="text-xl font-extrabold text-gray-900">
+                  ชั้นที่ {floor}
+                </div>
+              </div>
 
-      {/* ===== next ===== */}
-      <div style={{ textAlign: "right" }}>
-        <button
-          onClick={() => nav("../step-6")}
-          style={{
-            padding: "10px 24px",
-            borderRadius: 10,
-            background: "#A78BFA",
-            color: "#fff",
-            border: "none",
-            fontWeight: 700,
-          }}
-        >
-          ต่อไป
-        </button>
+              <button
+                type="button"
+                onClick={() => addRoomOnFloor(floor)}
+                className={[
+                  "px-6 py-3 rounded-xl text-base font-extrabold text-white shadow-lg transition",
+                  "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
+                  "!bg-gray-900 hover:!bg-gray-800",
+                ].join(" ")}
+              >
+                เพิ่มห้อง
+              </button>
+            </div>
+
+            {/* body */}
+            <div className="px-8 py-7">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {floorRooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className={[
+                      "rounded-2xl border shadow-sm px-6 py-5 bg-white transition",
+                      room.isActive
+                        ? "border-blue-100/70"
+                        : "border-gray-200 opacity-70",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-lg font-extrabold text-gray-900">
+                        เลขห้อง
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleRoomActive(room.id)}
+                          className={[
+                            "px-4 py-2 rounded-xl text-sm font-extrabold border shadow-sm transition",
+                            "active:scale-[0.98] focus:outline-none focus:ring-2",
+                            room.isActive
+                              ? "bg-white border-green-200 text-green-700 hover:bg-green-50 focus:ring-green-200"
+                              : "bg-white border-red-200 text-red-700 hover:bg-red-50 focus:ring-red-200",
+                          ].join(" ")}
+                        >
+                          {room.isActive ? "เปิดใช้งาน" : "ปิดห้อง"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteRoomOnFloor(floor, room.id)}
+                          className="px-4 py-2 rounded-xl text-sm font-extrabold border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition active:scale-[0.98]
+                                     focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        >
+                          ลบ
+                        </button>
+                      </div>
+                    </div>
+
+                    <input
+                      value={room.roomNo}
+                      onChange={(e) => changeRoomNo(room.id, e.target.value)}
+                      className="mt-4 w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+
+                    <div className="mt-4 text-base font-bold text-gray-600">
+                      สถานะ:{" "}
+                      <span
+                        className={
+                          room.isActive
+                            ? "text-green-700 font-extrabold"
+                            : "text-red-700 font-extrabold"
+                        }
+                      >
+                        {room.isActive ? "เปิด" : "ปิด"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 text-base font-bold text-gray-600">
+                ชั้นนี้มีทั้งหมด{" "}
+                <span className="font-extrabold text-gray-900">
+                  {floorRooms.length}
+                </span>{" "}
+                ห้อง
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ===== sticky footer  ===== */}
+      <div className="sticky bottom-0 w-full">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="rounded-2xl border border-blue-200/60 bg-white/70 backdrop-blur-md shadow-[0_16px_40px_rgba(15,23,42,0.12)] px-6 py-4">
+            <div className="flex items-center justify-end gap-4">
+              <div className="px-6 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow">
+                จำนวนชั้น {floorCount} · รวม {totalRooms} ห้อง
+              </div>
+
+              <button
+                type="button"
+                onClick={() => nav("../step-4")}
+                className="px-8 py-4 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-base shadow-sm hover:bg-gray-50 transition active:scale-[0.98]
+                           focus:outline-none focus:ring-2 focus:ring-gray-200"
+              >
+                ย้อนกลับ
+              </button>
+
+              <button
+                type="button"
+                onClick={() => nav("../step-6")}
+                className={[
+                  "px-10 py-4 rounded-xl text-base font-extrabold text-white shadow-lg transition",
+                  "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
+                  "!bg-blue-600 hover:!bg-blue-700",
+                ].join(" ")}
+              >
+                ต่อไป
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
