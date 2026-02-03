@@ -1,4 +1,4 @@
-import type { Room } from "../types/addCondo_types";
+import type { Room } from "../types/addCondo.types";
 
 type Props = {
     roomsByFloor: Map<number, Room[]>;
