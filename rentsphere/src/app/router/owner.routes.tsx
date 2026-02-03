@@ -11,6 +11,9 @@ import Step8Success from "@/features/owner/pages/AddCondo/steps/Step8_Success";
 import Step_3 from "@/features/owner/pages/AddCondo/steps/Step_3";
 import Step_4 from "@/features/owner/pages/AddCondo/steps/Step_4";
 import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
+import Step_0 from "@/features/owner/pages/AddCondo/steps/Step_0";
+import Step_1 from "@/features/owner/pages/AddCondo/steps/Step_1";
+import Step_2 from "@/features/owner/pages/AddCondo/steps/Step_2";
 
 // ✅ Owner feature pages (จากโฟลเดอร์ที่คุณสร้างไว้แล้ว)
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
@@ -47,7 +50,11 @@ const ownerRoutes: RouteObject[] = [
         path: "add-condo",
         element: <AddCondoLayout />,
         children: [
-          { index: true, element: <Navigate to="step-6" replace /> },
+          { index: true, element: <Navigate to="step-0" replace /> },
+
+          { path: "step-0", element: <Step_0 /> },
+          { path: "step-1", element: <Step_1 /> },
+          { path: "step-2", element: <Step_2 /> },
 
           { path: "step-3", element: <Step_3 /> },
           { path: "step-4", element: <Step_4 /> },

@@ -1,4 +1,4 @@
-import type { Room } from "../types/addCondo.types";
+import type { Room } from "../types/addCondo_types";
 
 type Props = {
     room: Room;
