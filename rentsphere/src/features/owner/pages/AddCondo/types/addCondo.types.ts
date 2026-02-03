@@ -5,6 +5,7 @@ export type Room = {
     floor: number;
     roomNo: string;
     price: number | null;
+    serviceId: string | null;
     isActive: boolean;
     status: RoomStatus;
 };
@@ -35,4 +36,7 @@ export type AddCondoState = {
     // Step 7
     setStatusForRooms: (roomIds: string[], status: RoomStatus) => void;
     toggleRoomStatus: (roomId: string) => void;
+
+    // Step 8
+    setServiceForRooms: (roomIds: string[], serviceId: string | null) => void;
 };

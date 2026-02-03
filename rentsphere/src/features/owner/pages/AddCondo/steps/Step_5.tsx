@@ -153,39 +153,41 @@ export default function Step_5() {
         ))}
       </div>
 
-      {/* ===== sticky footer  ===== */}
-      <div className="sticky bottom-0 w-full">
-        <div className="mx-auto w-full max-w-5xl">
-          <div className="rounded-2xl border border-blue-200/60 bg-white/70 backdrop-blur-md shadow-[0_16px_40px_rgba(15,23,42,0.12)] px-6 py-4">
-            <div className="flex items-center justify-end gap-4">
-              <div className="px-6 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold shadow">
-                จำนวนชั้น {floorCount} · รวม {totalRooms} ห้อง
-              </div>
-
-              <button
-                type="button"
-                onClick={() => nav("../step-4")}
-                className="px-8 py-4 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-base shadow-sm hover:bg-gray-50 transition active:scale-[0.98]
-                           focus:outline-none focus:ring-2 focus:ring-gray-200"
-              >
-                ย้อนกลับ
-              </button>
-
-              <button
-                type="button"
-                onClick={() => nav("../step-6")}
-                className={[
-                  "px-10 py-4 rounded-xl text-base font-extrabold text-white shadow-lg transition",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
-                  "!bg-blue-600 hover:!bg-blue-700",
-                ].join(" ")}
-              >
-                ต่อไป
-              </button>
+      {/* ===== fixed footer  ===== */}
+      <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
+        <div className="w-full max-w-[1120px] mx-auto px-6">
+          <div className="flex items-center justify-end gap-[14px] flex-wrap">
+            {/* count badge */}
+            <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
+              จำนวนชั้น {floorCount} · รวม {totalRooms} ห้อง
             </div>
+
+            {/* back */}
+            <button
+              type="button"
+              onClick={() => nav("../step-4")}
+              className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                   focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              ย้อนกลับ
+            </button>
+
+            {/* next */}
+            <button
+              type="button"
+              onClick={() => nav("../step-6")}
+              className={[
+                "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+                "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+                "focus:outline-none focus:ring-2 focus:ring-blue-300",
+              ].join(" ")}
+            >
+              ต่อไป
+            </button>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
