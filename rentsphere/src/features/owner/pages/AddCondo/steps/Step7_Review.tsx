@@ -200,96 +200,97 @@ export default function Step7_Review() {
                 ))}
             </div>
 
-            {/* sticky footer */}
-            <div className="sticky bottom-0 w-full">
-                <div className="mx-auto w-full max-w-5xl">
-                    <div className="rounded-2xl border border-blue-200/60 bg-white/70 backdrop-blur-md shadow-[0_16px_40px_rgba(15,23,42,0.12)] px-5 py-4">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                            {/* left: count */}
-                            <div className="h-[48px] px-6 rounded-xl bg-[#121827] text-white font-extrabold text-base flex items-center justify-center shadow-lg">
-                                เลือกเพื่อกำหนดสถานะ {pickedCount} ห้อง
-                            </div>
-
-                            <div className="flex items-center gap-2 flex-wrap justify-end">
-                                <button
-                                    type="button"
-                                    disabled={disableBulk}
-                                    onClick={applyVacant}
-                                    className={[
-                                        "h-[48px] px-6 rounded-xl text-base font-extrabold shadow-sm border transition",
-                                        disableBulk
-                                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                            : "bg-white text-green-700 border-green-200 hover:bg-green-50 active:scale-[0.98]",
-                                    ].join(" ")}
-                                >
-                                    ตั้งเป็น “ว่าง”
-                                </button>
-
-                                <button
-                                    type="button"
-                                    disabled={disableBulk}
-                                    onClick={applyOccupied}
-                                    className={[
-                                        "h-[48px] px-6 rounded-xl text-base font-extrabold shadow-sm border transition",
-                                        disableBulk
-                                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                            : "bg-white text-red-700 border-red-200 hover:bg-red-50 active:scale-[0.98]",
-                                    ].join(" ")}
-                                >
-                                    ตั้งเป็น “ไม่ว่าง”
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={pickAll}
-                                    className="h-[48px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-base shadow-sm hover:bg-gray-50 active:scale-[0.98]"
-                                >
-                                    เลือกทั้งหมด
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={clearPick}
-                                    className="h-[48px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-base shadow-sm hover:bg-gray-50 active:scale-[0.98]"
-                                >
-                                    ล้างที่เลือก
-                                </button>
-                            </div>
-
-                            {/* right: nav */}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => nav("../step-6")}
-                                    className="h-[48px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-base shadow-sm hover:bg-gray-50 active:scale-[0.98]"
-                                >
-                                    ย้อนกลับ
-                                </button>
-
-                                <button
-                                    type="button"
-                                    disabled={!canGoNext}
-                                    onClick={() => nav("../step-8")}
-                                    className={[
-                                        "h-[48px] px-8 rounded-xl text-white font-extrabold text-base shadow-lg transition",
-                                        canGoNext
-                                            ? "!bg-blue-600 hover:!bg-blue-700 active:scale-[0.98]"
-                                            : "bg-blue-200 cursor-not-allowed text-white/70",
-                                    ].join(" ")}
-                                >
-                                    ต่อไป
-                                </button>
-                            </div>
+            {/* ===== fixed footer  ===== */}
+            <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
+                <div className="w-full max-w-[1120px] mx-auto px-6">
+                    <div className="flex justify-end items-center gap-[14px] flex-wrap">
+                        {/* count badge */}
+                        <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
+                            เลือกเพื่อกำหนดสถานะ {pickedCount} ห้อง
                         </div>
 
-                        {selectedRoomIds.length === 0 && (
-                            <div className="mt-3 text-right text-sm font-bold text-gray-500">
-                                กรุณาเลือกห้องใน Step 6 ก่อน
-                            </div>
-                        )}
+                        {/* bulk vacant */}
+                        <button
+                            type="button"
+                            disabled={disableBulk}
+                            onClick={applyVacant}
+                            className={[
+                                "h-[46px] px-5 rounded-xl border-0 shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm transition",
+                                disableBulk
+                                    ? "bg-[#16a34a]/30 text-white/70 cursor-not-allowed"
+                                    : "!bg-[#16a34a] text-white hover:!bg-[#128a3f] active:scale-[0.98] cursor-pointer",
+                            ].join(" ")}
+                        >
+                            ตั้งเป็น “ว่าง”
+                        </button>
+
+                        {/* bulk occupied */}
+                        <button
+                            type="button"
+                            disabled={disableBulk}
+                            onClick={applyOccupied}
+                            className={[
+                                "h-[46px] px-5 rounded-xl border-0 shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm transition",
+                                disableBulk
+                                    ? "bg-[#dc2626]/30 text-white/70 cursor-not-allowed"
+                                    : "!bg-[#dc2626] text-white hover:!bg-[#b91c1c] active:scale-[0.98] cursor-pointer",
+                            ].join(" ")}
+                        >
+                            ตั้งเป็น “ไม่ว่าง”
+                        </button>
+
+                        {/* pick all */}
+                        <button
+                            type="button"
+                            onClick={pickAll}
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                        >
+                            เลือกทั้งหมด
+                        </button>
+
+                        {/* clear pick */}
+                        <button
+                            type="button"
+                            onClick={clearPick}
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                        >
+                            ล้างที่เลือก
+                        </button>
+
+                        {/* back */}
+                        <button
+                            type="button"
+                            onClick={() => nav("../step-6")}
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                        >
+                            ย้อนกลับ
+                        </button>
+
+                        {/* next */}
+                        <button
+                            type="button"
+                            disabled={!canGoNext}
+                            onClick={() => nav("../step-8")}
+                            className={[
+                                "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+                                canGoNext
+                                    ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer"
+                                    : "bg-[#93C5FD]/40 cursor-not-allowed text-white/70",
+                            ].join(" ")}
+                        >
+                            ต่อไป
+                        </button>
                     </div>
+
+                    {selectedRoomIds.length === 0 && (
+                        <div className="mt-3 text-right text-sm font-bold text-gray-500">
+                            กรุณาเลือกห้องใน Step 6 ก่อน
+                        </div>
+                    )}
                 </div>
             </div>
+
+
         </div>
     );
 }

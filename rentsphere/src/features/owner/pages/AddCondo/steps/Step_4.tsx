@@ -8,7 +8,7 @@ export default function Step_4() {
 
   const [floorCount, setFloorCount] = useState<number | "">("");
 
-  // เก็บเป็น string เพื่อกันปัญหา 05 / append
+  // เก็บเป็น string
   const [roomsPerFloorText, setRoomsPerFloorText] = useState<string[]>([]);
   const [roomErrors, setRoomErrors] = useState<Record<number, string>>({});
 
@@ -31,19 +31,18 @@ export default function Step_4() {
       return;
     }
 
-    // default ห้อง/ชั้น = "1"
+    // default
     setRoomsPerFloorText(Array.from({ length: value }, () => "1"));
     setRoomErrors({});
   };
 
-  // onChange รับ string (อนุญาตพิมพ์ได้ลื่น)
   const handleRoomTextChange = (index: number, next: string) => {
     // เอาเฉพาะตัวเลข
     if (!/^\d*$/.test(next)) return;
 
     setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? next : v)));
 
-    // validate แบบ realtime (ถ้าว่างยังไม่ฟ้อง)
+    // validate แบบ realtime
     if (next === "") {
       setRoomErrors((prev) => {
         const copy = { ...prev };
@@ -92,7 +91,6 @@ export default function Step_4() {
     if (!Number.isFinite(n)) n = 1;
     n = Math.max(1, Math.min(50, n));
 
-    // ตัด 05 -> 5
     const normalizedStr = String(n);
 
     setRoomsPerFloorText((prev) =>
