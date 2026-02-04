@@ -1,29 +1,42 @@
+export type RoomStatus = "VACANT" | "OCCUPIED";
+
 export type Room = {
     id: string;
     floor: number;
-    roomNo: string;      // "101" "102" ...
-    price: number | null; // null = ยังไม่กำหนด (กรอกทีหลังได้)
+    roomNo: string;
+    price: number | null;
+    serviceId: string | null;
+    isActive: boolean;
+    status: RoomStatus;
 };
 
 export type AddCondoState = {
-    // มาจาก step ก่อนหน้า
     floorCount: number;
-    roomsPerFloor: number;
+    roomsPerFloor: number[];
 
-    // ข้อมูลที่สร้างจริง
     rooms: Room[];
     selectedRoomIds: string[];
 
-    // actions
-    setFloorCount: (n: number) => void;
-    setRoomsPerFloor: (n: number) => void;
-
+    setFloorConfig: (floorCount: number, roomsPerFloor: number[]) => void;
     generateRoomsIfEmpty: () => void;
 
+    // Step 5
+    toggleRoomActive: (roomId: string) => void;
+    changeRoomNo: (roomId: string, value: string) => void;
+    addRoomOnFloor: (floor: number) => void;
+    deleteRoomOnFloor: (floor: number, roomId: string) => void;
+
+    // Step 6
     toggleRoom: (roomId: string) => void;
     selectAllOnFloor: (floor: number) => void;
     unselectAllOnFloor: (floor: number) => void;
     clearSelected: () => void;
-
     setPriceForRooms: (roomIds: string[], price: number | null) => void;
+
+    // Step 7
+    setStatusForRooms: (roomIds: string[], status: RoomStatus) => void;
+    toggleRoomStatus: (roomId: string) => void;
+
+    // Step 8
+    setServiceForRooms: (roomIds: string[], serviceId: string | null) => void;
 };
