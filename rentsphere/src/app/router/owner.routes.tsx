@@ -26,6 +26,7 @@ import MeterPage from "@/features/owner/pages/Meter/MeterPage";
 import ParcelPage from "@/features/owner/pages/Parcel/ParcelPage";
 import PaymentsPage from "@/features/owner/pages/Payments/PaymentsPage";
 import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
+import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
@@ -40,6 +41,7 @@ const ownerRoutes: RouteObject[] = [
       { path: "dashboard", element: <DashboardPage /> },
       { path: "condo", element: <CondoHomePage /> },
       { path: "rooms", element: <RoomsPage /> },
+      { path: "rooms/:roomId", element: <RoomDetailPage /> },
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "common-area-booking", element: <CommonAreaBookingPage /> },
