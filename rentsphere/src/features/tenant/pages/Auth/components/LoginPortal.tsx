@@ -19,7 +19,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-between p-8 overflow-hidden bg-[#0a0e17]">
+    <div className="rentsphere-scope relative w-full h-full flex flex-col items-center justify-between p-8 overflow-hidden bg-[#0a0e17]">
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <img
@@ -53,10 +53,10 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin }) => {
       >
         <div className="mb-8 text-center">
           <h2 className="text-lg font-medium text-white/90 tracking-wide">
-            Identity Verification
+            ยินดีต้อนรับสู่ RentSphere
           </h2>
           <p className="text-[11px] text-white/30 mt-1 italic font-light">
-            Please enter your private access key
+           กรุณากรอกรหัสที่ส่งไปยัง LINE Official เพื่อยืนยันตัวตน
           </p>
         </div>
 
@@ -82,7 +82,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin }) => {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 opacity-95 group-hover:opacity-100 transition-opacity"></div>
             <div className="absolute inset-0 shimmer opacity-20"></div>
             <span className="relative flex items-center justify-center gap-3 text-white uppercase tracking-[0.2em] text-sm font-bold">
-              {isLoading ? "Validating..." : "Grant Access"}
+               {isLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
               <ArrowRight
                 size={18}
                 className="group-hover:translate-x-1 transition-transform"
@@ -95,7 +95,7 @@ const LoginPortal: React.FC<LoginPortalProps> = ({ onLogin }) => {
         <div className="mt-8 flex items-center justify-center gap-2 text-white/20">
           <ShieldCheck size={14} className="text-cyan-400/40" />
           <span className="text-[9px] uppercase tracking-[0.2em] font-black">
-            Encrypted Connection
+            การเชื่อมต่อที่เข้ารหัสปลอดภัย
           </span>
         </div>
       </div>

@@ -10,6 +10,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 /* ===== RentSphere Login (shared utility classes) ===== */
 .serif-title {
   font-family: "Cormorant Garamond", serif;
@@ -70,7 +71,6 @@
     radial-gradient(at 100% 0%, hsla(190, 100%, 15%, 1) 0, transparent 50%);
 }
 
-
 html,
 body,
 #root {
@@ -80,12 +80,13 @@ body,
   padding: 0;
 }
 
+
 body {
   display: block;
   min-width: 0;
   min-height: 100%;
   background: #ffffff;
-  font-family: inherit;
+  font-family: "Prompt", system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 #root {
@@ -100,7 +101,8 @@ body {
   box-sizing: border-box;
 }
 
-button {
+
+button:not([class]) {
   font-family: inherit;
   cursor: pointer;
   border-radius: 8px;
@@ -158,4 +160,12 @@ button:focus-visible {
 
 .toggle input:checked + .slider::before {
   transform: translateX(20px);
+}
+
+.rentsphere-scope {
+  font-family: "Prompt", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.rentsphere-scope .serif-title {
+  font-family: "Cormorant Garamond", serif;
 }
