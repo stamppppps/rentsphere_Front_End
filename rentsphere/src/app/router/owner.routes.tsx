@@ -30,6 +30,30 @@ import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
+import Admin from "@/features/owner/pages/Maintenance/Admin";
+import AdminLogin from "@/features/owner/pages/Maintenance/AdminLogin";
+import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
+import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
+
+import RoleSelect from "@/features/owner/pages/tenant/RoleSelect";
+import Gate from "@/features/owner/pages/tenant/TenantGate";
+import TenantHome from "@/features/owner/pages/tenant/TenantHome";
+
+import MyRepairs from "@/features/owner/pages/tenant/repairs/MyRepairs";
+import RepairDetail from "@/features/owner/pages/tenant/repairs/RepairDetail";
+import RepairCreate from "@/features/owner/pages/tenant/repairs/RepairCreate";
+
+import LineLogin from "@/features/owner/pages/tenant/Linesetup/LineLogin";
+import DormRegister from "@/features/owner/pages/tenant/Linesetup/DormRegister";
+import DormLink from "@/features/owner/pages/tenant/Linesetup/DormLink";
+import LineLoginSuccess from "@/features/owner/pages/tenant/Linesetup/LineLoginSuccess";
+
+function RequireLineLogin({ children }: { children: React.ReactNode }) {
+  const lineUserId = localStorage.getItem("lineUserId");
+  if (!lineUserId) return <Navigate to="/owner/role" replace />;
+  return <>{children}</>;
+}
+
 const ownerRoutes: RouteObject[] = [
   {
     path: "/owner",
@@ -75,6 +99,80 @@ const ownerRoutes: RouteObject[] = [
       { path: "*", element: <Navigate to="dashboard" replace /> },
     ],
   },
+
+
+
+  {
+    path: "/role",
+    element: <RoleSelect/>,
+  },
+  {
+    path: "/owner/admin-login",
+    element: <AdminLogin />,
+  },
+  {
+    path: "/owner/admin-repairs",
+  element: <AdminRepairs />,
+  },
+  {
+    path: "/owner/admin/parcel",
+    element: <AdminParcel />,
+  },
+  {
+    path: "/owner/repair-create",
+    element: <RepairCreate />,
+  },
+
+  {
+    path: "/owner/line-login",
+    element: <LineLogin />,
+  },
+  {
+    path: "/owner/line-login-success",
+    element: <LineLoginSuccess />,
+  },
+
+  {
+    path: "/tenant/dorm-register",
+    element: <DormRegister />,
+  },
+  {
+    path: "/owner/dorm-link",
+    element: <DormLink />,
+  },
+   
+  {
+  path: "/tenant/app",
+  element: (
+    <RequireLineLogin>
+      <TenantHome />
+    </RequireLineLogin>
+  ),
+},
+{
+  path: "/tenant/repairs",
+  element: (
+    <RequireLineLogin>
+      <MyRepairs />
+    </RequireLineLogin>
+  ),
+},
+{
+  path: "/tenant/repairs/:repairId",
+  element: (
+    <RequireLineLogin>
+      <RepairDetail />
+    </RequireLineLogin>
+  ),
+},
+{
+  path: "/tenant/repair-new",
+  element: (
+    <RequireLineLogin>
+      <RepairCreate />
+    </RequireLineLogin>
+  ),
+},
 ];
 
 export default ownerRoutes;
