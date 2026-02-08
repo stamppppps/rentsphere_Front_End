@@ -18,7 +18,6 @@ export default function CondoHomePage() {
     const roomsTotal = useMemo(() => rooms.length, [rooms]);
     const roomsActive = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
 
-    // สมมติชื่อ
     const condoNameMock = "สวัสดีแมนชั่น";
 
     const condos: CondoItem[] = useMemo(
