@@ -18,7 +18,6 @@ import Step_2 from "@/features/owner/pages/AddCondo/steps/Step_2";
 
 // Owner pages
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
-import CommonAreaBookingPage from "@/features/owner/pages/CommonAreaBooking/CommonAreaBookingPage";
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
 import MaintenancePage from "@/features/owner/pages/Maintenance/MaintenancePage";
@@ -29,6 +28,13 @@ import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
 import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
+
+// ===== Facility Booking pages =====
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
+import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
+import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+
 
 const ownerRoutes: RouteObject[] = [
   {
@@ -44,7 +50,6 @@ const ownerRoutes: RouteObject[] = [
       { path: "rooms/:roomId", element: <RoomDetailPage /> },
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
-      { path: "common-area-booking", element: <CommonAreaBookingPage /> },
       { path: "meter", element: <MeterPage /> },
       { path: "billing", element: <BillingPage /> },
       { path: "payments", element: <PaymentsPage /> },
@@ -71,6 +76,18 @@ const ownerRoutes: RouteObject[] = [
           { path: "step-9", element: <Step9Success /> },
         ],
       },
+
+      // ===== Common Area / Facility Booking =====
+      {
+        path: "common-area-booking",
+        children: [
+          { index: true, element: <FacilityListPage /> },
+          { path: ":facilityId", element: <FacilityDetailPage /> },
+          { path: ":facilityId/bookings/:bookingId", element: <BookingDetailPage /> },
+          { path: "history", element: <BookingHistoryPage /> },
+        ],
+      },
+
 
       { path: "*", element: <Navigate to="dashboard" replace /> },
     ],
