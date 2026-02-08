@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BookingStatus } from '../types/booking';
 import { BOOKING_STATUS_CONFIG } from '../constants/bookingStatus';

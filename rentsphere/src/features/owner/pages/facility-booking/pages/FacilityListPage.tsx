@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useFacilities } from '../hooks/useFacilities';
 import FacilityCard from '../components/FacilityCard';

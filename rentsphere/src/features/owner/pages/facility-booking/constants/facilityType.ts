@@ -1,10 +1,5 @@
-
 import { FacilityType } from '../types/facility';
 
-/**
- * Facility Type Configuration
- * This is the single source of truth for category labels and visual styles.
- */
 export const FACILITY_TYPE_CONFIG = {
   [FacilityType.ALL]: { 
     label: 'ทั้งหมด', 

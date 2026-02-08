@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MoreVertical, Ban, AlertTriangle, Clock, AlertCircle } from 'lucide-react';
 import { type Booking, BookingStatus } from '../types/booking';

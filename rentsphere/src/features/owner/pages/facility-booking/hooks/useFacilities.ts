@@ -1,13 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import type { Facility } from '../types/facility';
 import { facilityService } from '../services/facility.service';
 
-/**
- * Custom hook to manage the state and lifecycle of facility data.
- * Designed for the Owner Dashboard to provide a flicker-free, 
- * stable data stream for the UI.
- */
 export const useFacilities = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);

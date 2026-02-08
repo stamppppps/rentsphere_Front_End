@@ -1,14 +1,9 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type Facility, FacilityStatus } from '../types/facility';
 import { type Booking, BookingStatus } from '../types/booking';
 import { facilityService } from '../services/facility.service';
 import { bookingService } from '../services/booking.service';
 
-/**
- * The core logic hook for the Facility Detail Page.
- * Manages facility information, real-time booking statistics, and status controls.
- */
 export const useFacilityDetail = (id?: string) => {
   const [facility, setFacility] = useState<Facility | null>(null);
   const [loading, setLoading] = useState(true);

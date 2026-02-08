@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { type Booking, BookingStatus } from '../types/booking';
 import { bookingService } from '../services/booking.service';

@@ -1,4 +1,3 @@
-
 import { type Facility, FacilityType, FacilityStatus } from '../types/facility';
 
 const MOCK_FACILITIES: Facility[] = [

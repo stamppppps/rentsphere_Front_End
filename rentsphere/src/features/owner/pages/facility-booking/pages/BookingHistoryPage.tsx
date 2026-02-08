@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { bookingService } from '../services/booking.service';
 import { facilityService } from '../services/facility.service';

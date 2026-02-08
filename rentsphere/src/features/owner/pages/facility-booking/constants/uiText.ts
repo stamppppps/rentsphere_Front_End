@@ -1,8 +1,3 @@
-
-/**
- * Single Source of Truth for all UI Strings
- * Used to ensure consistent tone and professional language across the entire application.
- */
 export const UI_TEXT = {
   COMMON: {
     SAVE: 'บันทึกข้อมูล',
