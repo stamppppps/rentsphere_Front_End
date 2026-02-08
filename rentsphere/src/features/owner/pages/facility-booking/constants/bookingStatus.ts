@@ -1,10 +1,5 @@
-
 import { BookingStatus } from '../types/booking';
 
-/**
- * Single Source of Truth for Booking Statuses
- * Controls labels, colors, and action text for the whole system.
- */
 export const BOOKING_STATUS_CONFIG = {
   [BookingStatus.PENDING]: { 
     label: 'รออนุมัติ', 

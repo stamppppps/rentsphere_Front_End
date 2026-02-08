@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ShieldAlert, RefreshCw, AlertCircle } from 'lucide-react';
 

@@ -10,7 +10,7 @@ export const bookingRules = {
   },
   
   canCheckIn: (booking: Booking) => {
-    return [BookingStatus.APPROVED, BookingStatus.LATE].includes(booking.status);
+    return ([BookingStatus.APPROVED, BookingStatus.LATE] as BookingStatus[]).includes(booking.status);
   },
 
   /**
@@ -31,7 +31,7 @@ export const bookingRules = {
     const conflicts = allBookings.filter(b => 
       b.id !== target.id && 
       b.date === target.date &&
-      [BookingStatus.APPROVED, BookingStatus.COMPLETED, BookingStatus.LATE].includes(b.status)
+      ([BookingStatus.APPROVED, BookingStatus.COMPLETED, BookingStatus.LATE] as BookingStatus[]).includes(b.status)
     );
 
     return conflicts.some(b => {

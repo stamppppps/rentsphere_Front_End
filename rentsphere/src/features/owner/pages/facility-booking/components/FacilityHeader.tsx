@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChevronLeft, Settings, Hammer, Play, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

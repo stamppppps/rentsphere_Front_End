@@ -1,4 +1,3 @@
-
 import { type Booking, BookingStatus } from '../types/booking';
 import { auditService } from './audit.service';
 

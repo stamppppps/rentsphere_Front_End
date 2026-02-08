@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Ban, X, User, ShieldAlert, Check, AlertCircle } from 'lucide-react';
 

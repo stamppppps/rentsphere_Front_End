@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Inbox, CalendarX, PlusCircle } from 'lucide-react';
 import { UI_TEXT } from '../constants/uiText';

@@ -1,13 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import type { Booking } from '../types/booking';
 import { bookingService } from '../services/booking.service';
 
-/**
- * Custom hook to manage booking data for the admin dashboard.
- * Designed to provide a stable state for tables and allow for 
- * "No-Reload" updates after admin actions.
- */
 export const useBookings = (facilityId?: string) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);

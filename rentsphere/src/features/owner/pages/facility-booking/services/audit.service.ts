@@ -1,4 +1,3 @@
-
 import { type AuditLog, AuditAction } from '../types/audit';
 
 const MOCK_AUDITS: AuditLog[] = [

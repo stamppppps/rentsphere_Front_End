@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FacilityStatus } from '../types/facility';
 import { Hammer, CheckCircle2, AlertTriangle } from 'lucide-react';
