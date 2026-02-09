@@ -99,3 +99,114 @@ button:focus-visible {
 .toggle input:checked + .slider::before {
   transform: translateX(20px);
 }
+
+/* AuthPage styles (from management-platform) */
+.cosmic-gradient {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #2e1065 100%);
+  position: relative;
+  overflow: hidden;
+}
+.meteor {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,1));
+  border-radius: 50%;
+  box-shadow: 0 0 10px white;
+  animation: meteor linear infinite;
+  opacity: 0;
+}
+ @keyframes meteor {
+  0% { transform: rotate(-45deg) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: rotate(-45deg) translateX(-1000px); opacity: 0; }
+}
+ .glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+.input-auth {
+  background-color: var(--input-purple);
+  border: none;
+  border-radius: 0.75rem;
+  color: #4b5563;
+}
+.input-auth::placeholder {
+  color: #9ca3af;
+}
+.btn-auth {
+  background: linear-gradient(to right, #a78bfa, #818cf8);
+  box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+}
+ /* Layout for the meteor animation */
+.stars-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+ }
+.input-auth{
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: white;
+  padding: 14px 16px;
+  border-radius: 14px;
+  outline: none;
+  width: 100%;
+}
+
+.input-auth::placeholder{
+  color: rgba(255,255,255,0.45);
+}
+
+.input-auth:focus{
+  border-color: rgba(56,189,248,0.55);
+  box-shadow: 0 0 0 4px rgba(56,189,248,0.15);
+}
+
+.btn-auth{
+  background: linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9));
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.25);
+}
+.auth-input{
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.92);
+  outline: none;
+  transition: 160ms ease;
+}
+
+.auth-input::placeholder{
+  color: rgba(255,255,255,0.45);
+}
+
+.auth-input:focus{
+  border-color: rgba(56,189,248,0.55);
+  box-shadow: 0 0 0 4px rgba(56,189,248,0.18);
+}
+
+.auth-btn{
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(90deg, rgba(37,99,235,0.95), rgba(14,165,233,0.95));
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+  transition: 180ms ease;
+}
+
+.auth-btn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { StaffModal } from '../components/StaffModal';
-import types { StaffMember, Role } from '../types/types';
+import type { StaffMember } from '../types/types';
+import { Role } from '../types/types';
+
+
 import { Building2, Users, Plus, Pencil, Trash2, Search } from 'lucide-react';
 
 const MOCK_STAFF: StaffMember[] = [

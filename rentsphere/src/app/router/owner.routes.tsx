@@ -3,6 +3,10 @@ import { Navigate } from "react-router-dom";
 
 import OwnerLayout from "@/app/layouts/OwnerLayout";
 
+// Owner Auth Pages
+import OwnerLogin from "@/features/owner/pages/Auth/OwnerLogin";
+import OwnerRegister from "@/features/owner/pages/Auth/OwnerRegister";
+
 // AddCondo flow
 import AddCondoLayout from "@/features/owner/pages/AddCondo/AddCondoLayout";
 import Step6RoomPrice from "@/features/owner/pages/AddCondo/steps/Step6_RoomPrice";
@@ -31,6 +35,10 @@ import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
 const ownerRoutes: RouteObject[] = [
+  { path: "/owner/login", element: <OwnerLogin /> },
+  { path: "/owner/register", element: <OwnerRegister /> },
+
+  
   {
     path: "/owner",
     element: <OwnerLayout />,
