@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import { 
   LayoutDashboard, 
   Home, 
@@ -13,10 +14,10 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  X
+  
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChartDataPoint } from './types';
+import type { ChartDataPoint } from '../types/types';
 
 // --- Components ---
 

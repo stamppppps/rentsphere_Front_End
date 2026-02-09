@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 export interface StaffMember {
   id: number;
   name: string;
@@ -7,11 +8,15 @@ export interface StaffMember {
   properties: string[];
 }
 
-export enum Role {
-  OWNER = 'เจ้าของ',
-  ADMIN = 'แอดมิน',
-  STAFF = 'เจ้าหน้าที่ทั่วไป'
-}
+export const Role = {
+  OWNER: 'เจ้าของ',
+  ADMIN: 'แอดมิน',
+  STAFF: 'เจ้าหน้าที่ทั่วไป',
+} as const;
+
+export type Role = typeof Role[keyof typeof Role];
+
+
 
 export interface ChartDataPoint {
   month: string;
@@ -21,7 +26,7 @@ export interface ChartDataPoint {
 export interface MenuItem {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   active?: boolean;
 }
 

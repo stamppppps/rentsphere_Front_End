@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
-import type { StaffMember, Role } from '../types/types';
+import type { StaffMember } from '../types/types';
+import { Role } from '../types/types';
+
 
 interface StaffModalProps {
   isOpen: boolean;
