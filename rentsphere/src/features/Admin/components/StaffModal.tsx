@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { StaffMember, Role } from '../types/types';
 import { Role as RoleConst } from '../types/types';
 
+
 // Types
 interface StaffModalProps {
   isOpen: boolean;

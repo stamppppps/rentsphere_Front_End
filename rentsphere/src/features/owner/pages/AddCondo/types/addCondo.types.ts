@@ -8,6 +8,10 @@ export type Room = {
     serviceId: string | null;
     isActive: boolean;
     status: RoomStatus;
+    roomNumber?: string;
+    number?: string;
+    name?: string;
+
 };
 
 export type AddCondoState = {
