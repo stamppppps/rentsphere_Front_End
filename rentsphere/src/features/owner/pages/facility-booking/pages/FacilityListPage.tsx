@@ -7,6 +7,7 @@ import { FACILITY_TYPE_CONFIG } from '../constants/facilityType';
 import CreateFacilityModal from '../modals/CreateFacilityModal';
 import { Link } from 'react-router-dom';
 import EmptyState from '../components/EmptyState';
+import OwnerShell from "@/features/owner/components/OwnerShell";
 
 const FacilityListPage: React.FC = () => {
   const { facilities, loading } = useFacilities();
@@ -22,17 +23,15 @@ const FacilityListPage: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <OwnerShell activeKey="common-area-booking" showSidebar>
+      <div className="max-w-7xl mx-auto px-6 py-12">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div>
           <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
-            <span>Dashboard</span>
-            <span>/</span>
-            <span className="text-indigo-600">Facilities</span>
           </nav>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">พื้นที่ส่วนกลาง</h1>
-          <p className="text-slate-500 mt-2 font-medium">จัดการรายการพื้นที่และการเข้าใช้งานของลูกบ้านแบบ Real-time</p>
+          <p className="text-slate-500 mt-2 font-medium">จัดการรายการพื้นที่และการเข้าใช้งานของลูกบ้าน</p>
         </div>
         <div className="flex items-center gap-3">
           <Link 
@@ -44,7 +43,7 @@ const FacilityListPage: React.FC = () => {
           </Link>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-[20px] font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
+            className="flex items-center gap-2 px-6 py-3.5 bg-[#2C92D6] text-white !rounded-[20px] font-bold hover:bg-[#2F5F93] transition-all shadow-xl shadow-[#3970AE]/20 active:scale-95"
           >
             <Plus size={20} />
             เพิ่มพื้นที่
@@ -124,8 +123,9 @@ const FacilityListPage: React.FC = () => {
         <EmptyState title="ไม่พบพื้นที่" description="ลองเปลี่ยนคำค้นหาหรือประเภทพื้นที่เพื่อให้แสดงผลลัพธ์อื่นที่คุณต้องการ" />
       )}
 
-      {isCreateModalOpen && <CreateFacilityModal onClose={() => setIsCreateModalOpen(false)} />}
-    </div>
+        {isCreateModalOpen && <CreateFacilityModal onClose={() => setIsCreateModalOpen(false)} />}
+      </div>
+    </OwnerShell>
   );
 };
 

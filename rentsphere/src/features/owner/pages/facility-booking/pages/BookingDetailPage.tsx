@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { BOOKING_STATUS_CONFIG } from '../constants/bookingStatus';
 import { checkIfLate, getMinutesLate, checkIfBeyondGracePeriod, checkIfExpired, getMinutesOver } from '../utils/time';
+import OwnerShell from "@/features/owner/components/OwnerShell";
 
 const BookingDetailPage: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
@@ -127,7 +128,8 @@ const BookingDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <OwnerShell activeKey="common-area-booking" showSidebar>
+      <div className="max-w-6xl mx-auto px-6 py-12">
       <div className="flex items-center gap-4 mb-8">
         <button onClick={() => navigate(-1)} className="p-3.5 bg-white border border-slate-200 rounded-[20px] text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm active:scale-90">
           <ChevronLeft size={22} />
@@ -309,7 +311,8 @@ const BookingDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </OwnerShell>
   );
 };
 
