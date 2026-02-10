@@ -1,36 +1,49 @@
 import React, { useState } from 'react';
 import { Navbar } from '../components/Navbar';
 import { StaffModal } from '../components/StaffModal';
-import type { StaffMember } from '../types/types';
-import { Role } from '../types/types';
+import type { StaffMember, Role } from '../types/types';
 
+// Building and Users icons as SVG components
+const BuildingIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+    <defs>
+      <linearGradient id="buildingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#c084fc" />
+        <stop offset="100%" stopColor="#a855f7" />
+      </linearGradient>
+    </defs>
+    <rect x="12" y="16" width="40" height="44" rx="4" fill="url(#buildingGrad)" opacity="0.9" />
+    <rect x="20" y="24" width="8" height="6" rx="1" fill="white" opacity="0.8" />
+    <rect x="36" y="24" width="8" height="6" rx="1" fill="white" opacity="0.8" />
+    <rect x="20" y="36" width="8" height="6" rx="1" fill="white" opacity="0.8" />
+    <rect x="36" y="36" width="8" height="6" rx="1" fill="white" opacity="0.8" />
+    <rect x="28" y="48" width="8" height="12" rx="1" fill="white" opacity="0.9" />
+  </svg>
+);
 
-import { Building2, Users, Plus, Pencil, Trash2, Search } from 'lucide-react';
+const UsersIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+    <defs>
+      <linearGradient id="usersGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#c084fc" />
+        <stop offset="100%" stopColor="#a855f7" />
+      </linearGradient>
+    </defs>
+    <circle cx="24" cy="20" r="10" fill="url(#usersGrad)" opacity="0.9" />
+    <path d="M8 52c0-10 8-16 16-16s16 6 16 16" fill="url(#usersGrad)" opacity="0.7" />
+    <circle cx="44" cy="24" r="8" fill="url(#usersGrad)" opacity="0.8" />
+    <path d="M36 52c4-8 8-12 16-12 6 0 10 4 10 12" fill="url(#usersGrad)" opacity="0.6" />
+  </svg>
+);
 
 const MOCK_STAFF: StaffMember[] = [
   {
     id: 1,
     name: 'Mr. Kittidet Suksarn',
-    role: Role.OWNER,
+    role: 'เจ้าของ' as Role,
     phone: '081234567',
-    email: 'kittidet@gmail.com',
-    properties: ['Sawaddee Condo', 'ABC Condo']
-  },
-  {
-    id: 2,
-    name: 'Ms. Somsri Jaidee',
-    role: Role.ADMIN,
-    phone: '0899887766',
-    email: 'somsri@gmail.com',
-    properties: ['Sawaddee Condo']
-  },
-  {
-    id: 3,
-    name: 'Mr. Mana Meesu',
-    role: Role.STAFF,
-    phone: '0811122233',
-    email: 'mana@rentsphere.com',
-    properties: ['ABC Condo']
+    email: 'Kittidet@gmail.com',
+    properties: ['สวัสดีคอนโด', 'ABC คอนโด']
   }
 ];
 
@@ -58,173 +71,193 @@ export default function App() {
 
   const handleSubmit = (data: Omit<StaffMember, 'id'>) => {
     if (editingStaff) {
-      // Update existing
-      setStaffList(prev => prev.map(item => 
-        item.id === editingStaff.id 
-          ? { ...data, id: editingStaff.id } 
+      setStaffList(prev => prev.map(item =>
+        item.id === editingStaff.id
+          ? { ...data, id: editingStaff.id }
           : item
       ));
     } else {
-      // Add new
       const newId = Math.max(...staffList.map(s => s.id), 0) + 1;
       setStaffList(prev => [...prev, { ...data, id: newId }]);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans" style={{ background: 'linear-gradient(180deg, #e9d5ff 0%, #ddd6fe 50%, #c4b5fd 100%)' }}>
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">คอนโดมิเนียม</h1>
-          <p className="text-gray-500">จัดการข้อมูลคอนโดมิเนียมและผู้ใช้งานในระบบ</p>
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-purple-900">คอนโดมิเนียม</h1>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <button
-              onClick={() => setActiveTab('condo')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-xl shadow-sm border transition-all duration-200 group
-                ${activeTab === 'condo' 
-                  ? 'bg-blue-600 text-white border-transparent ring-2 ring-blue-300 ring-offset-2' 
-                  : 'bg-white text-gray-600 border-gray-100 hover:border-blue-200 hover:bg-blue-50'}`}
-            >
-               <div className={`p-2 rounded-lg ${activeTab === 'condo' ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-white'}`}>
-                 <Building2 size={24} />
-               </div>
-               <span className="font-semibold text-lg">จัดการคอนโดมิเนียม</span>
-            </button>
+        <div className="flex justify-center gap-8 mb-6">
+          <button
+            onClick={() => setActiveTab('condo')}
+            className="flex flex-col items-center gap-2 group"
+          >
+            <BuildingIcon />
+            <span className={`font-medium text-sm ${activeTab === 'condo' ? 'text-purple-800' : 'text-purple-600'}`}>
+              จัดการคอนโดมิเนียม
+            </span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('user')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-xl shadow-sm border transition-all duration-200 group
-                ${activeTab === 'user' 
-                  ? 'bg-blue-600 text-white border-transparent ring-2 ring-blue-300 ring-offset-2' 
-                  : 'bg-white text-gray-600 border-gray-100 hover:border-blue-200 hover:bg-blue-50'}`}
-            >
-               <div className={`p-2 rounded-lg ${activeTab === 'user' ? 'bg-white/20' : 'bg-gray-100 group-hover:bg-white'}`}>
-                 <Users size={24} />
-               </div>
-               <span className="font-semibold text-lg">จัดการผู้ใช้งาน</span>
-            </button>
+          <button
+            onClick={() => setActiveTab('user')}
+            className="flex flex-col items-center gap-2 group"
+          >
+            <UsersIcon />
+            <span className={`font-medium text-sm ${activeTab === 'user' ? 'text-purple-800' : 'text-purple-600'}`}>
+              จัดการผู้ใช้งาน
+            </span>
+          </button>
+        </div>
+
+        {/* Add Button */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={handleOpenAdd}
+            className="px-8 py-3 rounded-full font-medium text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+            style={{ background: 'linear-gradient(90deg, #f472b6 0%, #c084fc 100%)' }}
+          >
+            เพิ่มคอนโดมิเนียม
+          </button>
         </div>
 
         {/* Content Area */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
-          
-          {activeTab === 'user' ? (
-            <div className="p-6">
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div className="relative w-full sm:w-72">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={18} className="text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="ค้นหาเจ้าหน้าที่..."
-                    className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                  />
-                </div>
-                
-                <button 
-                  onClick={handleOpenAdd}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md shadow-blue-200 transition-all flex items-center justify-center gap-2 font-medium"
-                >
-                  <Plus size={20} />
-                  เพิ่มเจ้าหน้าที่
-                </button>
-              </div>
+        {activeTab === 'user' && (
+          <div className="bg-white/80 rounded-2xl p-6 backdrop-blur-sm">
+            {/* Add Button & Sort */}
+            <div className="flex justify-between items-center mb-4">
+              <div></div>
+              <button
+                onClick={handleOpenAdd}
+                className="px-4 py-1.5 rounded-full text-sm font-medium text-white"
+                style={{ background: 'linear-gradient(90deg, #f472b6 0%, #c084fc 100%)' }}
+              >
+                เพิ่ม
+              </button>
+            </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto rounded-xl border border-gray-100">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-blue-50/50 text-gray-700 text-sm leading-normal">
-                      <th className="py-4 px-6 font-semibold w-16 text-center">#</th>
-                      <th className="py-4 px-6 font-semibold">ชื่อ / ตำแหน่ง</th>
-                      <th className="py-4 px-6 font-semibold">เบอร์โทร / อีเมล</th>
-                      <th className="py-4 px-6 font-semibold">อสังหาริมทรัพย์</th>
-                      <th className="py-4 px-6 font-semibold text-center">จัดการ</th>
+            {/* Table */}
+            <div className="rounded-xl overflow-hidden" style={{ border: '3px solid #818cf8' }}>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-white text-purple-800 text-sm">
+                    <th className="py-3 px-4 font-semibold text-center w-12">#</th>
+                    <th className="py-3 px-4 font-semibold">ชื่อ/ตำแหน่ง</th>
+                    <th className="py-3 px-4 font-semibold">เบอร์/อีเมล</th>
+                    <th className="py-3 px-4 font-semibold">อสังหาริมทรัพย์</th>
+                    <th className="py-3 px-4 font-semibold text-center w-20"></th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700 text-sm">
+                  {staffList.map((staff, index) => (
+                    <tr key={staff.id} className="border-t border-gray-100">
+                      <td className="py-4 px-4 text-center">{index + 1}</td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-800">{staff.name}</span>
+                          <span className="text-xs text-purple-600">{staff.role}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col">
+                          <span className="text-gray-800">{staff.phone}</span>
+                          <span className="text-gray-500 text-xs">{staff.email}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          {staff.properties.map((prop, i) => (
+                            <span key={i} className="text-gray-700 text-sm">{prop}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <button
+                          onClick={() => handleOpenEdit(staff)}
+                          className="text-purple-600 hover:text-purple-800 font-medium text-sm transition"
+                        >
+                          edit
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="text-gray-600 text-sm font-light">
-                    {staffList.map((staff, index) => (
-                      <tr key={staff.id} className="border-b border-gray-100 hover:bg-blue-50/30 transition duration-150">
-                        <td className="py-4 px-6 text-center font-medium">{index + 1}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800 text-base">{staff.name}</span>
-                            <span className="text-xs bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full w-fit mt-1 font-medium">
-                              {staff.role}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-gray-800 font-medium">{staff.phone}</span>
-                            <span className="text-gray-500">{staff.email}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-wrap gap-1">
-                             {staff.properties.map((prop, i) => (
-                               <span key={i} className="bg-gray-100 text-gray-600 py-1 px-2 rounded text-xs border border-gray-200">
-                                 {prop}
-                               </span>
-                             ))}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex item-center justify-center gap-3">
-                            <button 
-                              onClick={() => handleOpenEdit(staff)}
-                              className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition transform hover:scale-110"
-                              title="Edit"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(staff.id)}
-                              className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition transform hover:scale-110"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    
-                    {staffList.length === 0 && (
-                       <tr>
-                         <td colSpan={5} className="py-10 text-center text-gray-400">
-                           <div className="flex flex-col items-center gap-2">
-                             <Users size={48} className="text-gray-200"/>
-                             <span>ไม่พบข้อมูลเจ้าหน้าที่</span>
-                           </div>
-                         </td>
-                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                  ))}
+
+                  {staffList.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-10 text-center text-gray-400">
+                        <div className="flex flex-col items-center gap-2">
+                          <UsersIcon />
+                          <span>ไม่พบข้อมูลเจ้าหน้าที่</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'condo' && (
+          <div className="flex justify-end mb-4">
+            <span className="text-purple-600 text-sm">จัดเรียงลำดับ</span>
+          </div>
+        )}
+
+        {activeTab === 'condo' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Condo Card 1 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <BuildingIcon />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-gray-500">สวัสดีคอนโด</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="border border-gray-200 rounded px-3 py-1">
+                    <span className="text-gray-700">50 / 50</span>
+                  </div>
+                  <div className="border border-gray-200 rounded px-3 py-1">
+                    <span className="text-gray-700">0</span>
+                  </div>
+                  <span className="text-pink-500 text-xs">ลืมรา</span>
+                </div>
               </div>
             </div>
-          ) : (
-             /* Placeholder for Condo Tab */
-            <div className="flex flex-col items-center justify-center h-[500px] text-gray-400">
-               <Building2 size={64} className="mb-4 text-gray-200" />
-               <h3 className="text-xl font-medium text-gray-500">Condominium Management View</h3>
-               <p>Select "จัดการผู้ใช้งาน" to see the requested feature.</p>
+
+            {/* Condo Card 2 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <BuildingIcon />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-gray-500">ABC</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="border border-gray-200 rounded px-3 py-1">
+                    <span className="text-gray-700">50 / 50</span>
+                  </div>
+                  <div className="border border-gray-200 rounded px-3 py-1">
+                    <span className="text-gray-700">0</span>
+                  </div>
+                  <span className="text-pink-500 text-xs">ลืมรา</span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
 
-      <StaffModal 
+      <StaffModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
