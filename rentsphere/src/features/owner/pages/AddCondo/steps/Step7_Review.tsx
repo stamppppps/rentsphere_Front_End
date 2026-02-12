@@ -77,220 +77,254 @@ export default function Step7_Review() {
 
     const disableBulk = pickedCount === 0;
 
+    const formatPrice = (v: number | null) => {
+        const n = typeof v === "number" ? v : 0;
+        return n.toLocaleString();
+    };
+
     return (
-        <div className="min-h-[calc(100vh-64px)] bg-[#eef5ff] px-8 py-8 font-sarabun">
-            {/* title  */}
-            <h1 className="text-center text-4xl font-extrabold text-gray-900 tracking-tight">
+        <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
+            <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
                 ตั้งค่าคอนโดมิเนียม
             </h1>
 
-            <div className="mx-auto mt-6 w-full max-w-5xl flex flex-col gap-6 pb-32">
-                {Array.from(roomsByFloor.entries()).map(([floor, floorRooms]) => (
-                    <div
-                        key={floor}
-                        className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden"
-                    >
-                        {/* header */}
-                        <div className="flex items-center justify-between px-6 py-4 bg-[#f3f7ff] border-b border-blue-100/60">
-                            <div className="flex items-center gap-3">
-                                <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
-                                <div className="text-lg font-extrabold text-gray-900">
-                                    ชั้นที่ {floor}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => pickAllOnFloor(floor)}
-                                    className="px-5 py-2.5 rounded-xl bg-white border border-green-200 text-green-700 font-extrabold text-base shadow-sm hover:bg-green-50 active:scale-[0.98]"
-                                >
-                                    เลือกทั้งชั้น
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => unpickAllOnFloor(floor)}
-                                    className="px-5 py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-extrabold text-base shadow-sm hover:bg-red-50 active:scale-[0.98]"
-                                >
-                                    ยกเลิกทั้งชั้น
-                                </button>
-                            </div>
+            <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
+                <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
+                    <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
+                    <div>
+                        <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+                            สถานะห้อง (ว่าง / ไม่ว่าง)
                         </div>
-
-                        {/* body */}
-                        <div className="px-6 py-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {floorRooms.map((room) => {
-                                    const isPicked = pickedSet.has(room.id);
-
-                                    return (
-                                        <div
-                                            key={room.id}
-                                            className={[
-                                                "rounded-2xl border shadow-sm px-5 py-5 bg-white transition",
-                                                isPicked
-                                                    ? "border-blue-300 ring-2 ring-blue-200"
-                                                    : "border-blue-100/70",
-                                            ].join(" ")}
-                                        >
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="text-lg font-extrabold text-gray-900">
-                                                    ห้อง {room.roomNo}
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => togglePick(room.id)}
-                                                    className={[
-                                                        "px-4 py-2 rounded-xl text-sm font-extrabold border shadow-sm",
-                                                        isPicked
-                                                            ? "!bg-blue-600 text-white border-blue-600 hover:!bg-blue-700"
-                                                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50",
-                                                    ].join(" ")}
-                                                >
-                                                    {isPicked ? "เลือกแล้ว" : "เลือก"}
-                                                </button>
-                                            </div>
-
-                                            {/* status badge + toggle */}
-                                            <div className="mt-4 flex items-center justify-between">
-                                                <div
-                                                    className={[
-                                                        "px-4 py-2 rounded-xl text-sm font-extrabold border",
-                                                        room.status === "VACANT"
-                                                            ? "border-green-200 text-green-700 bg-green-50"
-                                                            : "border-red-200 text-red-700 bg-red-50",
-                                                    ].join(" ")}
-                                                >
-                                                    สถานะ: {room.status === "VACANT" ? "ว่าง" : "ไม่ว่าง"}
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleRoomStatus(room.id)}
-                                                    className="px-4 py-2 rounded-xl text-sm font-extrabold border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm"
-                                                >
-                                                    สลับสถานะ
-                                                </button>
-                                            </div>
-
-                                            {/* price preview */}
-                                            <div className="mt-4 text-base font-bold text-gray-700">
-                                                ราคา:{" "}
-                                                <span className="font-extrabold text-gray-900 text-lg">
-                                                    {room.price ?? 0}
-                                                </span>{" "}
-                                                บาท
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="mt-5 text-base font-bold text-gray-600">
-                                ชั้นนี้มี{" "}
-                                <span className="font-extrabold text-gray-900">
-                                    {floorRooms.length}
-                                </span>{" "}
-                                ห้อง
-                            </div>
+                        <div className="mt-1 text-sm font-bold text-gray-600">
+                            เลือกห้องที่ต้องการ แล้วตั้งสถานะเป็น “ว่าง” หรือ “ไม่ว่าง”
                         </div>
                     </div>
-                ))}
+                </div>
+
+                <div className="px-8 py-7">
+                    <div className="grid grid-cols-1 gap-5">
+                        {Array.from(roomsByFloor.entries()).map(([floor, floorRooms]) => (
+                            <div
+                                key={floor}
+                                className="rounded-2xl border border-blue-100/60 bg-white shadow-sm overflow-hidden"
+                            >
+                                <div className="flex items-center justify-between gap-4 px-6 py-4 bg-[#f3f7ff] border-b border-blue-100/60">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
+                                        <div className="text-lg font-extrabold text-gray-900">
+                                            ชั้นที่ {floor}
+                                        </div>
+                                        <div className="text-sm font-bold text-gray-600">
+                                            · {floorRooms.length} ห้อง
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => pickAllOnFloor(floor)}
+                                            className="h-[44px] px-5 rounded-xl bg-white border border-blue-200 text-blue-700 font-extrabold text-sm shadow-sm hover:bg-blue-50 active:scale-[0.98]
+                                 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                        >
+                                            เลือกทั้งชั้น
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => unpickAllOnFloor(floor)}
+                                            className="h-[44px] px-5 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98]
+                                 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                        >
+                                            ยกเลิกทั้งชั้น
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="px-6 py-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                        {floorRooms.map((room) => {
+                                            const isPicked = pickedSet.has(room.id);
+                                            const isVacant = room.status === "VACANT";
+
+                                            return (
+                                                <div
+                                                    key={room.id}
+                                                    className={[
+                                                        "rounded-2xl border px-6 py-5 bg-white shadow-sm transition",
+                                                        isPicked
+                                                            ? "border-blue-300 ring-4 ring-blue-200/60"
+                                                            : "border-blue-100/70",
+                                                    ].join(" ")}
+                                                >
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="text-base font-extrabold text-gray-900">
+                                                            ห้อง {room.roomNo}
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => togglePick(room.id)}
+                                                            className={[
+                                                                "h-[40px] px-4 rounded-xl text-xs font-extrabold border shadow-sm transition",
+                                                                "active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-blue-200",
+                                                                isPicked
+                                                                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                                                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50",
+                                                            ].join(" ")}
+                                                        >
+                                                            {isPicked ? "เลือกแล้ว" : "เลือก"}
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="mt-4 flex items-center justify-between gap-3">
+                                                        <div
+                                                            className={[
+                                                                "h-[40px] px-4 rounded-xl text-xs font-extrabold border flex items-center",
+                                                                isVacant
+                                                                    ? "border-emerald-200 text-emerald-700 bg-emerald-50"
+                                                                    : "border-rose-200 text-rose-700 bg-rose-50",
+                                                            ].join(" ")}
+                                                        >
+                                                            สถานะ: {isVacant ? "ว่าง" : "ไม่ว่าง"}
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleRoomStatus(room.id)}
+                                                            className="h-[40px] px-4 rounded-xl text-xs font-extrabold border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition active:scale-[0.98]
+                                         focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                                        >
+                                                            สลับสถานะ
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="mt-4 text-sm font-bold text-gray-700">
+                                                        ราคา:{" "}
+                                                        <span className="font-extrabold text-gray-900 text-base">
+                                                            {formatPrice(room.price)}
+                                                        </span>{" "}
+                                                        บาท
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="mt-6 text-sm font-bold text-gray-600">
+                                        ชั้นนี้มีทั้งหมด{" "}
+                                        <span className="font-extrabold text-gray-900">
+                                            {floorRooms.length}
+                                        </span>{" "}
+                                        ห้อง
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {selectedRoomIds.length === 0 && (
+                            <div className="rounded-2xl border border-blue-100/60 bg-white px-6 py-5 shadow-sm">
+                                <div className="text-sm font-extrabold text-gray-900">
+                                    ยังไม่มีห้องที่เลือกจาก Step 6
+                                </div>
+                                <div className="mt-1 text-sm font-bold text-gray-600">
+                                    กรุณากลับไปเลือกห้องและกำหนดราคาใน Step 6 ก่อน
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => nav("../step-6")}
+                                    className="mt-4 h-[44px] px-5 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+                             bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                             focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                >
+                                    กลับไป Step 6
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* ===== fixed footer  ===== */}
             <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
                 <div className="w-full max-w-[1120px] mx-auto px-6">
-                    <div className="flex justify-end items-center gap-[14px] flex-wrap">
-                        {/* count badge */}
+                    <div className="flex items-center justify-end gap-[14px] flex-wrap">
                         <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
                             เลือกเพื่อกำหนดสถานะ {pickedCount} ห้อง
                         </div>
 
-                        {/* bulk vacant */}
                         <button
                             type="button"
                             disabled={disableBulk}
                             onClick={applyVacant}
                             className={[
                                 "h-[46px] px-5 rounded-xl border-0 shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm transition",
+                                "focus:outline-none focus:ring-2 focus:ring-blue-300",
                                 disableBulk
-                                    ? "bg-[#16a34a]/30 text-white/70 cursor-not-allowed"
-                                    : "!bg-[#16a34a] text-white hover:!bg-[#128a3f] active:scale-[0.98] cursor-pointer",
+                                    ? "bg-blue-200 cursor-not-allowed text-white/70 shadow-none"
+                                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] cursor-pointer",
                             ].join(" ")}
                         >
                             ตั้งเป็น “ว่าง”
                         </button>
 
-                        {/* bulk occupied */}
                         <button
                             type="button"
                             disabled={disableBulk}
                             onClick={applyOccupied}
                             className={[
                                 "h-[46px] px-5 rounded-xl border-0 shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm transition",
+                                "focus:outline-none focus:ring-2 focus:ring-blue-300",
                                 disableBulk
-                                    ? "bg-[#dc2626]/30 text-white/70 cursor-not-allowed"
-                                    : "!bg-[#dc2626] text-white hover:!bg-[#b91c1c] active:scale-[0.98] cursor-pointer",
+                                    ? "bg-blue-200 cursor-not-allowed text-white/70 shadow-none"
+                                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] cursor-pointer",
                             ].join(" ")}
                         >
                             ตั้งเป็น “ไม่ว่าง”
                         </button>
 
-                        {/* pick all */}
                         <button
                             type="button"
                             onClick={pickAll}
-                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
                         >
                             เลือกทั้งหมด
                         </button>
 
-                        {/* clear pick */}
                         <button
                             type="button"
                             onClick={clearPick}
-                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
                         >
                             ล้างที่เลือก
                         </button>
 
-                        {/* back */}
                         <button
                             type="button"
                             onClick={() => nav("../step-6")}
-                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] hover:bg-gray-50 active:scale-[0.98]"
+                            className="h-[46px] px-5 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
                         >
                             ย้อนกลับ
                         </button>
 
-                        {/* next */}
                         <button
                             type="button"
                             disabled={!canGoNext}
                             onClick={() => nav("../step-8")}
                             className={[
                                 "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+                                "focus:outline-none focus:ring-2 focus:ring-blue-300",
                                 canGoNext
-                                    ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer"
+                                    ? "bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer"
                                     : "bg-[#93C5FD]/40 cursor-not-allowed text-white/70",
                             ].join(" ")}
                         >
                             ต่อไป
                         </button>
                     </div>
-
-                    {selectedRoomIds.length === 0 && (
-                        <div className="mt-3 text-right text-sm font-bold text-gray-500">
-                            กรุณาเลือกห้องใน Step 6 ก่อน
-                        </div>
-                    )}
                 </div>
             </div>
-
-
         </div>
     );
 }

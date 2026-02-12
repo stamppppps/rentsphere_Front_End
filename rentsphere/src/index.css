@@ -265,3 +265,38 @@ button:focus-visible {
   from { opacity: 0; transform: translateY(1rem); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== Owner UI typography ===== */
+.owner-ui {
+  font-family: "Prompt", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.owner-ui h1,
+.owner-ui h2,
+.owner-ui h3 {
+  letter-spacing: -0.01em;
+}
+
+.owner-ui .ui-title {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: rgba(0,0,0,0.85);
+}
+
+.owner-ui .ui-subtitle {
+  font-weight: 700;
+  color: rgba(55,65,81,0.9); /* gray-700-ish */
+}
+
+.owner-ui .ui-label {
+  font-weight: 700;
+  color: rgba(75,85,99,0.95); /* gray-600/700 */
+}
+
+.owner-ui .ui-body {
+  font-weight: 600;
+  color: rgba(55,65,81,0.9);
+}

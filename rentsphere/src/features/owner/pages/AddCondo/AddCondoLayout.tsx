@@ -27,12 +27,12 @@ function SidebarItem({
             className={[
                 "w-full text-left rounded-2xl",
                 "px-7 py-5",
-                "text-xl font-bold",
-                "tracking-wide",
+                "text-[18px] font-extrabold text-black/80",
+                "tracking-[0.2px]",
                 "transition-all duration-200",
                 "focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/40",
                 isActive
-                    ? "bg-white text-gray-900 shadow-md translate-x-0.5"
+                    ? "bg-white shadow-md translate-x-0.5"
                     : "text-gray-700 hover:bg-white/60 hover:text-gray-900 hover:translate-x-0.5",
             ].join(" ")}
         >
@@ -48,18 +48,20 @@ export default function AddCondoLayout() {
     const isActive = (stepPath: string) =>
         !!matchPath({ path: `/owner/add-condo/${stepPath}` }, pathname);
 
+    const isStep0 = !!matchPath({ path: "/owner/add-condo/step-0" }, pathname);
+    const isStep9 = !!matchPath({ path: "/owner/add-condo/step-9" }, pathname);
+
+    if (isStep0 || isStep9) {
+        return (
+            <div className="owner-ui min-h-screen w-full bg-[#EEF4FF] font-sans text-black/85 flex items-center justify-center">
+                <Outlet />
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans">
-            {/* Sidebar */}
-            <aside
-                className={[
-                    "w-[22rem]",
-                    "shrink-0 bg-[#D6E6FF]",
-                    "border-r border-blue-100/80",
-                    "shadow-[2px_0_14px_rgba(0,0,0,0.05)]",
-                ].join(" ")}
-            >
-                {/* Logo Area */}
+        <div className="owner-ui flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans text-black/85">
+            <aside className="w-[22rem] shrink-0 bg-[#D6E6FF] border-r border-blue-100/80 shadow-[2px_0_14px_rgba(0,0,0,0.05)]">
                 <div className="h-24 flex items-center px-8">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-blue-600/20">
@@ -72,37 +74,32 @@ export default function AddCondoLayout() {
                 </div>
 
                 <div className="px-6 pb-6">
-                    <h1 className="text-3xl font-extrabold text-gray-900 mb-5 pl-1">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mb-5 pl-1">
                         คอนโดมิเนียม
                     </h1>
 
                     <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
                         <div className="flex flex-col gap-4">
-                            {MENU.map((m) => {
-                                const active = isActive(m.path);
-                                return (
-                                    <SidebarItem
-                                        key={m.path}
-                                        label={m.label}
-                                        isActive={active}
-                                        onClick={() => navigate(m.path, { relative: "path" })}
-                                    />
-                                );
-                            })}
+                            {MENU.map((m) => (
+                                <SidebarItem
+                                    key={m.path}
+                                    label={m.label}
+                                    isActive={isActive(m.path)}
+                                    onClick={() => navigate(m.path, { relative: "path" })}
+                                />
+                            ))}
                         </div>
                     </div>
                 </div>
             </aside>
 
-            {/* Main */}
             <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
-                {/* Top Header Bar */}
                 <header className="h-20 shrink-0 bg-[#D6E6FF] border-b border-blue-100/80 flex items-center justify-end px-10 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-11 h-11 rounded-full bg-white border border-blue-100 flex items-center justify-center text-blue-700 font-extrabold text-lg shadow-sm">
                             K
                         </div>
-                        <div className="text-gray-900 font-semibold text-lg">
+                        <div className="text-gray-900 font-extrabold text-[16px] tracking-[0.2px]">
                             Mr. Kittidet Suksarn
                         </div>
                     </div>
@@ -120,7 +117,6 @@ export default function AddCondoLayout() {
                     </div>
                 </div>
             </main>
-
         </div>
     );
 }

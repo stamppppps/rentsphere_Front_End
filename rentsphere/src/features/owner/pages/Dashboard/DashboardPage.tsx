@@ -1,61 +1,169 @@
-const stats = [
-  { label: 'ห้องทั้งหมด', value: '128', tone: 'bg-blue-50 text-blue-700 border-blue-100' },
-  { label: 'ห้องใช้งาน', value: '114', tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-  { label: 'แจ้งซ่อมค้าง', value: '7', tone: 'bg-amber-50 text-amber-700 border-amber-100' },
-  { label: 'บิลค้างชำระ', value: '12', tone: 'bg-rose-50 text-rose-700 border-rose-100' },
-];
+import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+type Stat = { label: string; value: number | string };
+type LegendItem = { label: string; dotClass: string };
+
+function StatTile({ stat }: { stat: Stat }) {
+    return (
+        <div className="rounded-2xl bg-white border border-blue-100/70 shadow-sm px-6 py-5 text-center">
+            <div className="text-4xl font-black text-indigo-700">{stat.value}</div>
+            <div className="mt-1 text-sm font-bold text-gray-600">{stat.label}</div>
+        </div>
+    );
+}
+
+function PanelHeader({
+    title,
+    subtitle,
+    right,
+}: {
+    title: string;
+    subtitle?: string;
+    right?: React.ReactNode;
+}) {
+    return (
+        <div className="px-6 py-4 bg-[#f3f7ff] border-b border-blue-100/70 flex items-center justify-between gap-4">
+            <div>
+                <div className="text-lg font-extrabold text-gray-900">{title}</div>
+                {subtitle && <div className="mt-1 text-sm font-bold text-gray-600">{subtitle}</div>}
+            </div>
+            {right}
+        </div>
+    );
+}
+
+function ChartShell({
+    title,
+    subtitle,
+    legend,
+    children,
+}: {
+    title: string;
+    subtitle?: string;
+    legend?: LegendItem[];
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden">
+            <PanelHeader
+                title={title}
+                subtitle={subtitle}
+                right={
+                    legend && legend.length > 0 ? (
+                        <div className="flex items-center gap-4 text-xs font-extrabold text-gray-700">
+                            {legend.map((l) => (
+                                <div key={l.label} className="flex items-center gap-2">
+                                    <span className={`h-2.5 w-2.5 rounded-full ${l.dotClass}`} />
+                                    <span>{l.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null
+                }
+            />
+            <div className="p-6">{children}</div>
+        </div>
+    );
+}
+
+function ChartPlaceholder({ height = 220 }: { height?: number }) {
+    return (
+        <div
+            className="relative w-full rounded-2xl border border-slate-200 bg-white"
+            style={{ height }}
+        >
+            <div className="absolute inset-0">
+                <div className="absolute left-10 right-6 top-6 border-t border-dashed border-slate-300" />
+                <div className="absolute left-10 right-6 top-1/2 border-t border-dashed border-slate-300" />
+                <div className="absolute left-10 right-6 bottom-6 border-t border-dashed border-slate-300" />
+
+                <div className="absolute left-3 top-4 text-xs font-bold text-slate-500">2</div>
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
+                    1
+                </div>
+                <div className="absolute left-3 bottom-4 text-xs font-bold text-slate-500">0</div>
+            </div>
+
+            <div className="absolute left-10 right-6 bottom-6">
+                <div className="h-px w-full bg-emerald-500/70" />
+                <div className="mt-2 grid grid-cols-12 gap-2">
+                    {Array.from({ length: 12 }).map((_, i) => (
+                        <div key={i} className="flex flex-col items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                            <span className="text-[10px] font-bold text-slate-500">
+                                {String(i + 1).padStart(2, "0")}/2025
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function DashboardPage() {
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-8 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-          <p className="text-sm font-bold text-purple-600">RentSphere Owner</p>
-          <h1 className="mt-2 text-3xl font-black text-slate-900">แดชบอร์ดเจ้าของ</h1>
-          <p className="mt-2 text-sm text-slate-500">ภาพรวมการจัดการคอนโด ห้องพัก และการจองส่วนกลาง</p>
-        </div>
+    const nav = useNavigate();
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <div className={`inline-flex rounded-xl border px-3 py-1 text-xs font-black ${item.tone}`}>{item.label}</div>
-              <div className="mt-4 text-3xl font-black text-slate-900">{item.value}</div>
-            </div>
-          ))}
-        </div>
+    const condoName = "สวัสดีคอนโด";
 
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:col-span-2">
-            <h2 className="text-lg font-black text-slate-900">กิจกรรมล่าสุด</h2>
-            <div className="mt-4 space-y-3">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-700">
-                มีคำขอจองส่วนกลางใหม่ 3 รายการ
-              </div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-700">
-                ผู้เช่าแจ้งซ่อมใหม่ 1 รายการ
-              </div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-700">
-                บิลค้างชำระเกินกำหนด 12 รายการ
-              </div>
-            </div>
-          </div>
+    const stats = useMemo<Stat[]>(
+        () => [
+            { label: "ห้องว่าง", value: 5 },
+            { label: "ใบแจ้งหนี้ค้างชำระ", value: 0 },
+            { label: "รอการซ่อม", value: 0 },
+        ],
+        []
+    );
 
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-black text-slate-900">ทางลัด</h2>
-            <div className="mt-4 space-y-3">
-              <button className="w-full rounded-2xl bg-purple-600 px-4 py-3 text-sm font-bold text-white hover:bg-purple-700">
-                เพิ่มคอนโด
-              </button>
-              <button className="w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700">
-                จัดการห้อง
-              </button>
-              <button className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
-                ดูการจองส่วนกลาง
-              </button>
+    return (
+        <OwnerShell title="ข้อมูลภาพรวม" activeKey="dashboard" showSidebar={true}>
+            <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
+                <div className="mb-4 flex items-center justify-between">
+                    <div className="text-sm font-bold text-gray-500">
+                        คอนโดมิเนียม : <span className="text-gray-800">{condoName}</span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => nav("/owner/settings")}
+                        className="text-sm font-extrabold text-gray-600 underline underline-offset-4 hover:text-gray-900"
+                    >
+                        ไปที่การตั้งค่าระบบ
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {stats.map((s) => (
+                        <StatTile key={s.label} stat={s} />
+                    ))}
+                </div>
+
+                <div className="mt-6 space-y-6">
+                    <ChartShell
+                        title="รายการใบแจ้งหนี้ / รับเงิน ย้อนหลัง 12 เดือน"
+                        legend={[
+                            { label: "ใบเสร็จรับเงิน", dotClass: "bg-emerald-600" },
+                            { label: "ใบแจ้งหนี้", dotClass: "bg-indigo-600" },
+                        ]}
+                    >
+                        <ChartPlaceholder height={240} />
+                    </ChartShell>
+
+                    <ChartShell title="ค่าเช่า">
+                        <ChartPlaceholder height={240} />
+                    </ChartShell>
+
+                    <ChartShell title="ค่าไฟ">
+                        <ChartPlaceholder height={240} />
+                    </ChartShell>
+
+                    <ChartShell title="ค่าน้ำ">
+                        <ChartPlaceholder height={240} />
+                    </ChartShell>
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+        </OwnerShell>
+    );
 }
