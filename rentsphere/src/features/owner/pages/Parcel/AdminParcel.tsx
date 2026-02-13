@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import OwnerShell from "@/features/owner/components/OwnerShell";
 
 const API = "http://localhost:3001";
 
@@ -162,9 +163,6 @@ export default function AdminParcel() {
       setPreview("");
 
       if (fileInputRef.current) fileInputRef.current.value = "";
-
-      // ถ้าอยากให้ส่งเสร็จแล้วไปแท็บประวัติเลย:
-      // setActiveTab("history");
     } catch (e: any) {
       setErr(e?.message || "error");
     } finally {
@@ -204,10 +202,10 @@ export default function AdminParcel() {
   }, [history, historySearch]);
 
   return (
-    <div className="w-screen min-h-screen bg-[#F3F4FF]">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-indigo-100">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+    <OwnerShell title="จัดการพัสดุ" activeKey="parcel" showSidebar={true}>
+      <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
+        {/* ===== Top bar (แทน sticky header เดิม) ===== */}
+        <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
               <span className="text-lg">📦</span>
@@ -225,7 +223,7 @@ export default function AdminParcel() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Tab buttons (style เข้ากับ header เดิม) */}
+            {/* Tab buttons */}
             <div className="bg-slate-100 rounded-2xl p-1 flex">
               <button
                 onClick={() => {
@@ -233,7 +231,9 @@ export default function AdminParcel() {
                   setActiveTab("send");
                 }}
                 className={`px-4 py-2 rounded-2xl font-black transition ${
-                  activeTab === "send" ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
+                  activeTab === "send"
+                    ? "bg-white shadow text-slate-900"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 ส่งแจ้ง
@@ -244,13 +244,16 @@ export default function AdminParcel() {
                   setActiveTab("history");
                 }}
                 className={`px-4 py-2 rounded-2xl font-black transition ${
-                  activeTab === "history" ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
+                  activeTab === "history"
+                    ? "bg-white shadow text-slate-900"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 ประวัติ
               </button>
             </div>
 
+            {/* เปลี่ยน path ได้ตาม routing ของนาย */}
             <button
               onClick={() => (window.location.href = "/owner/admin-repairs")}
               className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition"
@@ -259,10 +262,8 @@ export default function AdminParcel() {
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Status */}
+        {/* ===== Status ===== */}
         {err && (
           <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-rose-700 font-bold">
             {err}
@@ -275,7 +276,7 @@ export default function AdminParcel() {
         )}
 
         {activeTab === "send" ? (
-          // ================= SEND UI (เดิม) =================
+          // ================= SEND UI =================
           <div className="bg-white rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/30 overflow-hidden">
             <div className="p-6 md:p-8">
               {/* Tenant section */}
@@ -379,7 +380,11 @@ export default function AdminParcel() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                       <div className="rounded-2xl overflow-hidden bg-white border border-slate-200">
-                        <img src={preview} className="w-full object-contain max-h-[320px]" alt="preview" />
+                        <img
+                          src={preview}
+                          className="w-full object-contain max-h-[320px]"
+                          alt="preview"
+                        />
                       </div>
 
                       <div className="space-y-3">
@@ -444,7 +449,7 @@ export default function AdminParcel() {
             <div className="h-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
           </div>
         ) : (
-          // ================= HISTORY UI (ใหม่ แต่ theme เดิม) =================
+          // ================= HISTORY UI =================
           <div className="bg-white rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/30 overflow-hidden">
             <div className="p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-end gap-3 md:gap-4">
@@ -541,6 +546,6 @@ export default function AdminParcel() {
           </div>
         )}
       </div>
-    </div>
+    </OwnerShell>
   );
 }

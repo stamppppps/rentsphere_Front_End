@@ -46,7 +46,10 @@ import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodeP
 
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
-<<<<<<< HEAD
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
+import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
+import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
 import Admin from "@/features/owner/pages/Maintenance/Admin";
 import AdminLogin from "@/features/owner/pages/Maintenance/AdminLogin";
 import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
@@ -70,14 +73,7 @@ function RequireLineLogin({ children }: { children: React.ReactNode }) {
   if (!lineUserId) return <Navigate to="/owner/role" replace />;
   return <>{children}</>;
 }
-=======
-// ===== Facility Booking pages =====
-import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
-import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
-import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
-import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
 
->>>>>>> origin/main
 
 const ownerRoutes: RouteObject[] = [
   { path: "/owner/login", element: <OwnerLogin /> },
