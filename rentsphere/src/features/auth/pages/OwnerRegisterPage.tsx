@@ -2,80 +2,55 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import rentsphereLogo from "@/assets/brand/rentsphere-logo.png";
 import { CondoBackground, Meteors } from "@/features/auth/components/AuthBackground";
-import { useAuthRole } from "@/features/auth/hooks/useAuthRole";
-
 import { api } from "@/shared/api/http";
-import { useRegisterFlowStore } from "@/features/auth/registerFlow.store";
+import { useAuthStore } from "@/features/auth/auth.store";
 
-type RequestOtpRes = {
-  otpRef: string;
-  expiresAt?: string;
-  otp?: string; // บาง backend dev ส่ง otp กลับมาให้เทส
+type RegisterResponse = {
+  user: { id: string; email: string; name?: string | null; role: "OWNER" };
+  token: string;
 };
 
-const RegisterPage: React.FC = () => {
+const OwnerRegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { base, userRole } = useAuthRole();
-
-  const setForm = useRegisterFlowStore((s) => s.setForm);
-  const clear = useRegisterFlowStore((s) => s.clear);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [inviteCode, setInviteCode] = useState(""); // TENANT ต้องใช้
-
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const backendRole = userRole === "OWNER" ? "OWNER" : "TENANT";
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
 
-  async function handleRequestOtp() {
+    if (!name.trim()) return setError("กรุณากรอกชื่อ-นามสกุล");
+    if (!email.trim()) return setError("กรุณากรอกอีเมล");
+    if (!password) return setError("กรุณากรอกรหัสผ่าน");
+    if (password !== confirm) return setError("รหัสผ่านไม่ตรงกัน");
+
     try {
       setLoading(true);
-      setError(null);
 
-      // ===== validate =====
-      if (!name.trim()) throw new Error("กรุณากรอกชื่อ - นามสกุล");
-      if (!email.trim()) throw new Error("กรุณากรอกอีเมล");
-      if (!phone.trim()) throw new Error("กรุณากรอกหมายเลขโทรศัพท์");
-      if (!password) throw new Error("กรุณากรอกรหัสผ่าน");
-      if (password !== confirm) throw new Error("รหัสผ่านไม่ตรงกัน");
-
-      if (backendRole === "TENANT" && !inviteCode.trim()) {
-        throw new Error("ผู้เช่าต้องกรอก Invite Code จากเจ้าของ");
-      }
-
-      // clear ของเก่า (กัน otpRef ค้าง)
-      clear();
-
-      // ===== request OTP =====
-      const data = await api<RequestOtpRes>("/auth/register/request-otp", {
+      // ✅ เจ้าของสมัคร = ไม่ต้องมี invite code
+            api("/auth/register/start", {
         method: "POST",
         body: JSON.stringify({
-          phone: phone.trim(),
-          role: backendRole,
+            name,
+            email,
+            phone,
+            role: "OWNER",
         }),
-      });
+        });
 
-      // เก็บข้อมูลสมัคร + otpRef ไว้ข้ามหน้า
-      setForm({
-        role: backendRole,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        password,
-        inviteCode: inviteCode.trim(),
-        otpRef: data.otpRef,
-      });
-
-      // ไปหน้า OTP
-      navigate(`${base}/otp`);
+      
+      setAuth(data.token, data.user);
+      navigate("/owner", { replace: true });
     } catch (e: any) {
-      setError(e.message || "ขอ OTP ไม่สำเร็จ");
+      setError(e.message || "สมัครสมาชิกไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -98,11 +73,11 @@ const RegisterPage: React.FC = () => {
               RENTSPHERE
             </h1>
             <p className="mt-2 text-sm text-white/60">
-              สมัครสมาชิกเพื่อเข้าใช้งานระบบ ({backendRole})
+              สมัครสมาชิกเพื่อเข้าใช้งานระบบ (OWNER)
             </p>
           </div>
 
-          <div className="mt-8 space-y-4">
+          <form onSubmit={onSubmit} className="mt-8 space-y-4">
             <input
               type="text"
               placeholder="ชื่อ - นามสกุล"
@@ -110,74 +85,66 @@ const RegisterPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-
             <input
               type="email"
               placeholder="อีเมล"
               className="input-auth w-full"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
-
             <input
               type="tel"
               placeholder="หมายเลขโทรศัพท์"
               className="input-auth w-full"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
             />
 
-            {backendRole === "TENANT" && (
-              <input
-                type="text"
-                placeholder="Invite Code (จากเจ้าของ)"
-                className="input-auth w-full"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-              />
-            )}
-
+            {/* ✅ ไม่มี invite code ใน owner */}
             <input
               type="password"
               placeholder="รหัสผ่าน"
               className="input-auth w-full"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
             />
-
             <input
               type="password"
               placeholder="ยืนยันรหัสผ่าน"
               className="input-auth w-full"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
             />
 
+            {error && <p className="text-red-300 text-sm">{error}</p>}
+
             <button
-              onClick={handleRequestOtp}
+              type="submit"
               disabled={loading}
               className={`btn-auth w-full mt-2 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
-              {loading ? "กำลังส่ง OTP..." : "ลงทะเบียน"}
+              {loading ? "กำลังสมัคร..." : "ลงทะเบียน (OWNER)"}
             </button>
-
-            {error && <p className="text-red-200 text-sm">{error}</p>}
 
             <p className="text-center text-sm text-white/60 mt-4">
               เป็นสมาชิกอยู่แล้วใช่ไหม?{" "}
               <button
-                onClick={() => navigate(`${base}/login`)}
-                className="text-sky-300 hover:text-sky-200 underline underline-offset-4"
                 type="button"
+                onClick={() => navigate("/auth/owner/login")}
+                className="text-sky-300 hover:text-sky-200 underline underline-offset-4"
               >
                 เข้าสู่ระบบ
               </button>
             </p>
-          </div>
+          </form>
         </div>
       </div>
     </div>
   );
 };
 
-export default RegisterPage;
+export default OwnerRegisterPage;
