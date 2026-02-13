@@ -49,7 +49,7 @@ export default function AddCondoLayout() {
         !!matchPath({ path: `/owner/add-condo/${stepPath}` }, pathname);
 
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans">
+        <div className="flex h-screen w-full overflow-hidden bg-[#EEF4FF]">
             {/* Sidebar */}
             <aside
                 className={[

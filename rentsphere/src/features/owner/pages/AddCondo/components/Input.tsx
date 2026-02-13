@@ -26,12 +26,12 @@ const Input: React.FC<InputProps> = ({ id, label, value, onChange, required = fa
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className={`w-full px-3 py-2 bg-stone-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm ${suffix ? 'pr-20' : ''}`}
+          className={`w-full px-3 py-2 bg-stone-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${suffix ? 'pr-20' : ''}`}
         />
         {suffix && (
-            <div className="absolute inset-y-0 right-0 flex items-center px-3 bg-gray-100 border-l border-gray-300 rounded-r-md">
-                <span className="text-gray-500 sm:text-sm">{suffix}</span>
-            </div>
+          <div className="absolute inset-y-0 right-0 flex items-center px-3 bg-gray-100 border-l border-gray-300 rounded-r-md">
+            <span className="text-gray-500 sm:text-sm">{suffix}</span>
+          </div>
         )}
       </div>
     </div>

@@ -52,7 +52,7 @@ const ownerRoutes: RouteObject[] = [
   { path: "/owner/login", element: <OwnerLogin /> },
   { path: "/owner/register", element: <OwnerRegister /> },
 
-  
+
   {
     path: "/owner",
     element: <OwnerLayout />,
@@ -77,14 +77,16 @@ const ownerRoutes: RouteObject[] = [
       { path: "reports", element: <ReportsPage /> },
       { path: "settings", element: <SettingsPage /> },
 
-      // AddCondo flow
+      // Step 0 - standalone page (ไม่อยู่ใน AddCondoLayout)
+      { path: "add-condo/step-0", element: <Step_0 /> },
+
+      // AddCondo flow (step-1 onwards with sidebar layout)
       {
         path: "add-condo",
         element: <AddCondoLayout />,
         children: [
           { index: true, element: <Navigate to="step-0" replace /> },
 
-          { path: "step-0", element: <Step_0 /> },
           { path: "step-1", element: <Step_1 /> },
           { path: "step-2", element: <Step_2 /> },
           { path: "step-3", element: <Step_3 /> },

@@ -1,22 +1,16 @@
 import React from 'react';
-
-const RentSphereLogo: React.FC = () => (
-    <div className="flex items-center space-x-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z" />
-        </svg>
-        <span className="text-2xl font-bold text-white tracking-wide">RentSphere</span>
-    </div>
-);
-
+import rentsphereLogo from '@/assets/brand/rentsphere-logo.png';
 
 const Navbar: React.FC = () => {
   return (
-    <nav className="bg-sky-600 shadow-md">
+    <nav style={{ background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.9), rgba(14, 165, 233, 0.9))' }} className="shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <RentSphereLogo />
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+              <img src={rentsphereLogo} alt="RentSphere" className="w-6 h-6 object-contain" />
+            </div>
+            <span className="text-xl font-bold text-white tracking-wide">RentSphere</span>
           </div>
           <div className="text-white font-medium">
             Mr. Kittidet Suksarn
