@@ -2,6 +2,13 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { AddCondoState, Room, RoomStatus } from "../types/addCondo.types";
 
+export type Service = {
+    id: number;
+    name: string;
+    isVariable: boolean;
+    price: number;
+};
+
 function pad2(n: number) {
     return String(n).padStart(2, "0");
 }
@@ -28,7 +35,6 @@ function buildRooms(floorCount: number, roomsPerFloor: number[]): Room[] {
     return rooms;
 }
 
-// helper: re-generate roomNo & id in a floor based on current order
 function renumberFloorRooms(rooms: Room[], floor: number): Room[] {
     const floorRooms = rooms.filter((r) => r.floor === floor);
     const otherRooms = rooms.filter((r) => r.floor !== floor);
@@ -60,10 +66,14 @@ export const useAddCondoStore = create<AddCondoState>()(
             roomsPerFloor: [],
             rooms: [],
             selectedRoomIds: [],
+            services: [],
 
-            // =========================
-            // Step 4
-            // =========================
+            addService: (service: Service) => {
+                set((s) => ({
+                    services: [...s.services, service],
+                }));
+            },
+
             setFloorConfig: (floorCount, roomsPerFloor) => {
                 const normalized = Array.from({ length: floorCount }, (_, i) => {
                     const v = roomsPerFloor[i];
@@ -95,9 +105,6 @@ export const useAddCondoStore = create<AddCondoState>()(
                 });
             },
 
-            // =========================
-            // Step 5
-            // =========================
             toggleRoomActive: (roomId) => {
                 set((s) => ({
                     rooms: s.rooms.map((r) =>
@@ -109,7 +116,9 @@ export const useAddCondoStore = create<AddCondoState>()(
 
             changeRoomNo: (roomId, value) => {
                 set((s) => ({
-                    rooms: s.rooms.map((r) => (r.id === roomId ? { ...r, roomNo: value } : r)),
+                    rooms: s.rooms.map((r) =>
+                        r.id === roomId ? { ...r, roomNo: value } : r
+                    ),
                 }));
             },
 
@@ -154,9 +163,6 @@ export const useAddCondoStore = create<AddCondoState>()(
                 });
             },
 
-            // =========================
-            // Step 6
-            // =========================
             toggleRoom: (roomId) => {
                 const { rooms, selectedRoomIds } = get();
                 const room = rooms.find((r) => r.id === roomId);
@@ -172,14 +178,20 @@ export const useAddCondoStore = create<AddCondoState>()(
 
             selectAllOnFloor: (floor) => {
                 const { rooms, selectedRoomIds } = get();
-                const ids = rooms.filter((r) => r.floor === floor && r.isActive).map((r) => r.id);
+                const ids = rooms
+                    .filter((r) => r.floor === floor && r.isActive)
+                    .map((r) => r.id);
                 set({ selectedRoomIds: Array.from(new Set([...selectedRoomIds, ...ids])) });
             },
 
             unselectAllOnFloor: (floor) => {
                 const { rooms, selectedRoomIds } = get();
-                const ids = new Set(rooms.filter((r) => r.floor === floor).map((r) => r.id));
-                set({ selectedRoomIds: selectedRoomIds.filter((id) => !ids.has(id)) });
+                const ids = new Set(
+                    rooms.filter((r) => r.floor === floor).map((r) => r.id)
+                );
+                set({
+                    selectedRoomIds: selectedRoomIds.filter((id) => !ids.has(id)),
+                });
             },
 
             clearSelected: () => set({ selectedRoomIds: [] }),
@@ -187,17 +199,18 @@ export const useAddCondoStore = create<AddCondoState>()(
             setPriceForRooms: (roomIds, price) => {
                 const ids = new Set(roomIds);
                 set((s) => ({
-                    rooms: s.rooms.map((r) => (ids.has(r.id) ? { ...r, price } : r)),
+                    rooms: s.rooms.map((r) =>
+                        ids.has(r.id) ? { ...r, price } : r
+                    ),
                 }));
             },
 
-            // =========================
-            // Step 7
-            // =========================
             setStatusForRooms: (roomIds, status: RoomStatus) => {
                 const ids = new Set(roomIds);
                 set((s) => ({
-                    rooms: s.rooms.map((r) => (ids.has(r.id) ? { ...r, status } : r)),
+                    rooms: s.rooms.map((r) =>
+                        ids.has(r.id) ? { ...r, status } : r
+                    ),
                 }));
             },
 
@@ -205,19 +218,21 @@ export const useAddCondoStore = create<AddCondoState>()(
                 set((s) => ({
                     rooms: s.rooms.map((r) =>
                         r.id === roomId
-                            ? { ...r, status: r.status === "VACANT" ? "OCCUPIED" : "VACANT" }
+                            ? {
+                                ...r,
+                                status: r.status === "VACANT" ? "OCCUPIED" : "VACANT",
+                            }
                             : r
                     ),
                 }));
             },
 
-            // =========================
-            // Step 8
-            // =========================
             setServiceForRooms: (roomIds: string[], serviceId: string | null) => {
                 const ids = new Set(roomIds);
                 set((s) => ({
-                    rooms: s.rooms.map((r) => (ids.has(r.id) ? { ...r, serviceId } : r)),
+                    rooms: s.rooms.map((r) =>
+                        ids.has(r.id) ? { ...r, serviceId } : r
+                    ),
                 }));
             },
         }),
@@ -229,12 +244,10 @@ export const useAddCondoStore = create<AddCondoState>()(
                 floorCount: s.floorCount,
                 roomsPerFloor: s.roomsPerFloor,
                 rooms: s.rooms,
-
-                // ถ้าอยากให้ ห้องที่เลือก อยู่ต่อหลัง refreshเปิดบรรทัดนี้
-                // selectedRoomIds: s.selectedRoomIds,
+                services: s.services,
             }),
 
-            version: 1,
+            version: 2,
         }
     )
 );

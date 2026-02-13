@@ -8,6 +8,16 @@ export type Room = {
     serviceId: string | null;
     isActive: boolean;
     status: RoomStatus;
+    roomNumber?: string;
+    number?: string;
+    name?: string;
+};
+
+export type Service = {
+    id: number;
+    name: string;
+    isVariable: boolean;
+    price: number;
 };
 
 export type AddCondoState = {
@@ -17,26 +27,25 @@ export type AddCondoState = {
     rooms: Room[];
     selectedRoomIds: string[];
 
+    services: Service[];
+    addService: (service: Service) => void;
+
     setFloorConfig: (floorCount: number, roomsPerFloor: number[]) => void;
     generateRoomsIfEmpty: () => void;
 
-    // Step 5
     toggleRoomActive: (roomId: string) => void;
     changeRoomNo: (roomId: string, value: string) => void;
     addRoomOnFloor: (floor: number) => void;
     deleteRoomOnFloor: (floor: number, roomId: string) => void;
 
-    // Step 6
     toggleRoom: (roomId: string) => void;
     selectAllOnFloor: (floor: number) => void;
     unselectAllOnFloor: (floor: number) => void;
     clearSelected: () => void;
     setPriceForRooms: (roomIds: string[], price: number | null) => void;
 
-    // Step 7
     setStatusForRooms: (roomIds: string[], status: RoomStatus) => void;
     toggleRoomStatus: (roomId: string) => void;
 
-    // Step 8
     setServiceForRooms: (roomIds: string[], serviceId: string | null) => void;
 };

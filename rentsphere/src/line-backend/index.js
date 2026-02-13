@@ -53,6 +53,8 @@ function genCode(len = 8) {
 }
 const pickErr = (e) => (typeof e === "string" ? e : e?.message || String(e));
 
+
+
 // ===== multer =====
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -668,7 +670,76 @@ app.patch("/parcels/:id/pickup", async (req, res) => {
 });
 
 
+// ===== admin: ประวัติการแจ้งพัสดุ =====
+app.get("/admin/parcel/history", requireAdmin, async (req, res) => {
+  try {
+    // join parcels -> dorm_users เพื่อเอาชื่อ + ห้อง
+    const { data, error } = await supabaseAdmin
+      .schema("public")
+      .from("parcels")
+      .select(
+        "id, dorm_user_id, note, image_url, created_at, status, dorm_users(full_name, room)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) return res.status(500).json({ error: pickErr(error) });
+
+    const items = (data || []).map((p) => ({
+      id: p.id,
+      dormUserId: p.dorm_user_id,
+      tenantName: p.dorm_users?.full_name || "-",
+      room: p.dorm_users?.room || null,
+      note: p.note || null,
+      imageUrl: p.image_url || null,
+      createdAt: p.created_at,
+      status: p.status || "sent",
+    }));
+
+    return res.json({ ok: true, items });
+  } catch (e) {
+    return res.status(500).json({ error: pickErr(e) });
+  }
+});
+
+app.get("/admin/tenants", requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .schema("public")
+      .from("dorm_users")
+      .select("id, full_name, room, phone, email, line_user_id, registered_at")
+      .not("line_user_id", "is", null)
+      .order("registered_at", { ascending: false });
+
+    if (error) return res.status(500).json({ error: pickErr(error) });
+    return res.json({ ok: true, items: data || [] });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || "server error" });
+  }
+});
+
+app.get("/parcels/my", async (req, res) => {
+  try {
+    const { lineUserId } = req.query;
+    if (!lineUserId) return res.status(400).json({ error: "lineUserId required" });
+
+    const { data, error } = await supabaseAdmin
+      .schema("public")
+      .from("parcels")
+      .select("id, created_at, image_url, note, status, picked_up_at")
+      .eq("line_user_id", String(lineUserId))
+      .order("created_at", { ascending: false });
+
+    if (error) return res.status(500).json({ error: pickErr(error) });
+    return res.json({ ok: true, items: data || [] });
+  } catch (e) {
+    return res.status(500).json({ error: pickErr(e) });
+  }
+});
+
+
 console.log("Routes ready:", [
+  "GET /admin/parcel/history",
   "GET /health",
   "POST /dorm/register",
   "POST /dorm/link-line",

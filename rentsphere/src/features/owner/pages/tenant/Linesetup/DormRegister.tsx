@@ -12,7 +12,7 @@ export default function DormRegister() {
 
   useEffect(() => {
     // ✅ ถ้ายังไม่มี lineUserId ค่อยไป login
-    if (!lineUserId) window.location.replace("/login");
+    if (!lineUserId) window.location.replace("/owner/line-login");
   }, [lineUserId]);
 
   const submit = async () => {
@@ -38,7 +38,7 @@ export default function DormRegister() {
 
       setOk("เชื่อมโค้ดสำเร็จ ✅ กำลังพาไปหน้าหลัก...");
       setTimeout(() => {
-        window.location.replace("/");
+        window.location.replace("/tenant/app");
       }, 700);
     } catch (e: any) {
       const m = e?.message || "error";

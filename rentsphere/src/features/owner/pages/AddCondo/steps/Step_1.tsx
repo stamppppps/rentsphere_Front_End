@@ -1,49 +1,192 @@
-import React, { useState } from 'react';
-import ServiceForm from '../components/ServiceForm';
-import ServiceList from '../components/ServiceList';
-import Button from '../components/Button';
-
-export interface Service {
-  id: number;
-  name: string;
-  isVariable: boolean;
-  price: number;
-}
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAddCondoStore } from "../store/addCondo.store";
 
 const Step_1: React.FC = () => {
-  const [services, setServices] = useState<Service[]>([]);
+  const nav = useNavigate();
 
-  const handleAddService = (serviceName: string, price: number, isVariable: boolean) => {
-    const newService: Service = {
+  const services = useAddCondoStore((s) => s.services);
+  const addService = useAddCondoStore((s) => s.addService);
+
+  const [serviceName, setServiceName] = useState("");
+  const [priceText, setPriceText] = useState("");
+  const [isVariable, setIsVariable] = useState(false);
+
+  const priceNumber = useMemo(() => {
+    const v = Number(String(priceText).replace(/,/g, ""));
+    return Number.isFinite(v) ? v : NaN;
+  }, [priceText]);
+
+  const canAdd =
+    serviceName.trim().length > 0 && !Number.isNaN(priceNumber) && priceNumber >= 0;
+
+  const handleAdd = () => {
+    const cleanName = serviceName.trim();
+    if (!cleanName) return;
+
+    const dup = (services ?? []).some(
+      (s) => s.name.trim().toLowerCase() === cleanName.toLowerCase()
+    );
+    if (dup) {
+      alert("มีชื่อค่าบริการนี้แล้ว");
+      return;
+    }
+
+    addService({
       id: Date.now(),
-      name: serviceName,
-      price: price,
-      isVariable: isVariable,
-    };
-    setServices(prevServices => [...prevServices, newService]);
+      name: cleanName,
+      price: priceNumber,
+      isVariable,
+    });
+
+    setServiceName("");
+    setPriceText("");
+    setIsVariable(false);
   };
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800">ตั้งค่าคอนโดมิเนียม</h1>
+    <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
+      <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
+        ตั้งค่าคอนโดมิเนียม
+      </h1>
 
-      <div className="bg-white rounded-2xl border border-violet-200 shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-violet-50 to-blue-50 p-5 border-b border-violet-200">
-          <h3 className="font-bold text-lg text-violet-800">
-            ค่าบริการเพิ่มเติมที่เรียกเก็บ เช่น ค่าอินเตอร์เน็ต,ค่าฟิตเนส
-          </h3>
+      <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
+        <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
+          <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
+          <div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              ค่าบริการเพิ่มเติม
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-600">
+              ค่าอินเตอร์เน็ต, ค่าฟิตเนส และค่าบริการอื่น ๆ ที่เรียกเก็บเพิ่ม
+            </div>
+          </div>
         </div>
-        <div className="p-6 space-y-6">
-          <ServiceForm onAddService={handleAddService} />
-          <hr className="border-gray-200" />
-          <ServiceList services={services} />
+
+        <div className="px-8 py-7 space-y-6">
+          {/* Form */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+            <div className="lg:col-span-6">
+              <label className="block text-sm font-extrabold text-gray-800 mb-2">
+                ชื่อค่าบริการ <span className="text-rose-600">*</span>
+              </label>
+              <input
+                value={serviceName}
+                onChange={(e) => setServiceName(e.target.value)}
+                placeholder="เช่น ค่าอินเตอร์เน็ต / ค่าฟิตเนส"
+                className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
+                           focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+              />
+            </div>
+
+            <div className="lg:col-span-5">
+              <label className="block text-sm font-extrabold text-gray-800 mb-2">
+                ราคาต่อหน่วย <span className="text-rose-600">*</span>
+              </label>
+              <div className="flex items-center">
+                <input
+                  value={priceText}
+                  onChange={(e) => setPriceText(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="w-full h-12 rounded-l-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
+                             focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+                />
+                <div className="h-12 px-4 rounded-r-xl border border-l-0 border-gray-200 bg-slate-50 text-sm font-extrabold text-gray-600 flex items-center">
+                  บาท
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1 flex lg:justify-end">
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!canAdd}
+                className={[
+                  "h-12 px-6 rounded-xl font-extrabold text-sm shadow-[0_12px_22px_rgba(0,0,0,0.12)] transition",
+                  "focus:outline-none focus:ring-4 focus:ring-blue-200/60 active:scale-[0.98]",
+                  canAdd
+                    ? "bg-[#93C5FD] hover:bg-[#7fb4fb] text-white"
+                    : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+                ].join(" ")}
+              >
+                เพิ่ม
+              </button>
+            </div>
+          </div>
+
+          <label className="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
+            <input
+              type="checkbox"
+              checked={isVariable}
+              onChange={(e) => setIsVariable(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            ประเภทแปรผันตามมิเตอร์
+          </label>
+
+          <div className="h-px bg-blue-100/60" />
+
+          {/* List */}
+          <div className="rounded-2xl border border-blue-100/60 overflow-hidden">
+            <div className="grid grid-cols-12 bg-slate-50 px-6 py-4 text-sm font-extrabold text-gray-700">
+              <div className="col-span-7">รายการ</div>
+              <div className="col-span-3">คำนวณตาม</div>
+              <div className="col-span-2 text-right">ราคา</div>
+            </div>
+
+            {(services ?? []).length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">
+                ยังไม่มีรายการค่าบริการ
+              </div>
+            ) : (
+              <div className="bg-white">
+                {(services ?? []).map((s) => (
+                  <div
+                    key={s.id}
+                    className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40"
+                  >
+                    <div className="col-span-7 font-extrabold text-gray-900">
+                      {s.name}
+                    </div>
+                    <div className="col-span-3 font-bold text-gray-600">
+                      {s.isVariable ? "มิเตอร์" : "คงที่"}
+                    </div>
+                    <div className="col-span-2 text-right font-extrabold text-gray-900">
+                      {Number(s.price).toLocaleString()} บาท
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      
-      <div className="flex justify-end">
-        <Button>
-          ต่อไป
-        </Button>
+
+      {/* Fixed Footer */}
+      <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
+        <div className="w-full max-w-[1120px] mx-auto px-6">
+          <div className="flex items-center justify-end gap-[14px] flex-wrap">
+            <button
+              type="button"
+              onClick={() => nav("../step-0")}
+              className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition"
+            >
+              ย้อนกลับ
+            </button>
+
+            <button
+              type="button"
+              onClick={() => nav("../step-2")}
+              className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+                         bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                         focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              ต่อไป
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -15,18 +15,66 @@ import {
   MapPin,
 } from "lucide-react";
 
-type Props = {
-  fullName?: string;
-  condoName?: string;
-  unit?: string;
+const API = "http://localhost:3001";
+
+type DormUser = {
+  id: string;
+  full_name: string;
+  phone?: string | null;
+  email?: string | null;
+  registered_at?: string | null;
+  line_user_id?: string | null;
+  room?: string | null; // ถ้าคุณเพิ่มคอลัมน์ room ใน dorm_users แล้ว
 };
 
-export default function TenantHome({
-  fullName = "Tenant",
-  condoName = "Condo",
-  unit = "Unit",
-}: Props) {
+export default function TenantHome() {
   const nav = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  const [fullName, setFullName] = useState("Tenant");
+  const [condoName, setCondoName] = useState("RentSphere"); // อยากให้เป็นอะไรปรับได้
+  const [unit, setUnit] = useState(""); // จะเอา room มาใส่
+
+  useEffect(() => {
+    const run = async () => {
+      const lineUserId = localStorage.getItem("lineUserId");
+      if (!lineUserId) {
+        nav("/role", { replace: true });
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErr("");
+
+        const r = await fetch(
+          `${API}/dorm/status?lineUserId=${encodeURIComponent(lineUserId)}`
+        );
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.error || "status error");
+
+        if (!data?.linked) {
+          // ยังไม่ผูกโค้ดหอ
+          nav("/tenant/dorm-register", { replace: true });
+          return;
+        }
+
+        const dormUser: DormUser = data.dormUser;
+        setFullName(dormUser?.full_name || "Tenant");
+
+        // ถ้ามีห้อง (room) ในตาราง dorm_users
+        setUnit(dormUser?.room ? `Room ${dormUser.room}` : "");
+      } catch (e: any) {
+        setErr(e?.message || "เกิดข้อผิดพลาด");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [nav]);
 
   const logout = () => {
     localStorage.removeItem("lineUserId");
@@ -43,7 +91,7 @@ export default function TenantHome({
       <header className="px-6 pt-10 pb-4 flex items-center justify-between sticky top-0 z-50 bg-[#D1E4FF]/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => nav("/app")}
+            onClick={() => nav("/tenant/app")}
             className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 active:scale-95"
             aria-label="Home"
           >
@@ -79,9 +127,18 @@ export default function TenantHome({
       <main className="px-6 space-y-6">
         {/* Greeting */}
         <div className="bg-white/40 backdrop-blur-md border border-white/50 rounded-[2rem] p-6 shadow-sm">
-          <h2 className="text-slate-500 text-sm font-medium">Hi, {fullName}</h2>
-          <p className="text-slate-400 text-xs font-semibold mt-1">{condoName}</p>
-          <p className="text-slate-400 text-xs font-semibold">{unit}</p>
+          <h2 className="text-slate-500 text-sm font-medium">
+            {loading ? "กำลังโหลด..." : `Hi, ${fullName}`}
+          </h2>
+
+          {err ? (
+            <p className="text-red-500 text-xs font-semibold mt-1">{err}</p>
+          ) : (
+            <>
+              <p className="text-slate-400 text-xs font-semibold mt-1">{condoName}</p>
+              {!!unit && <p className="text-slate-400 text-xs font-semibold">{unit}</p>}
+            </>
+          )}
 
           <div className="mt-4 flex justify-end opacity-20">
             <div className="h-10 w-32 bg-slate-400 rounded-md" />
@@ -106,7 +163,6 @@ export default function TenantHome({
             icon={<Package className="text-indigo-400" size={32} />}
             location
             onClick={() => alert("ยังไม่มีหน้า /my-parcels")}
-            // ถ้าทำหน้าแล้ว: onClick={() => nav("/my-parcels")}
           />
           <ServiceCard
             title="จองส่วนกลาง"
@@ -169,7 +225,7 @@ export default function TenantHome({
         </button>
         <span className="text-indigo-400 font-bold tracking-tight">RentSphere</span>
         <button
-          onClick={() => nav("/app")}
+          onClick={() => nav("/tenant/app")}
           className="text-indigo-600 transition-transform active:scale-90"
           title="หน้าแรก"
         >

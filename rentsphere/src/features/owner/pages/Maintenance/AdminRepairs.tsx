@@ -81,10 +81,10 @@ const FilterButton = ({
   <button
     onClick={onClick}
     className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-      active
-        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-        : "text-slate-600 hover:bg-slate-50"
-    }`}
+  active
+    ? "!bg-indigo-600 !text-white shadow-lg shadow-indigo-200"
+    : "text-slate-600 hover:bg-slate-50"
+}`}
   >
     {icon}
     <span>{label}</span>
@@ -195,11 +195,31 @@ export default function AdminRepairs() {
     setErr("");
     setOk("");
     try {
-      const message =
-        customMessage.trim().length > 0
-          ? customMessage.trim()
-          : `อัปเดตงานแจ้งซ่อม #${selected.id}\nสถานะ: ${status}`;
+      const statusTH =
+        status === "in_progress" ? "กำลังดำเนินงาน" :
+        status === "done"        ? "เสร็จแล้ว" :
+        status === "rejected"    ? "ปฏิเสธ" :
+        status === "new"         ? "ใหม่" :
+        status;
 
+        const message =
+        customMessage.trim().length > 0
+        ? customMessage.trim()
+    : [
+        "🛠️ อัปเดตสถานะงานแจ้งซ่อม",
+        `• เลขที่งาน: #${selected.id.slice(0, 8)}`,
+        `• หัวข้อ: ${selected.problem_type}`,
+        `• ห้อง: ${selected.room || "-"}`,
+        `• จุดที่พบ: ${selected.location || "-"}`,
+        `• สถานะล่าสุด: ${statusTH}`,
+        "",
+        "หากมีข้อมูลเพิ่มเติม ตอบกลับแชทนี้ได้เลยครับ/ค่ะ",
+      ].join("\n");
+
+
+
+
+    
       const r = await fetch(`${API}/admin/repair/${selected.id}/status`, {
         method: "PATCH",
         headers,
@@ -594,7 +614,7 @@ export default function AdminRepairs() {
 
                     <div className="flex flex-wrap gap-3">
                       <ActionButton
-                        variant="primary"
+                        variant="yellow"
                         disabled={actionLoading}
                         onClick={() => updateStatus("in_progress")}
                         icon={<Clock size={20} />}

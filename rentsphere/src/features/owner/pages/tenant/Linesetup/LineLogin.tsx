@@ -6,7 +6,7 @@ const LineLogin: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-[#E9E6FF] p-6">
+    <div className="w-screen h-screen flex items-center justify-center bg-[#D2E8FF] p-6">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8">
         <h1 className="text-2xl font-black mb-2">สมัคร / เข้าสู่ระบบ</h1>
         <p className="text-sm text-gray-600 mb-6">
@@ -15,9 +15,9 @@ const LineLogin: React.FC = () => {
 
         <button
           onClick={onLogin}
-          className="w-full bg-[#06C755] text-black font-bold py-3 rounded-2xl hover:opacity-90"
+          className="w-full  text-black font-bold py-3 rounded-2xl"
         >
-          เข้าสู่ระบบด้วย LINE
+          เข้าสู่ระบบด้วย LINE  
         </button>
       </div>
     </div>

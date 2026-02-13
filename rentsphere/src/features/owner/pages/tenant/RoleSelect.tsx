@@ -8,7 +8,7 @@ export default function RoleSelect() {
   };
 
   return (
-    <div className="w-screen h-screen bg-[#E9E6FF] flex items-center justify-center p-6">
+    <div className="w-screen h-screen bg-[#D2E8FF] flex items-center justify-center p-6">
       <div className="w-full max-w-5xl">
         <div className="mb-6">
           <div className="text-4xl font-black text-slate-900">RentSphere</div>

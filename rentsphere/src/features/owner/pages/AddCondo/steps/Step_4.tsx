@@ -7,8 +7,6 @@ export default function Step_4() {
   const setFloorConfig = useAddCondoStore((s) => s.setFloorConfig);
 
   const [floorCount, setFloorCount] = useState<number | "">("");
-
-  // เก็บเป็น string
   const [roomsPerFloorText, setRoomsPerFloorText] = useState<string[]>([]);
   const [roomErrors, setRoomErrors] = useState<Record<number, string>>({});
 
@@ -31,18 +29,15 @@ export default function Step_4() {
       return;
     }
 
-    // default
     setRoomsPerFloorText(Array.from({ length: value }, () => "1"));
     setRoomErrors({});
   };
 
   const handleRoomTextChange = (index: number, next: string) => {
-    // เอาเฉพาะตัวเลข
     if (!/^\d*$/.test(next)) return;
 
     setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? next : v)));
 
-    // validate แบบ realtime
     if (next === "") {
       setRoomErrors((prev) => {
         const copy = { ...prev };
@@ -55,22 +50,15 @@ export default function Step_4() {
     const value = Number(next);
 
     if (value > 50) {
-      setRoomErrors((prev) => ({
-        ...prev,
-        [index]: "จำนวนห้องต้องไม่เกิน 50 ห้อง",
-      }));
+      setRoomErrors((prev) => ({ ...prev, [index]: "จำนวนห้องต้องไม่เกิน 50 ห้อง" }));
       return;
     }
 
     if (value < 1) {
-      setRoomErrors((prev) => ({
-        ...prev,
-        [index]: "จำนวนห้องต้องมากกว่า 0",
-      }));
+      setRoomErrors((prev) => ({ ...prev, [index]: "จำนวนห้องต้องมากกว่า 0" }));
       return;
     }
 
-    // ok
     setRoomErrors((prev) => {
       const copy = { ...prev };
       delete copy[index];
@@ -78,7 +66,6 @@ export default function Step_4() {
     });
   };
 
-  // onBlur normalize
   const normalizeRoomOnBlur = (index: number) => {
     const raw = roomsPerFloorText[index] ?? "";
 
@@ -91,13 +78,8 @@ export default function Step_4() {
     if (!Number.isFinite(n)) n = 1;
     n = Math.max(1, Math.min(50, n));
 
-    const normalizedStr = String(n);
+    setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? String(n) : v)));
 
-    setRoomsPerFloorText((prev) =>
-      prev.map((v, i) => (i === index ? normalizedStr : v))
-    );
-
-    // sync error 
     setRoomErrors((prev) => {
       const copy = { ...prev };
       delete copy[index];
@@ -121,73 +103,72 @@ export default function Step_4() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[#eef5ff] px-8 py-8 font-sarabun">
-      <h1 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+    <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
+      <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
         ตั้งค่าคอนโดมิเนียม
       </h1>
 
-      <div className="mx-auto mt-6 w-full max-w-5xl flex flex-col gap-6 pb-28">
-        {/* Info Card */}
-        <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-3 bg-[#f3f7ff] border-b border-blue-100/60">
-            <div className="h-7 w-1.5 rounded-full bg-[#5b86ff]" />
-            <div className="text-xl font-extrabold text-gray-900">จำนวนชั้น</div>
-          </div>
-
-          <div className="px-7 py-5">
-            <ul className="list-disc pl-6 text-base text-gray-700 space-y-2">
-              <li>เลือกจำนวนชั้นของอาคาร</li>
-              <li>กำหนดจำนวนห้องต่อชั้น (สูงสุด 50 ห้อง)</li>
-              <li>รวมจำนวนห้องทั้งหมดจะคำนวณให้อัตโนมัติ</li>
-            </ul>
+      <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
+        <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
+          <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
+          <div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              จำนวนชั้นและจำนวนห้อง
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-600">
+              เลือกจำนวนชั้น และกำหนดจำนวนห้องต่อชั้น (สูงสุด 50 ห้อง) — ระบบคำนวณรวมให้อัตโนมัติ
+            </div>
           </div>
         </div>
 
-        {/* Config Card */}
-        <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-3 bg-[#f3f7ff] border-b border-blue-100/60">
-            <div className="h-7 w-1.5 rounded-full bg-[#5b86ff]" />
-            <div className="text-xl font-extrabold text-gray-900">ตั้งค่าชั้นและห้อง</div>
+        <div className="px-8 py-7 space-y-6">
+          <div className="max-w-xl">
+            <label className="block text-sm font-extrabold text-gray-800 mb-2">
+              จำนวนชั้น <span className="text-rose-600">*</span>
+            </label>
+
+            <select
+              value={floorCount}
+              onChange={(e) => handleFloorChange(e.target.value === "" ? "" : Number(e.target.value))}
+              className="w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
+                         focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+            >
+              <option value="">เลือกจำนวนชั้น</option>
+              {Array.from({ length: 100 }).map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="px-7 py-5 space-y-6">
-            <div className="max-w-xl">
-              <label className="block text-lg font-extrabold mb-2">
-                จำนวนชั้น <span className="text-red-500">*</span>
-              </label>
-
-              <select
-                value={floorCount}
-                onChange={(e) =>
-                  handleFloorChange(e.target.value === "" ? "" : Number(e.target.value))
-                }
-                className="w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5
-                           text-xl font-extrabold text-gray-900 shadow-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">เลือกจำนวนชั้น</option>
-                {Array.from({ length: 100 }).map((_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {i + 1}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {floorCount !== "" && (
-              <div className="space-y-4">
-                <div className="text-xl font-extrabold text-gray-900">
-                  จำนวนห้องต่อชั้น <span className="text-gray-500">(1 - 50)</span>
+          {floorCount !== "" && (
+            <div className="space-y-4">
+              <div className="flex items-end justify-between gap-3 flex-wrap">
+                <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+                  จำนวนห้องต่อชั้น{" "}
+                  <span className="text-sm font-extrabold text-gray-500">(1 - 50)</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {roomsPerFloorText.map((roomText, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-blue-100/70 shadow-sm px-6 py-4 bg-white"
-                    >
-                      <div className="text-xl font-extrabold text-gray-900">ชั้นที่ {i + 1}</div>
+                <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
+                  จำนวนชั้น {floorCount || 0} · รวม {totalRooms} ห้อง
+                </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {roomsPerFloorText.map((roomText, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-blue-100/60 shadow-sm px-6 py-5 bg-white"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
+                      <div className="text-lg font-extrabold text-gray-900">
+                        ชั้นที่ {i + 1}
+                      </div>
+                    </div>
+
+                    <div className="flex items-end gap-3">
                       <div className="flex flex-col items-center">
                         <input
                           type="text"
@@ -201,47 +182,53 @@ export default function Step_4() {
                           className={[
                             "w-28 h-12 rounded-2xl border text-center text-xl font-extrabold outline-none transition bg-[#fffdf2] shadow-sm",
                             roomErrors[i]
-                              ? "border-red-400 focus:ring-2 focus:ring-red-300"
-                              : "border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                              ? "border-rose-300 focus:ring-4 focus:ring-rose-100/70"
+                              : "border-gray-200 focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300",
                           ].join(" ")}
                         />
-
                         {roomErrors[i] && (
-                          <div className="mt-1 text-sm font-bold text-red-500">{roomErrors[i]}</div>
+                          <div className="mt-1 text-xs font-extrabold text-rose-600">
+                            {roomErrors[i]}
+                          </div>
                         )}
                       </div>
 
-                      <div className="text-xl font-extrabold text-gray-700">ห้อง</div>
+                      <div className="text-base font-extrabold text-gray-700 pb-2">ห้อง</div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Sticky Footer */}
-        <div className="sticky bottom-0 w-full">
-          <div className="rounded-2xl border border-blue-200/60 bg-white/70 backdrop-blur-md shadow-[0_16px_40px_rgba(15,23,42,0.12)] px-5 py-4">
-            <div className="flex items-center justify-end gap-3">
-              <div className="h-[44px] min-w-[280px] px-5 rounded-xl bg-[#121827] text-white font-extrabold text-sm flex items-center justify-center shadow-lg">
-                จำนวนชั้น {floorCount || 0} · รวม {totalRooms} ห้อง
-              </div>
-
-              <button
-                type="button"
-                disabled={!canGoNext || hasRoomError}
-                onClick={handleNext}
-                className={[
-                  "h-[44px] px-8 rounded-xl text-white font-extrabold text-sm shadow-lg transition",
-                  !canGoNext || hasRoomError
-                    ? "bg-blue-200 cursor-not-allowed text-white/70"
-                    : "!bg-blue-600 hover:!bg-blue-700 active:scale-[0.98] cursor-pointer",
-                ].join(" ")}
-              >
-                ต่อไป
-              </button>
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
+        <div className="w-full max-w-[1120px] mx-auto px-6">
+          <div className="flex items-center justify-end gap-[14px] flex-wrap">
+            <button
+              type="button"
+              onClick={() => nav("../step-3")}
+              className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              ย้อนกลับ
+            </button>
+
+            <button
+              type="button"
+              disabled={!canGoNext || hasRoomError}
+              onClick={handleNext}
+              className={[
+                "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+                !canGoNext || hasRoomError
+                  ? "bg-blue-200 cursor-not-allowed text-white/70 shadow-none"
+                  : "bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+                "focus:outline-none focus:ring-2 focus:ring-blue-300",
+              ].join(" ")}
+            >
+              ต่อไป
+            </button>
           </div>
         </div>
       </div>

@@ -3,33 +3,50 @@ import { Navigate } from "react-router-dom";
 
 import OwnerLayout from "@/app/layouts/OwnerLayout";
 
+// Owner Auth Pages
+import OwnerLogin from "@/features/owner/pages/Auth/OwnerLogin";
+import OwnerRegister from "@/features/owner/pages/Auth/OwnerRegister";
+
 // AddCondo flow
 import AddCondoLayout from "@/features/owner/pages/AddCondo/AddCondoLayout";
 import Step6RoomPrice from "@/features/owner/pages/AddCondo/steps/Step6_RoomPrice";
 import Step7Review from "@/features/owner/pages/AddCondo/steps/Step7_Review";
 import Step8RoomService from "@/features/owner/pages/AddCondo/steps/Step8_RoomService";
 import Step9Success from "@/features/owner/pages/AddCondo/steps/Step9_Success";
-import Step_3 from "@/features/owner/pages/AddCondo/steps/Step_3";
-import Step_4 from "@/features/owner/pages/AddCondo/steps/Step_4";
-import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 import Step_0 from "@/features/owner/pages/AddCondo/steps/Step_0";
 import Step_1 from "@/features/owner/pages/AddCondo/steps/Step_1";
 import Step_2 from "@/features/owner/pages/AddCondo/steps/Step_2";
+import Step_3 from "@/features/owner/pages/AddCondo/steps/Step_3";
+import Step_4 from "@/features/owner/pages/AddCondo/steps/Step_4";
+import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 
 // Owner pages
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
-import CommonAreaBookingPage from "@/features/owner/pages/CommonAreaBooking/CommonAreaBookingPage";
+
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
+
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
+
 import MaintenancePage from "@/features/owner/pages/Maintenance/MaintenancePage";
+
 import MeterPage from "@/features/owner/pages/Meter/MeterPage";
+
 import ParcelPage from "@/features/owner/pages/Parcel/ParcelPage";
+
 import PaymentsPage from "@/features/owner/pages/Payments/PaymentsPage";
+
 import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
+
+import AdvancePaymentPage from "@/features/owner/pages/Rooms/AdvancePaymentPage";
+import MonthlyContractPage from "@/features/owner/pages/Rooms/MonthlyContractPage";
 import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
+import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
+import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
+
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
+<<<<<<< HEAD
 import Admin from "@/features/owner/pages/Maintenance/Admin";
 import AdminLogin from "@/features/owner/pages/Maintenance/AdminLogin";
 import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
@@ -53,8 +70,20 @@ function RequireLineLogin({ children }: { children: React.ReactNode }) {
   if (!lineUserId) return <Navigate to="/owner/role" replace />;
   return <>{children}</>;
 }
+=======
+// ===== Facility Booking pages =====
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
+import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
+import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+
+>>>>>>> origin/main
 
 const ownerRoutes: RouteObject[] = [
+  { path: "/owner/login", element: <OwnerLogin /> },
+  { path: "/owner/register", element: <OwnerRegister /> },
+
+  
   {
     path: "/owner",
     element: <OwnerLayout />,
@@ -66,14 +95,16 @@ const ownerRoutes: RouteObject[] = [
       { path: "condo", element: <CondoHomePage /> },
       { path: "rooms", element: <RoomsPage /> },
       { path: "rooms/:roomId", element: <RoomDetailPage /> },
+      { path: "rooms/:roomId/monthly", element: <MonthlyContractPage /> },
+      { path: "rooms/:roomId/advance-payment", element: <AdvancePaymentPage /> },
+      { path: "rooms/:roomId/meter", element: <RoomMeterPage /> },
+      { path: "rooms/:roomId/access-code", element: <TenantAccessCodePage /> },
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
-      { path: "common-area-booking", element: <CommonAreaBookingPage /> },
       { path: "meter", element: <MeterPage /> },
       { path: "billing", element: <BillingPage /> },
       { path: "payments", element: <PaymentsPage /> },
       { path: "reports", element: <ReportsPage /> },
-
       { path: "settings", element: <SettingsPage /> },
 
       // AddCondo flow
@@ -95,6 +126,18 @@ const ownerRoutes: RouteObject[] = [
           { path: "step-9", element: <Step9Success /> },
         ],
       },
+
+      // ===== Common Area / Facility Booking =====
+      {
+        path: "common-area-booking",
+        children: [
+          { index: true, element: <FacilityListPage /> },
+          { path: ":facilityId", element: <FacilityDetailPage /> },
+          { path: ":facilityId/bookings/:bookingId", element: <BookingDetailPage /> },
+          { path: "history", element: <BookingHistoryPage /> },
+        ],
+      },
+
 
       { path: "*", element: <Navigate to="dashboard" replace /> },
     ],
