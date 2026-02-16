@@ -1,3 +1,4 @@
+import RentSphereLogo from "@/assets/brand/rentsphere-logo.png";
 import { Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 
 const MENU = [
@@ -51,33 +52,49 @@ export default function AddCondoLayout() {
     const isStep0 = !!matchPath({ path: "/owner/add-condo/step-0" }, pathname);
     const isStep9 = !!matchPath({ path: "/owner/add-condo/step-9" }, pathname);
 
-    if (isStep0 || isStep9) {
+    if (isStep0) {
         return (
-            <div className="owner-ui min-h-screen w-full bg-[#EEF4FF] font-sans text-black/85 flex items-center justify-center">
+            <div className="owner-ui min-h-screen w-full bg-[#EEF4FF] font-sans text-black/85">
                 <Outlet />
+            </div>
+        );
+    }
+
+    if (isStep9) {
+        return (
+            <div className="owner-ui min-h-screen w-full bg-[#EEF4FF] font-sans text-black/85 flex items-center justify-center p-6">
+                <div className="w-full">
+                    <Outlet />
+                </div>
             </div>
         );
     }
 
     return (
         <div className="owner-ui flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans text-black/85">
-            <aside className="w-[22rem] shrink-0 bg-[#D6E6FF] border-r border-blue-100/80 shadow-[2px_0_14px_rgba(0,0,0,0.05)]">
-                <div className="h-24 flex items-center px-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-blue-600/20">
-                            RS
+            <aside className="w-[22rem] shrink-0 bg-[#D6E6FF] border-r border-blue-100/80 shadow-[2px_0_14px_rgba(0,0,0,0.05)] flex flex-col h-screen overflow-hidden">
+                <div className="shrink-0 px-8 pt-7 pb-5">
+                    <div className="flex items-start gap-4">
+                        <div className="h-24 w-24 shrink-0 overflow-hidden -mt-2">
+                            <img
+                                src={RentSphereLogo}
+                                alt="RentSphere"
+                                draggable={false}
+                                className="h-full w-full object-contain drop-shadow-[0_14px_24px_rgba(15,23,42,0.22)] scale-[1.18] -translate-y-[12px]"
+                            />
                         </div>
-                        <span className="text-3xl font-extrabold tracking-tight text-gray-900">
+
+                        <span className="text-3xl font-extrabold tracking-tight text-gray-900 leading-none pt-[6px]">
                             RentSphere
                         </span>
                     </div>
+
+                    <div className="mt-6 text-3xl font-extrabold tracking-tight text-gray-900">
+                        คอนโดมิเนียม
+                    </div>
                 </div>
 
-                <div className="px-6 pb-6">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mb-5 pl-1">
-                        คอนโดมิเนียม
-                    </h1>
-
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-8 pr-2">
                     <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
                         <div className="flex flex-col gap-4">
                             {MENU.map((m) => (
@@ -90,6 +107,8 @@ export default function AddCondoLayout() {
                             ))}
                         </div>
                     </div>
+
+                    <div className="h-10" />
                 </div>
             </aside>
 

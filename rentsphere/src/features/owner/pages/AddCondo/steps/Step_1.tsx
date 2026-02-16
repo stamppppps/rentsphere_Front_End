@@ -13,7 +13,9 @@ const Step_1: React.FC = () => {
   const [isVariable, setIsVariable] = useState(false);
 
   const priceNumber = useMemo(() => {
-    const v = Number(String(priceText).replace(/,/g, ""));
+    const raw = String(priceText).replace(/,/g, "").trim();
+    if (raw === "") return NaN;
+    const v = Number(raw);
     return Number.isFinite(v) ? v : NaN;
   }, [priceText]);
 
@@ -27,10 +29,7 @@ const Step_1: React.FC = () => {
     const dup = (services ?? []).some(
       (s) => s.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
-    if (dup) {
-      alert("มีชื่อค่าบริการนี้แล้ว");
-      return;
-    }
+    if (dup) return;
 
     addService({
       id: Date.now(),
@@ -64,7 +63,6 @@ const Step_1: React.FC = () => {
         </div>
 
         <div className="px-8 py-7 space-y-6">
-          {/* Form */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div className="lg:col-span-6">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
@@ -86,8 +84,12 @@ const Step_1: React.FC = () => {
               <div className="flex items-center">
                 <input
                   value={priceText}
-                  onChange={(e) => setPriceText(e.target.value)}
-                  inputMode="decimal"
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (!/^[0-9,]*$/.test(next)) return;
+                    setPriceText(next);
+                  }}
+                  inputMode="numeric"
                   placeholder="0"
                   className="w-full h-12 rounded-l-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
                              focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
@@ -128,7 +130,6 @@ const Step_1: React.FC = () => {
 
           <div className="h-px bg-blue-100/60" />
 
-          {/* List */}
           <div className="rounded-2xl border border-blue-100/60 overflow-hidden">
             <div className="grid grid-cols-12 bg-slate-50 px-6 py-4 text-sm font-extrabold text-gray-700">
               <div className="col-span-7">รายการ</div>
@@ -144,12 +145,10 @@ const Step_1: React.FC = () => {
               <div className="bg-white">
                 {(services ?? []).map((s) => (
                   <div
-                    key={s.id}
+                    key={String(s.id)}
                     className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40"
                   >
-                    <div className="col-span-7 font-extrabold text-gray-900">
-                      {s.name}
-                    </div>
+                    <div className="col-span-7 font-extrabold text-gray-900">{s.name}</div>
                     <div className="col-span-3 font-bold text-gray-600">
                       {s.isVariable ? "มิเตอร์" : "คงที่"}
                     </div>
@@ -164,7 +163,6 @@ const Step_1: React.FC = () => {
         </div>
       </div>
 
-      {/* Fixed Footer */}
       <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
         <div className="w-full max-w-[1120px] mx-auto px-6">
           <div className="flex items-center justify-end gap-[14px] flex-wrap">
