@@ -5,13 +5,51 @@ export type Room = {
     floor: number;
     roomNo: string;
     price: number | null;
-    serviceId: string | null;
+    serviceId: number | null;
     isActive: boolean;
     status: RoomStatus;
-    roomNumber?: string;
-    number?: string;
-    name?: string;
+};
 
+export type Service = {
+    id: number;
+    name: string;
+    isVariable: boolean;
+    price: number;
+};
+
+export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+
+export type BookingRow = {
+    ref: string;
+    customer: string;
+    checkIn: string;
+    price: number;
+    deposit: number;
+    status: BookingStatus;
+};
+
+export type RoomContractType = "MONTHLY";
+
+export type RoomContract = {
+    type: RoomContractType;
+    tenantName: string;
+    startDate: string;
+    endDate?: string;
+    rent: number;
+    deposit?: number;
+    createdAt: string;
+};
+
+export type MovedOutRow = {
+    inDate: string;
+    customer: string;
+    outDate: string;
+};
+
+export type RoomExtraState = {
+    contract: RoomContract | null;
+    bookings: BookingRow[];
+    movedOut: MovedOutRow[];
 };
 
 export type AddCondoState = {
@@ -21,26 +59,33 @@ export type AddCondoState = {
     rooms: Room[];
     selectedRoomIds: string[];
 
+    services: Service[];
+    addService: (service: Service) => void;
+
     setFloorConfig: (floorCount: number, roomsPerFloor: number[]) => void;
     generateRoomsIfEmpty: () => void;
 
-    // Step 5
     toggleRoomActive: (roomId: string) => void;
     changeRoomNo: (roomId: string, value: string) => void;
     addRoomOnFloor: (floor: number) => void;
     deleteRoomOnFloor: (floor: number, roomId: string) => void;
 
-    // Step 6
     toggleRoom: (roomId: string) => void;
     selectAllOnFloor: (floor: number) => void;
     unselectAllOnFloor: (floor: number) => void;
     clearSelected: () => void;
+
     setPriceForRooms: (roomIds: string[], price: number | null) => void;
 
-    // Step 7
     setStatusForRooms: (roomIds: string[], status: RoomStatus) => void;
     toggleRoomStatus: (roomId: string) => void;
 
-    // Step 8
-    setServiceForRooms: (roomIds: string[], serviceId: string | null) => void;
+    setServiceForRooms: (roomIds: string[], serviceId: number | null) => void;
+
+    roomExtraById: Record<string, RoomExtraState>;
+
+    getRoomExtra: (roomId: string) => RoomExtraState;
+    addBooking: (roomId: string, row: BookingRow) => void;
+    setContract: (roomId: string, contract: RoomContract | null) => void;
+    addMovedOut: (roomId: string, row: MovedOutRow) => void;
 };

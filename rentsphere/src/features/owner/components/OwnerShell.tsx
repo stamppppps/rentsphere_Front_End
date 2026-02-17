@@ -26,9 +26,12 @@ export default function OwnerShell({
                         "w-[22rem] shrink-0 bg-[#D6E6FF]",
                         "border-r border-blue-100/80",
                         "shadow-[2px_0_14px_rgba(0,0,0,0.05)]",
+                        "flex flex-col h-screen overflow-hidden",
                     ].join(" ")}
                 >
-                    <Sidebar activeKey={activeKey} />
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <Sidebar activeKey={activeKey} />
+                    </div>
                 </aside>
             )}
 
