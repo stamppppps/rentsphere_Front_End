@@ -4,11 +4,7 @@ const MOCK_FACILITIES: Facility[] = [
   {
     id: 'f1',
     name: 'ฟิตเนส (Fitness)',
-<<<<<<< HEAD
     description: 'ฟิตเนสทันสมัย พร้อมอุปกรณ์ออกกำลังกายครบครัน สำหรับผู้พักอาศัย',
-=======
-    description: 'High-end gym with cardio and strength equipment for residents.',
->>>>>>> main
     imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.SPORT,
     status: FacilityStatus.AVAILABLE,
@@ -20,14 +16,11 @@ const MOCK_FACILITIES: Facility[] = [
     tags: ['Gym', 'Weights', 'Cardio'],
     location: 'ชั้น 5 อาคารคลับเฮาส์'
   },
+
   {
     id: 'f2',
     name: 'สระว่ายน้ำ (Pool)',
-<<<<<<< HEAD
     description: 'สระว่ายน้ำอินฟินิตี้ พร้อมวิวเมืองสวยงาม ผ่อนคลายได้ตลอดวัน',
-=======
-    description: 'Infinity pool with panoramic views of the city skyline.',
->>>>>>> main
     imageUrl: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.SPORT,
     status: FacilityStatus.AVAILABLE,
@@ -39,14 +32,11 @@ const MOCK_FACILITIES: Facility[] = [
     tags: ['Pool', 'View', 'Outdoor'],
     location: 'ชั้น Rooftop'
   },
+
   {
     id: 'f3',
     name: 'ห้องเกม (Game Room)',
-<<<<<<< HEAD
     description: 'ห้องเกม พร้อมด้วยเกมและความบันเทิง สำหรับคลายเครียด',
-=======
-    description: 'Entertainment hub with pool tables and gaming consoles.',
->>>>>>> main
     imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.RELAX,
     status: FacilityStatus.AVAILABLE,
@@ -58,14 +48,11 @@ const MOCK_FACILITIES: Facility[] = [
     tags: ['Fun', 'Social', 'Gaming'],
     location: 'ชั้น 2 โซนพักผ่อน'
   },
+  
   {
     id: 'f4',
     name: 'ห้องประชุม (Meeting Room)',
-<<<<<<< HEAD
     description: 'ห้องประชุมทันสมัย เหมาะสำหรับทำงาน ประชุม และกิจกรรมต่าง ๆ',
-=======
-    description: 'Smart meeting room for residents to work or hold discussions.',
->>>>>>> main
     imageUrl: 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.WORKING,
     status: FacilityStatus.AVAILABLE,
