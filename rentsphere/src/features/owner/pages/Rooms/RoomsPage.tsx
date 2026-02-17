@@ -1,6 +1,6 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { useAddCondoStore } from "@/features/owner/pages/AddCondo/store/addCondo.store";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function getRoomLabel(room: any) {
@@ -35,7 +35,6 @@ function StatusPill({ status }: { status: "VACANT" | "OCCUPIED" | string }) {
 
 export default function RoomsPage() {
     const nav = useNavigate();
-
     const { rooms, generateRoomsIfEmpty } = useAddCondoStore();
 
     useEffect(() => {
@@ -54,6 +53,22 @@ export default function RoomsPage() {
 
     const condoName = "สวัสดีคอนโด";
 
+    const [openPickRoom, setOpenPickRoom] = useState(false);
+    const [pickRoomId, setPickRoomId] = useState<string>("");
+
+    const openModal = () => {
+
+        const first = (rooms ?? [])[0];
+        setPickRoomId(first?.id ? String(first.id) : "");
+        setOpenPickRoom(true);
+    };
+
+    const goCreateFlow = () => {
+        if (!pickRoomId) return;
+        setOpenPickRoom(false);
+
+        nav(`/owner/rooms/${pickRoomId}/monthly-contract`);
+    };
 
     return (
         <OwnerShell title="ห้อง" activeKey="rooms" showSidebar={true}>
@@ -64,7 +79,7 @@ export default function RoomsPage() {
 
                 <button
                     type="button"
-                    onClick={() => { }}
+                    onClick={openModal}
                     className="text-sm font-extrabold text-gray-600 underline underline-offset-4 hover:text-gray-900"
                 >
                     สร้างรหัสเข้าสู่ระบบ
@@ -137,10 +152,7 @@ export default function RoomsPage() {
                                     const unpaid = "-";
 
                                     return (
-                                        <tr
-                                            key={roomId}
-                                            className="border-b border-gray-50 hover:bg-blue-50/30 transition"
-                                        >
+                                        <tr key={roomId} className="border-b border-gray-50 hover:bg-blue-50/30 transition">
                                             <td className="px-6 py-4 font-extrabold text-gray-900">{label}</td>
 
                                             <td className="px-6 py-4">
@@ -160,7 +172,7 @@ export default function RoomsPage() {
                                             <td className="px-6 py-4 text-right">
                                                 <button
                                                     type="button"
-                                                    onClick={() => { }}
+                                                    onClick={() => nav(`/owner/rooms/${roomId}`)}
                                                     className="font-extrabold text-gray-700 underline underline-offset-4 hover:text-gray-900"
                                                 >
                                                     รายละเอียด
@@ -174,6 +186,67 @@ export default function RoomsPage() {
                     </table>
                 </div>
             </div>
+
+            {openPickRoom && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    {/* overlay */}
+                    <button
+                        type="button"
+                        onClick={() => setOpenPickRoom(false)}
+                        className="absolute inset-0 bg-black/30"
+                        aria-label="close"
+                    />
+
+                    {/* modal */}
+                    <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-blue-100 overflow-hidden">
+                        <div className="px-6 py-4 bg-[#EAF2FF] border-b border-blue-100">
+                            <div className="text-lg font-extrabold text-gray-900">เลือกห้องเพื่อสร้างรหัสเข้าสู่ระบบ</div>
+                            <div className="text-sm font-bold text-gray-600 mt-1">
+                                เลือกห้อง แล้วระบบจะพาไปกรอกสัญญา (MonthlyContractPage)
+                            </div>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <div className="text-sm font-extrabold text-gray-800 mb-2">เลือกห้อง</div>
+                                <select
+                                    value={pickRoomId}
+                                    onChange={(e) => setPickRoomId(e.target.value)}
+                                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800
+                             focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                                >
+                                    <option value="">-- กรุณาเลือกห้อง --</option>
+                                    {(rooms ?? []).map((r: any) => (
+                                        <option key={String(r.id)} value={String(r.id)}>
+                                            ห้อง {r.roomNo ?? "-"} (ชั้น {r.floor ?? "-"})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setOpenPickRoom(false)}
+                                    className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
+                                >
+                                    ยกเลิก
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => nav(`/owner/rooms/${pickRoomId}/monthly`, { replace: true })}
+                                    disabled={!pickRoomId}
+                                    className="px-6 py-3 rounded-xl !bg-blue-600 text-white font-extrabold hover:!bg-blue-700
+                             disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    ต่อไป
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </OwnerShell>
     );
 }

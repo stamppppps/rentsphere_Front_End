@@ -6,6 +6,7 @@ import InvoiceDetail from "./InvoiceDetail";
 
 import { mockBillingData as initialData } from "./mock";
 import type { BillingItem } from "./types";
+
 import OwnerShell from "@/features/owner/components/OwnerShell";
 
 export default function BillingPage() {
@@ -131,5 +132,6 @@ export default function BillingPage() {
         />
       </div>
     </OwnerShell>
+
   );
 }
