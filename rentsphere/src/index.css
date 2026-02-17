@@ -123,6 +123,7 @@ button:focus-visible {
   transform: translateX(20px);
 }
 
+
 /* ===================== AuthPage styles ===================== */
 .cosmic-gradient {
   background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #2e1065 100%);
@@ -242,6 +243,7 @@ button:focus-visible {
 }
 
 /* ================= Facility booking custom utilities ================= */
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -351,6 +353,7 @@ button:focus-visible {
   }
 }
 
+
 /* ===== Owner UI typography ===== */
 .owner-ui {
   font-family: "Prompt", system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -385,5 +388,5 @@ button:focus-visible {
 
 .owner-ui .ui-body {
   font-weight: 600;
-  color: rgba(55, 65, 81, 0.9);
-}
+  color: rgba(55,65,81,0.9);
+

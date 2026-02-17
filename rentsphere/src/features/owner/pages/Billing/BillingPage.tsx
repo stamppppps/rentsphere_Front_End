@@ -7,6 +7,8 @@ import InvoiceDetail from "./InvoiceDetail";
 import { mockBillingData as initialData } from "./mock";
 import type { BillingItem } from "./types";
 
+import OwnerShell from "@/features/owner/components/OwnerShell";
+
 export default function BillingPage() {
   /* ==================== state ==================== */
   const [billingData, setBillingData] = useState<BillingItem[]>(initialData);
@@ -25,19 +27,22 @@ export default function BillingPage() {
   /* ==================== invoice detail ==================== */
   if (selectedItem) {
     return (
-      <div className="max-w-7xl mx-auto pt-10 px-6">
-        <InvoiceDetail
-          item={selectedItem}
-          onBack={() => setSelectedItem(null)}
-          onComplete={() => handleCompletePayment(selectedItem.id)}
-        />
-      </div>
+      <OwnerShell activeKey="billing" showSidebar>
+        <div className="max-w-7xl mx-auto pt-10 px-6">
+          <InvoiceDetail
+            item={selectedItem}
+            onBack={() => setSelectedItem(null)}
+            onComplete={() => handleCompletePayment(selectedItem.id)}
+          />
+        </div>
+      </OwnerShell>
     );
   }
 
   /* ==================== billing list ==================== */
   return (
-    <div className="max-w-7xl mx-auto animate-in fade-in duration-300 pt-10 px-6">
+    <OwnerShell activeKey="billing" showSidebar>
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-300 pt-10 px-6">
 
       {/* ===== Stepper ===== */}
       <div className="flex justify-center items-center mb-12">
@@ -121,10 +126,12 @@ export default function BillingPage() {
       <BillingFilter />
 
       {/* ===== Table ===== */}
-      <BillingTable
-        data={billingData}
-        onSelect={(item) => setSelectedItem(item)}
-      />
-    </div>
+        <BillingTable
+          data={billingData}
+          onSelect={(item) => setSelectedItem(item)}
+        />
+      </div>
+    </OwnerShell>
+
   );
 }

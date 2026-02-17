@@ -34,10 +34,12 @@ import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodeP
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
 // ===== Facility Booking pages =====
+
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
 import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
 import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
-import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
-import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+
 
 const ownerRoutes: RouteObject[] = [
 

@@ -4,7 +4,7 @@ const MOCK_FACILITIES: Facility[] = [
   {
     id: 'f1',
     name: 'ฟิตเนส (Fitness)',
-    description: 'High-end gym with cardio and strength equipment for residents.',
+    description: 'ฟิตเนสทันสมัย พร้อมอุปกรณ์ออกกำลังกายครบครัน สำหรับผู้พักอาศัย',
     imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.SPORT,
     status: FacilityStatus.AVAILABLE,
@@ -19,7 +19,7 @@ const MOCK_FACILITIES: Facility[] = [
   {
     id: 'f2',
     name: 'สระว่ายน้ำ (Pool)',
-    description: 'Infinity pool with panoramic views of the city skyline.',
+    description: 'สระว่ายน้ำอินฟินิตี้ พร้อมวิวเมืองสวยงาม ผ่อนคลายได้ตลอดวัน',
     imageUrl: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.SPORT,
     status: FacilityStatus.AVAILABLE,
@@ -34,7 +34,7 @@ const MOCK_FACILITIES: Facility[] = [
   {
     id: 'f3',
     name: 'ห้องเกม (Game Room)',
-    description: 'Entertainment hub with pool tables and gaming consoles.',
+    description: 'ห้องเกม พร้อมด้วยเกมและความบันเทิง สำหรับคลายเครียด',
     imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.RELAX,
     status: FacilityStatus.AVAILABLE,
@@ -49,7 +49,7 @@ const MOCK_FACILITIES: Facility[] = [
   {
     id: 'f4',
     name: 'ห้องประชุม (Meeting Room)',
-    description: 'Smart meeting room for residents to work or hold discussions.',
+    description: 'ห้องประชุมทันสมัย เหมาะสำหรับทำงาน ประชุม และกิจกรรมต่าง ๆ',
     imageUrl: 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&q=80&w=800',
     type: FacilityType.WORKING,
     status: FacilityStatus.AVAILABLE,

@@ -3,8 +3,8 @@ import { FacilityType } from '../types/facility';
 export const FACILITY_TYPE_CONFIG = {
   [FacilityType.ALL]: { 
     label: 'ทั้งหมด', 
-    color: 'bg-indigo-600 text-white border-indigo-600',
-    activeColor: 'bg-indigo-700 ring-4 ring-indigo-500/20'
+    color: 'bg-white text-[#308DDF] border border-[#308DDF]',
+    activeColor: 'bg-[#308DDF] text-white border-blue-600 shadow-blue-100'
   },
   [FacilityType.SPORT]: { 
     label: 'กีฬาและสุขภาพ', 
