@@ -368,7 +368,7 @@ export default function MonthlyContractPage() {
                     <div className="mt-8 flex items-center justify-end gap-3">
                         <button
                             type="button"
-                            onClick={() => nav(-1)}
+                            onClick={() => nav("/owner/rooms")}
                             className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
                         >
                             ย้อนกลับ

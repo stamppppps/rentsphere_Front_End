@@ -30,7 +30,7 @@ const OwnerLogin: React.FC = () => {
     // TODO: connect real API + token storage
     // For now, just navigate into owner area.
     void remember;
-    navigate('/owner');
+    navigate('/owner/add-condo/step-0');
   };
 
   return (

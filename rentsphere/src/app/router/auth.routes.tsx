@@ -9,8 +9,9 @@ import RegisterPage from "@/features/auth/pages/RegisterPage";
 import ResetPasswordPage from "@/features/auth/pages/ResetPasswordPage";
 
 const authRoutes: RouteObject[] = [
-  { path: "/auth/owner", element: <Navigate to="/owner/login" replace /> },
-  { path: "/", element: <Navigate to="/auth/tenant/login" replace /> },
+  { path: "/auth/owner", element: <Navigate to="/auth/owner/login" replace /> },
+  { path: "/auth/tenant", element: <Navigate to="/auth/tenant/login" replace /> },
+  { path: "/", element: <Navigate to="/auth/owner/login" replace /> },
 
   // Auth pages by role
   {

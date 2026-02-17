@@ -12,11 +12,11 @@ export function useAuthRole() {
   const base = `/auth/${rolePath}`;
 
   return {
-  role,
-  userRole: role,
-  rolePath,
-  base,
-  basePath: base,
-  authBasePath: rolePath, 
-};
+    role,
+    userRole: role,
+    rolePath,
+    base,
+    basePath: base,
+    authBasePath: base,
+  };
 }

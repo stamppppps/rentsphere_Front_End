@@ -20,9 +20,9 @@ const CondoInfoSection: React.FC<CondoInfoSectionProps> = ({ formData, handleCha
       <SectionCard title="คอนโดมิเนียม" description="โลโก้เพื่อนำไปแสดงในใบแจ้งหนี้และใบเสร็จ">
         <FileUpload onFileSelect={handleFileChange} />
       </SectionCard>
-      
+
       <SectionCard title="รายละเอียดคอนโดมิเนียม" description="ชื่อและที่อยู่ เพื่อนำไปแสดงในรายการใบแจ้งหนี้และใบเสร็จ">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
           <Input
             id="nameTh"
             label="ชื่อ (ภาษาไทย)"
