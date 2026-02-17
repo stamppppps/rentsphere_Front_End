@@ -10,15 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@tailwindcss/vite": "^4.1.18",
-    "lucide-react": "^0.563.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.0",
-    "zustand": "^5.0.10"
-  },
-=======
   "@tailwindcss/vite": "^4.1.18",
   "lucide-react": "^0.563.0",
   "react": "^19.2.4",
@@ -27,8 +18,6 @@
   "recharts": "^3.7.0",
   "zustand": "^5.0.10"
 },
-
->>>>>>> main
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",

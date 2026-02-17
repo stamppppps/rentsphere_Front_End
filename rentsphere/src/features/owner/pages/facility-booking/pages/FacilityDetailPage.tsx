@@ -16,10 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import ErrorState from '../components/ErrorState';
-<<<<<<< HEAD
 import OwnerShell from "@/features/owner/components/OwnerShell";
-=======
->>>>>>> main
 
 const FacilityDetailPage: React.FC = () => {
   const { facilityId } = useParams<{ facilityId: string }>();
@@ -99,12 +96,8 @@ const FacilityDetailPage: React.FC = () => {
   if (error || !facility) return <ErrorState message={error || 'ไม่พบข้อมูลพื้นที่ที่ต้องการ'} onRetry={fRefresh} />;
 
   return (
-<<<<<<< HEAD
     <OwnerShell activeKey="common-area-booking" showSidebar>
       <div className="max-w-7xl mx-auto px-6 py-12">
-=======
-    <div className="max-w-7xl mx-auto px-6 py-12">
->>>>>>> main
       {/* Header with toggle action */}
       <FacilityHeader 
         facility={facility} 
@@ -159,8 +152,6 @@ const FacilityDetailPage: React.FC = () => {
           <BookingTable bookings={bookings} onRefresh={bRefresh} />
         )}
       </div>
-
-<<<<<<< HEAD
         {isSettingsOpen && (
           <FacilitySettingModal 
             facility={facility} 
@@ -170,16 +161,6 @@ const FacilityDetailPage: React.FC = () => {
         )}
       </div>
     </OwnerShell>
-=======
-      {isSettingsOpen && (
-        <FacilitySettingModal 
-          facility={facility} 
-          onClose={() => setIsSettingsOpen(false)} 
-          onSave={handleSaveSettings}
-        />
-      )}
-    </div>
->>>>>>> main
   );
 };
 
