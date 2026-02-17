@@ -18,9 +18,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import BookingTable from '../components/BookingTable';
 import { BOOKING_STATUS_CONFIG } from '../constants/bookingStatus';
-
+<<<<<<< HEAD
 import OwnerShell from "@/features/owner/components/OwnerShell";
-
+=======
+>>>>>>> main
 
 const BookingHistoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,8 +70,12 @@ const BookingHistoryPage: React.FC = () => {
   };
 
   return (
+<<<<<<< HEAD
     <OwnerShell activeKey="common-area-booking" showSidebar>
       <div className="max-w-7xl mx-auto px-6 py-12">
+=======
+    <div className="max-w-7xl mx-auto px-6 py-12">
+>>>>>>> main
       {/* Back Button Section - Improved UI */}
       <div className="flex items-center gap-4 mb-8">
         <button 
@@ -217,8 +222,12 @@ const BookingHistoryPage: React.FC = () => {
           </div>
         )}
       </div>
+<<<<<<< HEAD
       </div>
     </OwnerShell>
+=======
+    </div>
+>>>>>>> main
   );
 };
 

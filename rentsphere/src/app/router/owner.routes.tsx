@@ -22,8 +22,10 @@ import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 
 // Owner pages
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
+<<<<<<< HEAD
+=======
 
-
+>>>>>>> main
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
 
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
@@ -48,10 +50,17 @@ import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodeP
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
 // ===== Facility Booking pages =====
+<<<<<<< HEAD
 import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
 import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
 import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
 import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+=======
+import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
+import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
+>>>>>>> main
 
 
 const ownerRoutes: RouteObject[] = [
