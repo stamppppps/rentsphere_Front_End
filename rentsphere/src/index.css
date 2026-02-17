@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Hide scrollbars globally */
+* {
+  -ms-overflow-style: none;
+  /* IE / Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  /* Chrome / Safari / Opera */
+}
+
 :root {
   font-family: "Prompt", system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

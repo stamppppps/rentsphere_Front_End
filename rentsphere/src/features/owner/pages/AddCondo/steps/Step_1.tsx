@@ -11,6 +11,8 @@ const Step_1: React.FC = () => {
   const [serviceName, setServiceName] = useState("");
   const [priceText, setPriceText] = useState("");
   const [isVariable, setIsVariable] = useState(false);
+  const [useWater, setUseWater] = useState(false);
+  const [useElectric, setUseElectric] = useState(false);
 
   const priceNumber = useMemo(() => {
     const raw = String(priceText).replace(/,/g, "").trim();
@@ -118,15 +120,64 @@ const Step_1: React.FC = () => {
             </div>
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
-            <input
-              type="checkbox"
-              checked={isVariable}
-              onChange={(e) => setIsVariable(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            ประเภทแปรผันตามมิเตอร์
-          </label>
+          {/* ===== Meter Variable Section ===== */}
+          <div className="rounded-2xl overflow-hidden">
+            <label className="flex items-center gap-3 px-6 py-4 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isVariable}
+                onChange={(e) => {
+                  setIsVariable(e.target.checked);
+                  if (!e.target.checked) {
+                    setUseWater(false);
+                    setUseElectric(false);
+                  }
+                }}
+                className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-sm font-extrabold text-black-900">
+                ประเภทแปรผันตามมิเตอร์
+              </span>
+            </label>
+
+            <div
+              className="overflow-hidden transition-all duration-300 ease-in-out"
+              style={{
+                maxHeight: isVariable ? '200px' : '0px',
+                opacity: isVariable ? 1 : 0,
+              }}
+            >
+              <div className="px-6 pb-5 space-y-2">
+                <div className="text-sm font-extrabold text-black-800 mb-3">
+                  คำนวณตามการใช้งาน
+                </div>
+
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useWater}
+                    onChange={(e) => setUseWater(e.target.checked)}
+                    className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
+                  />
+                  <span className="text-sm font-bold text-gray-700">
+                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าน้ำ</span>
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useElectric}
+                    onChange={(e) => setUseElectric(e.target.checked)}
+                    className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
+                  />
+                  <span className="text-sm font-bold text-gray-700">
+                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าไฟ</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
 
           <div className="h-px bg-blue-100/60" />
 
@@ -163,28 +214,25 @@ const Step_1: React.FC = () => {
         </div>
       </div>
 
-      <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
-        <div className="w-full max-w-[1120px] mx-auto px-6">
-          <div className="flex items-center justify-end gap-[14px] flex-wrap">
-            <button
-              type="button"
-              onClick={() => nav("../step-0")}
-              className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition"
-            >
-              ย้อนกลับ
-            </button>
+      <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
+        <button
+          type="button"
+          onClick={() => nav("../step-0")}
+          className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
+        >
+          ย้อนกลับ
+        </button>
 
-            <button
-              type="button"
-              onClick={() => nav("../step-2")}
-              className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+        <button
+          type="button"
+          onClick={() => nav("../step-2")}
+          className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+                         !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                          focus:outline-none focus:ring-2 focus:ring-blue-300"
-            >
-              ต่อไป
-            </button>
-          </div>
-        </div>
+        >
+          ต่อไป
+        </button>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { UserRole } from "@/types";
 import rentsphereLogo from "@/assets/brand/rentsphere-logo.png";
 import { CondoBackground, Meteors, SaaSBackground } from "@/features/auth/components/AuthBackground";
 import { useAuthRole } from "@/features/auth/hooks/useAuthRole";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { userRole, base } = useAuthRole();
+  const { base } = useAuthRole();
 
   const inputSaaS =
     "w-full px-5 py-4 rounded-2xl bg-white/90 border border-indigo-100 shadow-sm " +
@@ -73,7 +72,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => navigate(userRole === UserRole.OWNER ? "/owner" : "/tenant")}
+              onClick={() => navigate("/owner/add-condo/step-0")}
               className="w-full max-w-md py-4 btn-auth text-white rounded-2xl font-bold text-lg shadow-lg"
             >
               เข้าสู่ระบบ
