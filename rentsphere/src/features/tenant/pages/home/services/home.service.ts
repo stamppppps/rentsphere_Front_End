@@ -1,5 +1,5 @@
-import { FeatureType } from '@/features/tenant/pages/home/types/home.types';
-import type { Resident, Activity } from '@/features/tenant/pages/home/types/home.types';
+import { FeatureType } from '../types/home.types';
+import type { Resident, Activity } from '../types/home.types';
 
 export const getResidentData = async (): Promise<Resident> => {
   return {

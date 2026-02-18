@@ -21,19 +21,6 @@ const getIconData = (type: FeatureType) => {
   }
 };
 
-const getFeaturePath = (type: FeatureType) => {
-  switch (type) {
-    case FeatureType.PARCEL:
-      return '/parcel';
-    case FeatureType.BILLING:
-      return '/billing';
-    case FeatureType.MAINTENANCE:
-      return '/maintenance';
-    case FeatureType.BOOKING:
-      return '/booking';
-  }
-};
-
 const LatestActivitySection: React.FC<LatestActivitySectionProps> = ({ activities }) => {
   const navigate = useNavigate();
 
@@ -56,7 +43,7 @@ const LatestActivitySection: React.FC<LatestActivitySectionProps> = ({ activitie
             <div 
               key={activity.id} 
               className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-100 transition-all cursor-pointer group"
-              onClick={() => navigate(getFeaturePath(activity.type))}
+              onClick={() => navigate('/history')}
             >
               <div className={`w-11 h-11 ${bg} ${color} rounded-xl flex items-center justify-center transition-transform group-hover:scale-105`}>
                 {icon}

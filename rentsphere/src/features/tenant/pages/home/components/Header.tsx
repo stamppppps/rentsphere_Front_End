@@ -1,10 +1,6 @@
 import React from 'react';
-import { User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="flex justify-between items-center px-6 pt-8 pb-2">
       <div className="flex items-center gap-2.5">
@@ -21,15 +17,8 @@ const Header: React.FC = () => {
         </div>
       </div>
       
-      <button 
-        onClick={() => navigate('/profile')}
-        className="relative group flex items-center justify-center p-0.5 rounded-full bg-gradient-to-tr from-blue-100 via-white to-purple-100 shadow-md transition-all hover:scale-105 active:scale-95"
-      >
-        <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white shadow-inner border-2 border-white">
-          <User size={22} strokeWidth={2.5} />
-        </div>
-        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
-      </button>
+      {/* Menu button removed as per user request */}
+      <div className="w-11"></div> 
     </div>
   );
 };

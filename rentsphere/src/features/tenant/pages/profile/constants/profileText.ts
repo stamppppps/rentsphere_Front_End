@@ -1,0 +1,20 @@
+export const PROFILE_TEXT = {
+  TITLE: "โปรไฟล์",
+  EDIT_PROFILE: "แก้ไขโปรไฟล์",
+  HELP_SUPPORT: "ความช่วยเหลือและสนับสนุน",
+  LOGOUT: "ออกจากระบบ",
+  LOGOUT_CONFIRM_TITLE: "ยืนยันการออกจากระบบ",
+  LOGOUT_CONFIRM_DESC: "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?",
+  CANCEL: "ยกเลิก",
+  CONFIRM: "ยืนยัน",
+  SAVE: "บันทึกข้อมูล",
+  LABEL_NAME: "ชื่อ-นามสกุล",
+  LABEL_PHONE: "เบอร์โทรศัพท์",
+  LABEL_EMAIL: "อีเมล",
+  VERSION: "RentSphere Tenant Portal v1.0.6",
+  SUPPORT_TITLE: "ช่องทางการติดต่อ",
+  SUPPORT_PHONE: "02-xxx-xxxx",
+  SUPPORT_LINE: "@rentsphere",
+  SUPPORT_EMAIL: "support@rentsphere.com",
+  CLOSE: "ปิดหน้าต่าง"
+};

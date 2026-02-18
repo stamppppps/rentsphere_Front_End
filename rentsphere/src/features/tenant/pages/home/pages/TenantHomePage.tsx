@@ -3,8 +3,8 @@ import Header from '../components/Header';
 import ResidentCard from '../components/ResidentCard';
 import FeatureGrid from '../components/FeatureGrid';
 import LatestActivitySection from '../components/LatestActivitySection';
-import { getResidentData, getLatestActivities } from '@/features/tenant/pages/home/services/home.service';
-import type { Resident, Activity } from '@/features/tenant/pages/home/types/home.types';
+import { getResidentData, getLatestActivities } from '../services/home.service';
+import type { Resident, Activity } from '../types/home.types';
 
 const TenantHomePage: React.FC = () => {
   const [resident, setResident] = useState<Resident | null>(null);
