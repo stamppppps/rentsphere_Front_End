@@ -47,7 +47,7 @@ export default function Step9_Success() {
 
                     <div className="mt-6">
                         <button
-                            onClick={() => nav("/owner/add-condo/step-1")}
+                            onClick={() => nav("/owner/add-condo/step-8")}
                             className="text-sm font-extrabold text-gray-500 underline underline-offset-4 hover:text-gray-700"
                         >
                             แก้ไขการตั้งค่าอีกครั้ง

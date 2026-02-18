@@ -89,12 +89,12 @@ export default function AddCondoLayout() {
                         </span>
                     </div>
 
-                    <div className="mt-6 text-3xl font-extrabold tracking-tight text-gray-900">
+                    <div className="text-3xl font-extrabold tracking-tight text-gray-900 text-center">
                         คอนโดมิเนียม
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-8 pr-2">
+                <div className="flex-1 min-h-0 overflow-y-hidden overscroll-contain px-6 pt-4 pb-8">
                     <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
                         <div className="flex flex-col gap-4">
                             {MENU.map((m) => (
@@ -130,11 +130,6 @@ export default function AddCondoLayout() {
                     </div>
                 </div>
 
-                <div className="sticky bottom-0 w-full bg-[#EEF4FF]/90 backdrop-blur border-t border-blue-100/70">
-                    <div className="mx-auto w-full max-w-6xl px-8 py-5 flex items-center justify-end gap-4">
-                        <div id="bottom-bar-slot" />
-                    </div>
-                </div>
             </main>
         </div>
     );

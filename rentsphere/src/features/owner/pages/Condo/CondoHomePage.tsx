@@ -429,7 +429,7 @@ export default function CondoHomePage() {
                                         >
                                             <span className="inline-flex items-center gap-2">
                                                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
-                                                    <span className="text-[12px] font-black leading-none">+</span>
+                                                    <span className="text-[16px] font-black leading-none">+</span>
                                                 </span>
                                                 เพิ่มคอนโดมิเนียม
                                             </span>

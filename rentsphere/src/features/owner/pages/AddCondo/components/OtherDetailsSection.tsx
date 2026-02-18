@@ -13,7 +13,7 @@ interface OtherDetailsSectionProps {
 const OtherDetailsSection: React.FC<OtherDetailsSectionProps> = ({ formData, handleChange }) => {
   return (
     <SectionCard title="รายละเอียดอื่นๆ" description="เบอร์โทรศัพท์ และ เลขประจำตัวผู้เสียภาษี">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <Input
           id="phoneNumber"
           label="เบอร์โทรศัพท์"

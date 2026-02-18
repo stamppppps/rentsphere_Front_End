@@ -244,12 +244,10 @@ export default function Step7_Review() {
                 </div>
             </div>
 
-            <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
-                <div className="w-full max-w-[1120px] mx-auto px-6">
-                    <div className="flex items-center justify-end gap-[14px] flex-wrap">
-                        <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
-                            เลือกเพื่อกำหนดสถานะ {pickedCount} ห้อง
-                        </div>
+            <div className="flex items-center justify-end gap-[14px] flex-wrap pt-5">
+                <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
+                    เลือกเพื่อกำหนดสถานะ {pickedCount} ห้อง
+                </div>
 
                         <button
                             type="button"
@@ -324,7 +322,5 @@ export default function Step7_Review() {
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
     );
 }

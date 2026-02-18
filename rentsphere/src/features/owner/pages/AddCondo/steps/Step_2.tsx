@@ -253,28 +253,25 @@ const Step_2: React.FC = () => {
         </div>
       </div>
 
-      <div className="fixed left-0 right-0 bottom-0 z-40 w-full bg-[rgba(238,244,255,0.9)] backdrop-blur-[8px] border-t border-[rgba(147,197,253,0.45)] py-[18px]">
-        <div className="w-full max-w-[1120px] mx-auto px-6">
-          <div className="flex items-center justify-end gap-[14px] flex-wrap">
-            <button
-              type="button"
-              onClick={() => nav("../step-1")}
-              className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition"
-            >
-              ย้อนกลับ
-            </button>
+      <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
+        <button
+          type="button"
+          onClick={() => nav("../step-1")}
+          className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                         focus:outline-none focus:ring-2 focus:ring-gray-200"
+        >
+          ย้อนกลับ
+        </button>
 
-            <button
-              type="button"
-              onClick={() => nav("../step-3")}
-              className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+        <button
+          type="button"
+          onClick={() => nav("../step-3")}
+          className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+                         !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                          focus:outline-none focus:ring-2 focus:ring-blue-300"
-            >
-              ต่อไป
-            </button>
-          </div>
-        </div>
+        >
+          ต่อไป
+        </button>
       </div>
 
       <UtilityConfigPopup open={modalOpen} utilityType={currentUtility} onClose={handleCloseModal} onSave={handleSave} />

@@ -14,7 +14,7 @@ type SidebarProps = {
 };
 
 const DEFAULT_MENU: MenuItem[] = [
-    { key: "dashboard", label: "แดชบอร์ด", path: "/owner/dashboard" },
+    { key: "dashboard", label: "ข้อมูลภาพรวม", path: "/owner/dashboard" },
     { key: "rooms", label: "ห้อง", path: "/owner/rooms" },
     { key: "maintenance", label: "แจ้งซ่อม", path: "/owner/maintenance" },
     { key: "parcel", label: "แจ้งพัสดุ", path: "/owner/parcel" },
@@ -86,13 +86,13 @@ export default function Sidebar({
                     </span>
                 </div>
 
-                <div className="mt-6 text-3xl font-extrabold tracking-tight text-gray-900">
+                <div className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 text-center">
                     {title}
                 </div>
             </div>
 
             {/* ===== Menu (scroll) ===== */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-8 pr-2">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pb-8 scrollbar-hide">
                 <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
                     <div className="flex flex-col gap-4">
                         {items.map((m) => (

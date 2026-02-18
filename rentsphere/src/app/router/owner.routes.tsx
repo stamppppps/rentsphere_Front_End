@@ -1,11 +1,6 @@
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
-
 import OwnerLayout from "@/app/layouts/OwnerLayout";
-
-// Owner Auth Pages
-import OwnerLogin from "@/features/owner/pages/Auth/OwnerLogin";
-import OwnerRegister from "@/features/owner/pages/Auth/OwnerRegister";
 
 // AddCondo flow
 import AddCondoLayout from "@/features/owner/pages/AddCondo/AddCondoLayout";
@@ -22,28 +17,20 @@ import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 
 // Owner pages
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
-
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
-
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
-
 import MaintenancePage from "@/features/owner/pages/Maintenance/MaintenancePage";
-
 import MeterPage from "@/features/owner/pages/Meter/MeterPage";
-
+import MeterPage2 from "@/features/owner/pages/Meter/MeterPage_2";
 import ParcelPage from "@/features/owner/pages/Parcel/ParcelPage";
-
 import PaymentsPage from "@/features/owner/pages/Payments/PaymentsPage";
-
 import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
-
 import AdvancePaymentPage from "@/features/owner/pages/Rooms/AdvancePaymentPage";
 import MonthlyContractPage from "@/features/owner/pages/Rooms/MonthlyContractPage";
 import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
-
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 
 // ===== Facility Booking pages =====
@@ -54,12 +41,8 @@ import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/Boo
 import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
 
 
-
 const ownerRoutes: RouteObject[] = [
-  { path: "/owner/login", element: <OwnerLogin /> },
-  { path: "/owner/register", element: <OwnerRegister /> },
 
-  
   {
     path: "/owner",
     element: <OwnerLayout />,
@@ -78,19 +61,22 @@ const ownerRoutes: RouteObject[] = [
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "meter", element: <MeterPage /> },
+      { path: "meter/record", element: <MeterPage2 /> },
       { path: "billing", element: <BillingPage /> },
       { path: "payments", element: <PaymentsPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "settings", element: <SettingsPage /> },
 
-      // AddCondo flow
+      // Step 0 - standalone page (ไม่อยู่ใน AddCondoLayout)
+      { path: "add-condo/step-0", element: <Step_0 /> },
+
+      // AddCondo flow (step-1 onwards with sidebar layout)
       {
         path: "add-condo",
         element: <AddCondoLayout />,
         children: [
           { index: true, element: <Navigate to="step-0" replace /> },
 
-          { path: "step-0", element: <Step_0 /> },
           { path: "step-1", element: <Step_1 /> },
           { path: "step-2", element: <Step_2 /> },
           { path: "step-3", element: <Step_3 /> },
