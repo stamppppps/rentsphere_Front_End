@@ -1,78 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UtilitySetupCard from "../components/UtilitySetupCard";
+import WaterIconImg from "@/assets/Water.png";
+import ElectricIconImg from "@/assets/Electric.png";
 
 type UtilityType = "water" | "electricity";
 
-const WaterIcon = () => (
-  <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g filter="url(#filter0_d_101_2)">
-      <path
-        d="M50 8C26.8 8 8 28.1 8 50.5C8 71.5 35.7 92 50 92C64.3 92 92 71.5 92 50.5C92 28.1 73.2 8 50 8Z"
-        fill="url(#paint0_linear_101_2)"
-      />
-    </g>
-    <path
-      d="M50 22C38.4 22 29 31.9 29 42.7C29 52.9 44.28 68 50 68C55.72 68 71 52.9 71 42.7C71 31.9 61.6 22 50 22Z"
-      fill="white"
-      fillOpacity="0.5"
-    />
-    <defs>
-      <filter id="filter0_d_101_2" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-        <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feColorMatrix
-          in="SourceAlpha"
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          result="hardAlpha"
-        />
-        <feOffset />
-        <feGaussianBlur stdDeviation="4" />
-        <feComposite in2="hardAlpha" operator="out" />
-        <feColorMatrix type="matrix" values="0 0 0 0 0.490196 0 0 0 0 0.701961 0 0 0 0 0.933333 0 0 0 0.5 0" />
-        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_101_2" />
-        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_101_2" result="shape" />
-      </filter>
-      <linearGradient id="paint0_linear_101_2" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#A8B5FF" />
-        <stop offset="1" stopColor="#818CF8" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
 
-const ElectricityIcon = () => (
-  <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <g filter="url(#filter0_d_101_3)">
-      <path
-        d="M50 8C26.8 8 8 28.1 8 50.5C8 71.5 35.7 92 50 92C64.3 92 92 71.5 92 50.5C92 28.1 73.2 8 50 8Z"
-        fill="url(#paint0_linear_101_3)"
-      />
-    </g>
-    <path d="M57.5 29L40 50.6H51L45.5 67L63 43.4H52L57.5 29Z" fill="white" fillOpacity="0.7" />
-    <defs>
-      <filter id="filter0_d_101_3" x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-        <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feColorMatrix
-          in="SourceAlpha"
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          result="hardAlpha"
-        />
-        <feOffset />
-        <feGaussianBlur stdDeviation="4" />
-        <feComposite in2="hardAlpha" operator="out" />
-        <feColorMatrix type="matrix" values="0 0 0 0 0.988235 0 0 0 0 0.8 0 0 0 0 0.564706 0 0 0 0.5 0" />
-        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_101_3" />
-        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_101_3" result="shape" />
-      </filter>
-      <linearGradient id="paint0_linear_101_3" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FDBA74" />
-        <stop offset="1" stopColor="#FB923C" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
 
 function UtilityConfigPopup({
   open,
@@ -243,9 +177,13 @@ const Step_2: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <UtilitySetupCard icon={<WaterIcon />} onConfigure={() => handleOpenModal("water")} buttonText="ระบุการคิดค่าน้ำ" />
             <UtilitySetupCard
-              icon={<ElectricityIcon />}
+              icon={<img src={WaterIconImg} alt="Water" className="w-[80px] h-[80px] object-contain drop-shadow-lg" />}
+              onConfigure={() => handleOpenModal("water")}
+              buttonText="ระบุการคิดค่าน้ำ"
+            />
+            <UtilitySetupCard
+              icon={<img src={ElectricIconImg} alt="Electric" className="w-[80px] h-[80px] object-contain drop-shadow-lg" />}
               onConfigure={() => handleOpenModal("electricity")}
               buttonText="ระบุการคิดค่าไฟ"
             />
