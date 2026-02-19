@@ -1,12 +1,10 @@
-import React from 'react';
+import Logo from '@/assets/brand/rentsphere-logo2.png';
 
 const Header: React.FC = () => {
   return (
     <div className="flex justify-between items-center px-6 pt-8 pb-2">
       <div className="flex items-center gap-2.5">
-        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-100 border border-white/20">
-          RS
-        </div>
+        <img src={Logo} alt="RentSphere" className="w-22 h-22 rounded-xl object-contain" />
         <div className="flex flex-col -gap-1">
           <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-800 tracking-tight leading-none">
             RentSphere
@@ -16,9 +14,9 @@ const Header: React.FC = () => {
           </span>
         </div>
       </div>
-      
+
       {/* Menu button removed as per user request */}
-      <div className="w-11"></div> 
+      <div className="w-11"></div>
     </div>
   );
 };
