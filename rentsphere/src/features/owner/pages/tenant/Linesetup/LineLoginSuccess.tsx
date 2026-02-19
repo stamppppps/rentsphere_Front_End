@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
-const API = "http://localhost:3001";
+
+const API = "https://backendlinefacality.onrender.com";
 
 export default function LineLoginSuccess() {
   const [status, setStatus] = useState<"checking" | "ok" | "error">("checking");

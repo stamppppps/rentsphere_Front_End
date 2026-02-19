@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 
-const API = "http://localhost:3001";
+
+const API = "https://backendlinefacality.onrender.com";
 
 type Tenant = {
   id: string;

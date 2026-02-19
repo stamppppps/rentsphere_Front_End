@@ -15,7 +15,8 @@ import {
   MapPin,
 } from "lucide-react";
 
-const API = "http://localhost:3001";
+
+const API = "https://backendlinefacality.onrender.com";
 
 type DormUser = {
   id: string;
@@ -168,7 +169,7 @@ export default function TenantHome() {
             title="จองส่วนกลาง"
             icon={<Calendar className="text-indigo-400" size={32} />}
             checked
-            onClick={() => alert("ยังไม่เปิดใช้เมนูจองส่วนกลาง (placeholder)")}
+            onClick={() => nav("/tenant/facility")}
           />
         </div>
 

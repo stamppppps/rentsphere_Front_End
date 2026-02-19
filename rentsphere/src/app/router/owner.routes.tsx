@@ -45,11 +45,8 @@ import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
 
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
-
-import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
-import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
-import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
-import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+import TenantFacilityBooking from "@/features/owner/pages/tenant/TenantFacilityBooking";
+import FacilityListPage from "@/features/owner/pages/facility-booking/FacilityListPage";
 import Admin from "@/features/owner/pages/Maintenance/Admin";
 import AdminLogin from "@/features/owner/pages/Maintenance/AdminLogin";
 import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
@@ -126,11 +123,9 @@ const ownerRoutes: RouteObject[] = [
       // ===== Common Area / Facility Booking =====
       {
         path: "common-area-booking",
-        children: [
-          { index: true, element: <FacilityListPage /> },
-          { path: ":facilityId", element: <FacilityDetailPage /> },
-          { path: ":facilityId/bookings/:bookingId", element: <BookingDetailPage /> },
-          { path: "history", element: <BookingHistoryPage /> },
+        children: [ { index: true, element: <FacilityListPage /> },
+
+          
         ],
       },
 
@@ -209,6 +204,14 @@ const ownerRoutes: RouteObject[] = [
   element: (
     <RequireLineLogin>
       <RepairCreate />
+    </RequireLineLogin>
+  ),
+},
+{
+  path: "/tenant/facility",
+  element: (
+    <RequireLineLogin>
+      <TenantFacilityBooking />
     </RequireLineLogin>
   ),
 },

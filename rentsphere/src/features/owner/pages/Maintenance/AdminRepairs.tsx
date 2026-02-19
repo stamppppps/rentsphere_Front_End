@@ -18,7 +18,8 @@ import {
   Package,
 } from "lucide-react";
 
-const API = "http://localhost:3001";
+
+const API = "https://backendlinefacality.onrender.com";
 
 type Repair = {
   id: string;

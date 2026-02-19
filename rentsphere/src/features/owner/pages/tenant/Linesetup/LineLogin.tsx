@@ -2,7 +2,7 @@ import React from "react";
 
 const LineLogin: React.FC = () => {
   const onLogin = () => {
-    window.location.href = "http://localhost:3001/auth/line/login";
+    window.location.href = "https://backendlinefacality.onrender.com/auth/line/login";
   };
 
   return (
