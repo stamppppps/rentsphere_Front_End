@@ -1,9 +1,6 @@
 import { useParams } from "react-router-dom";
 import { UserRole } from '@/types';
 
-
-
-
 export function useAuthRole() {
   const { role } = useParams<{ role: string }>();
 
