@@ -29,7 +29,7 @@ export default function LineLoginSuccess() {
 
         if (data?.linked) {
           // ✅ ผูกแล้ว ไปหน้าหลัก
-          window.location.replace("/tenant/app");
+          window.location.replace("/tenant/home");
         } else {
           // ✅ ยังไม่ผูก บังคับไปหน้าใส่โค้ดหอ
           window.location.replace("/tenant/dorm-register");
