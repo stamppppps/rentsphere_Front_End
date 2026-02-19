@@ -54,7 +54,7 @@ import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 
 import RoleSelect from "@/features/owner/pages/tenant/RoleSelect";
 import Gate from "@/features/owner/pages/tenant/TenantGate";
-import TenantHome from "@/features/owner/pages/tenant/TenantHome";
+import TenantHomePage from "@/features/tenant/pages/home/pages/TenantHomePage";
 
 import MyRepairs from "@/features/owner/pages/tenant/repairs/MyRepairs";
 import RepairDetail from "@/features/owner/pages/tenant/repairs/RepairDetail";
@@ -175,46 +175,46 @@ const ownerRoutes: RouteObject[] = [
     element: <DormLink />,
   },
    
-  {
-  path: "/tenant/app",
-  element: (
-    <RequireLineLogin>
-      <TenantHome />
-    </RequireLineLogin>
-  ),
-},
-{
-  path: "/tenant/repairs",
-  element: (
-    <RequireLineLogin>
-      <MyRepairs />
-    </RequireLineLogin>
-  ),
-},
-{
-  path: "/tenant/repairs/:repairId",
-  element: (
-    <RequireLineLogin>
-      <RepairDetail />
-    </RequireLineLogin>
-  ),
-},
-{
-  path: "/tenant/repair-new",
-  element: (
-    <RequireLineLogin>
-      <RepairCreate />
-    </RequireLineLogin>
-  ),
-},
-{
-  path: "/tenant/facility",
-  element: (
-    <RequireLineLogin>
-      <TenantFacilityBooking />
-    </RequireLineLogin>
-  ),
-},
+//   {
+//   path: "/tenant/app",
+//   element: (
+//     <RequireLineLogin>
+//       <TenantHomePage />
+//     </RequireLineLogin>
+//   ),
+// },
+// {
+//   path: "/tenant/repairs",
+//   element: (
+//     <RequireLineLogin>
+//       <MyRepairs />
+//     </RequireLineLogin>
+//   ),
+// },
+// {
+//   path: "/tenant/repairs/:repairId",
+//   element: (
+//     <RequireLineLogin>
+//       <RepairDetail />
+//     </RequireLineLogin>
+//   ),
+// },
+// {
+//   path: "/tenant/repair-new",
+//   element: (
+//     <RequireLineLogin>
+//       <RepairCreate />
+//     </RequireLineLogin>
+//   ),
+// },
+// {
+//   path: "/tenant/facility",
+//   element: (
+//     <RequireLineLogin>
+//       <TenantFacilityBooking />
+//     </RequireLineLogin>
+//   ),
+// },
 ];
 
 export default ownerRoutes;

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+
 const API = "https://backendlinefacality.onrender.com";
 
 type Facility = {
@@ -37,16 +38,10 @@ function normalizeHHmm(t: string) {
   if (!t) return "00:00";
   return String(t).slice(0, 5);
 }
-
-// ✅ ล็อก timezone Bangkok ให้เวลาไม่เพี้ยน
 function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
-    return d.toLocaleTimeString("th-TH", {
-      timeZone: "Asia/Bangkok",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   } catch {
     return iso;
   }
@@ -55,7 +50,6 @@ function fmtDateTime(iso: string) {
   try {
     const d = new Date(iso);
     return d.toLocaleString("th-TH", {
-      timeZone: "Asia/Bangkok",
       day: "2-digit",
       month: "2-digit",
       year: "2-digit",
@@ -65,21 +59,6 @@ function fmtDateTime(iso: string) {
   } catch {
     return iso;
   }
-}
-
-// ✅ สำหรับ key availability ให้ "HH:mm" แบบ Bangkok เสถียร
-function hhmmBangkokFromISO(iso: string) {
-  const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Bangkok",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-
-  const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
-  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
-  return `${hh}:${mm}`;
 }
 
 async function apiGet(path: string, lineUserId: string) {
@@ -92,7 +71,7 @@ async function apiGet(path: string, lineUserId: string) {
   });
 
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((data as any)?.error || "โหลดข้อมูลไม่สำเร็จ");
+  if (!r.ok) throw new Error(data?.error || "โหลดข้อมูลไม่สำเร็จ");
   return data;
 }
 async function apiPost(path: string, body: any, lineUserId: string) {
@@ -102,7 +81,7 @@ async function apiPost(path: string, body: any, lineUserId: string) {
     body: JSON.stringify(body ?? {}),
   });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((data as any)?.error || "ทำรายการไม่สำเร็จ");
+  if (!r.ok) throw new Error(data?.error || "ทำรายการไม่สำเร็จ");
   return data;
 }
 
@@ -173,9 +152,8 @@ export default function TenantFacilityBooking() {
     return buildSlotsForDay(open, close, slotMin);
   }, [selectedFacility]);
 
-  // ✅ แก้ home/back ไม่ให้พาไป /tenant/app แล้วกระเด้งมั่ว
-  const goHome = () => window.location.assign("/tenant/home");
-  const goBack = () => window.location.assign("/tenant/home");
+  const goHome = () => (window.location.href = "/tenant/app");
+  const goBack = () => (window.location.href = "/tenant/app");
 
   const loadFacilities = async () => {
     if (!lineUserId) return;
@@ -188,24 +166,19 @@ export default function TenantFacilityBooking() {
   const loadMyBookings = async () => {
     if (!lineUserId) return;
     const data = await apiGet(`/tenant/facility-bookings/my?date=${encodeURIComponent(dateYmd)}`, lineUserId);
+    // ซ่อน cancelled ก็ได้ถ้าไม่อยากโชว์:
+    // setMyBookings(((data.items || []) as Booking[]).filter(b => b.status !== "cancelled"));
     setMyBookings((data.items || []) as Booking[]);
   };
 
   const loadAvailability = async () => {
     if (!lineUserId || !selectedFacilityId) return;
     const data = await apiGet(
-      `/tenant/facility-bookings/availability?facility_id=${encodeURIComponent(selectedFacilityId)}&date=${encodeURIComponent(
-        dateYmd
-      )}`,
+      `/tenant/facility-bookings/availability?facility_id=${encodeURIComponent(selectedFacilityId)}&date=${encodeURIComponent(dateYmd)}`,
       lineUserId
     );
     setSlotCounts((data.counts || {}) as Record<string, number>);
     setCapacity(Number(data.capacity || 1));
-  };
-
-  // ✅ ฟังก์ชัน reload ใช้รวมทุกที่
-  const reload = async () => {
-    await Promise.all([loadMyBookings(), loadAvailability()]);
   };
 
   // load initial
@@ -222,14 +195,13 @@ export default function TenantFacilityBooking() {
     setSelectedSlot("");
     if (!lineUserId || !selectedFacilityId) return;
     loadMyBookings().catch((e: any) => setErr(e?.message || "โหลดการจองไม่สำเร็จ"));
-    loadAvailability().catch(() => {});
+    loadAvailability().catch((e: any) => console.error(e));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateYmd, selectedFacilityId, lineUserId]);
 
   const submitBooking = async () => {
     setErr("");
     setOkMsg("");
-
     if (!lineUserId) {
       window.location.href = "/owner/line-login";
       return;
@@ -255,7 +227,9 @@ export default function TenantFacilityBooking() {
       setOkMsg("จองสำเร็จ ✅ ระบบส่งแจ้งเตือนใน LINE แล้ว");
       setNote("");
       setSelectedSlot("");
-      await reload();
+
+      // refresh
+      await Promise.all([loadMyBookings(), loadAvailability()]);
     } catch (e: any) {
       setErr(e?.message || "จองไม่สำเร็จ");
     } finally {
@@ -271,10 +245,10 @@ export default function TenantFacilityBooking() {
     setLoading(true);
     try {
       await apiPost(`/tenant/facility-bookings/${bookingId}/check-in`, {}, lineUserId);
-      setOkMsg("✅ เข้าใช้งานแล้ว (แจ้งใน LINE แล้ว)");
-      await reload();
+      setOkMsg("ยืนยันเข้าใช้งานแล้ว ✅ แจ้งไปใน LINE แล้ว");
+      await Promise.all([loadMyBookings(), loadAvailability()]);
     } catch (e: any) {
-      setErr(e?.message || "เข้าใช้งานไม่สำเร็จ");
+      setErr(e?.message || "ยืนยันไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -289,7 +263,7 @@ export default function TenantFacilityBooking() {
     try {
       await apiPost(`/tenant/facility-bookings/${bookingId}/cancel`, {}, lineUserId);
       setOkMsg("ยกเลิกการจองแล้ว ✅");
-      await reload();
+      await Promise.all([loadMyBookings(), loadAvailability()]);
     } catch (e: any) {
       setErr(e?.message || "ยกเลิกไม่สำเร็จ");
     } finally {
@@ -442,6 +416,8 @@ export default function TenantFacilityBooking() {
                     slots.map((t) => {
                       const active = selectedSlot === t;
                       const used = Number(slotCounts[t] || 0);
+
+                      // ✅ EXCLUSIVE: ถ้ามีคนจองแล้ว = ล็อกทันที
                       const locked = used > 0;
 
                       return (
@@ -494,7 +470,7 @@ export default function TenantFacilityBooking() {
                 </button>
 
                 <button
-                  onClick={() => reload()}
+                  onClick={() => Promise.all([loadMyBookings(), loadAvailability()])}
                   className="flex-1 bg-white border-2 border-slate-100 py-5 rounded-2xl font-black text-slate-700 hover:bg-slate-50 hover:border-indigo-100 hover:text-indigo-600 transition shadow-sm active:scale-[0.97]"
                 >
                   รีเฟรชรายการ
@@ -522,21 +498,14 @@ export default function TenantFacilityBooking() {
                 <div className="space-y-3">
                   {myBookings.map((b) => {
                     const facName = facilityNameById[b.facility_id] || b.facility_id;
-
-                    // ✅ รองรับทั้ง booked / BOOKED
-                    const isBooked = ["booked", "BOOKED"].includes(String(b.status));
-                    const hasCheckedIn = !!b.checked_in_at;
-
-                    const canCheckIn = isBooked && !hasCheckedIn;
-                    const canCancel = isBooked && !hasCheckedIn;
+                    const canCheckIn = b.status === "booked" && !b.checked_in_at;
+                    const canCancel = b.status === "booked" && !b.checked_in_at;
 
                     return (
                       <div key={b.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="font-black text-slate-900">
-                              {fmtTime(b.start_at)} - {fmtTime(b.end_at)}
-                            </div>
+                            <div className="font-black text-slate-900">{fmtTime(b.start_at)} - {fmtTime(b.end_at)}</div>
                             <div className="text-xs font-bold text-slate-400 mt-1">
                               สถานที่: {facName} • เริ่ม: {fmtDateTime(b.start_at)} • หมด: {fmtDateTime(b.end_at)}
                             </div>
@@ -547,23 +516,9 @@ export default function TenantFacilityBooking() {
                           </div>
 
                           <div className="flex flex-col gap-2 items-end">
-                            {/* ✅ ปุ่มตามที่นายต้องการ: "✅ เข้าใช้" */}
                             <button
-                              disabled={loading || !canCheckIn}
-                              onClick={async () => {
-                                try {
-                                  setLoading(true);
-                                  setErr("");
-                                  setOkMsg("");
-                                  await apiPost(`/tenant/facility-bookings/${b.id}/check-in`, {}, lineUserId);
-                                  setOkMsg("✅ เข้าใช้งานแล้ว");
-                                  await reload();
-                                } catch (e: any) {
-                                  setErr(e?.message || "เข้าใช้งานไม่สำเร็จ");
-                                } finally {
-                                  setLoading(false);
-                                }
-                              }}
+                              disabled={!canCheckIn || loading}
+                              onClick={() => checkIn(b.id)}
                               className={[
                                 "px-4 py-2 rounded-xl font-black transition border",
                                 canCheckIn && !loading
@@ -571,7 +526,7 @@ export default function TenantFacilityBooking() {
                                   : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed",
                               ].join(" ")}
                             >
-                              ✅ เข้าใช้
+                              ✅ ยืนยันเข้าใช้งาน
                             </button>
 
                             <button
@@ -588,9 +543,7 @@ export default function TenantFacilityBooking() {
                             </button>
 
                             {b.checked_in_at ? (
-                              <div className="text-[11px] font-bold text-emerald-600">
-                                checked-in: {fmtDateTime(b.checked_in_at)}
-                              </div>
+                              <div className="text-[11px] font-bold text-emerald-600">checked-in: {fmtDateTime(b.checked_in_at)}</div>
                             ) : null}
                           </div>
                         </div>

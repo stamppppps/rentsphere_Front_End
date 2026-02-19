@@ -1,0 +1,221 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ChevronLeft, MapPin, Calendar, Clock, User, Check, Sofa } from "lucide-react";
+import type { Facility } from "../types/facility.types";
+import { getFacilities, saveBooking } from "../services/booking.service";
+import { BOOKING_TEXT } from "../constants/bookingText";
+import type { BookingRecord } from "../types/booking.types";
+
+const API = "https://backendlinefacality.onrender.com";
+
+function formatThaiDateFromYmd(ymd: string) {
+  // ymd: "YYYY-MM-DD"
+  try {
+    // บังคับเวลาไทยให้เสถียร (กันเลื่อนวัน)
+    const d = new Date(`${ymd}T00:00:00+07:00`);
+    return d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
+  } catch {
+    return ymd;
+  }
+}
+
+const BookingConfirmPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { state } = useLocation() as any;
+
+  const [facility, setFacility] = useState<Facility | null>(null);
+  const [agreed, setAgreed] = useState(false);
+
+  // ✅ ชื่อจริงจาก backend
+  const [userName, setUserName] = useState<string>("");
+
+  const displayDate = useMemo(() => {
+    return state?.date ? formatThaiDateFromYmd(state.date) : "";
+  }, [state?.date]);
+
+  useEffect(() => {
+    if (!state) {
+      navigate("/tenant/booking");
+      return;
+    }
+
+    // โหลด facility
+    getFacilities().then((all) => {
+      const match = all.find((f) => f.id === state.facilityId);
+      if (match) setFacility(match);
+    });
+
+    // ✅ โหลดชื่อผู้จองจริงจาก lineUserId
+    const lineUserId = localStorage.getItem("lineUserId") || "";
+    if (!lineUserId) return;
+
+    (async () => {
+      try {
+        const r = await fetch(`${API}/dorm/status?lineUserId=${encodeURIComponent(lineUserId)}`);
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data?.error || "โหลดข้อมูลผู้ใช้ไม่สำเร็จ");
+
+        // backend ของเธอคืน dormUser.full_name อยู่แล้ว
+        const fullName = data?.dormUser?.full_name || "";
+        setUserName(fullName);
+      } catch {
+        // ถ้าโหลดไม่ได้ ให้ fallback เป็นคำทั่วไป
+        setUserName("");
+      }
+    })();
+  }, [state, navigate]);
+
+  if (!state || !facility) return null;
+
+  const handleConfirm = async () => {
+  if (!agreed) return;
+
+  const newRecord: BookingRecord = {
+    id: Math.random().toString(36).substring(2, 11),
+    facilityId: facility.id,
+    facilityName: facility.name,
+    imageUrl: facility.imageUrl,
+    date: state.date,
+    displayDate: displayDate || state.date,
+    slots: state.slots,
+    userName: userName || "ผู้ใช้งาน",
+    status: "BOOKED",
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await saveBooking(newRecord);
+    navigate("/tenant/booking/success");
+  } catch (e: any) {
+    alert(e?.message || "จองไม่สำเร็จ");
+  }
+};
+
+  
+;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#f0f7ff] via-[#f0f5ff] to-white pb-32">
+      {/* Header */}
+      <div className="px-6 pt-10 pb-4 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 rounded-xl bg-white/40 backdrop-blur-md text-gray-800 active:scale-90 transition-transform"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-xl font-black text-gray-800 tracking-tight">ยืนยันการจอง</h1>
+        <div className="w-10"></div>
+      </div>
+
+      <div className="px-6 space-y-5">
+        {/* Facility Card */}
+        <div className="relative h-44 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-purple-900/10 border-4 border-white">
+          <img src={facility.imageUrl} className="w-full h-full object-cover brightness-90" alt="" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/40 to-transparent flex items-center p-8">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-black text-blue-700 tracking-tight leading-none">{facility.name}</h2>
+              <div className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-2xl flex items-center justify-center text-blue-500 shadow-sm border border-white/50">
+                <Sofa size={28} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Details */}
+        <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] p-7 border border-white shadow-xl shadow-blue-900/5">
+          <h3 className="font-black text-gray-500 text-base uppercase tracking-[0.15em] mb-6">สรุปการจอง</h3>
+
+          <div className="space-y-5">
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-[#135ced]/10 rounded-2xl flex items-center justify-center text-[#135ced] shadow-sm shrink-0">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <p className="text-gray-700 font-bold text-sm">สถานที่: {facility.name}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-[#135ced]/10 rounded-2xl flex items-center justify-center text-[#135ced] shadow-sm shrink-0">
+                <Calendar size={20} />
+              </div>
+              <div>
+                {/* ✅ ใช้วันที่จริง */}
+                <p className="text-gray-700 font-bold text-sm">{displayDate}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-[#135ced]/10 rounded-2xl flex items-center justify-center text-[#135ced] shadow-sm shrink-0">
+                <Clock size={20} />
+              </div>
+              <div className="space-y-0.5">
+                {state.slots.map((s: string) => (
+                  <p key={s} className="text-gray-700 font-bold text-sm">
+                    {s}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-[#135ced]/10 rounded-2xl flex items-center justify-center text-[#135ced] shadow-sm shrink-0">
+                <User size={20} />
+              </div>
+              <div>
+                {/* ✅ ใช้ชื่อจริง */}
+                <p className="text-gray-700 font-bold text-sm">
+                  ผู้จอง: {userName ? userName : "ผู้ใช้งาน"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rules Section */}
+        <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] p-7 border border-white shadow-xl shadow-blue-900/5">
+          <h3 className="font-black text-gray-500 text-base uppercase tracking-[0.15em] mb-4">กฎการใช้งาน</h3>
+          <div className="space-y-3 mb-8">
+            {BOOKING_TEXT.RULES_LIST.map((rule, idx) => (
+              <div key={idx} className="flex items-start gap-3">
+                <div className="mt-0.5 text-[#135ced] shrink-0">
+                  <Check size={18} strokeWidth={3} />
+                </div>
+                <p className="text-gray-500 text-xs font-bold leading-relaxed">{rule}</p>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setAgreed(!agreed)} className="flex items-center gap-3 active:opacity-70 transition-opacity">
+            <div
+              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                agreed ? "bg-[#135ced] border-[#135ced] text-white shadow-md" : "border-[#135ced]/30 bg-white/50"
+              }`}
+            >
+              {agreed && <Check size={14} strokeWidth={4} />}
+            </div>
+            <span className="text-[11px] font-bold text-gray-400">ฉันได้อ่านและยอมรับกฎและเงื่อนไขแล้ว</span>
+          </button>
+        </div>
+
+        {/* Confirm Button */}
+        <div className="pt-4 px-2">
+          <button
+            disabled={!agreed}
+            onClick={handleConfirm}
+            className={`w-full py-5 font-black text-xl rounded-[2rem] transition-all duration-300 shadow-2xl ${
+              agreed
+                ? "bg-gradient-to-r from-[#135ced] to-[#2467ed] text-white shadow-blue-500/30 active:scale-95"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+            }`}
+          >
+            ยืนยันการจอง
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BookingConfirmPage;

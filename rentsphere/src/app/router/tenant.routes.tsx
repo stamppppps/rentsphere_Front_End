@@ -6,6 +6,14 @@ import { Navigate } from "react-router-dom";
 import TenantLayout from "../../shared/layouts/TenantLayout";
 import TenantHomePage from "../../features/tenant/pages/home/pages/TenantHomePage";
 
+import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
+import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
+import BookingSuccessPage from "@/features/tenant/pages/booking/pages/BookingSuccessPage";
+// ✅ import หน้า Booking ที่ทำไว้แล้ว
+import FacilityListPage from "../../features/tenant/pages/booking/pages/FacilityListPage";
+// (ถ้ายังไม่อยากเปิด detail ตอนนี้ ให้คอมเมนต์ไว้ก่อน)
+// import FacilityDetailPage from "../../features/tenant/pages/booking/pages/FacilityDetailPage";
+
 // ✅ Guard เดิม
 function RequireLineLogin({ children }: { children: React.ReactNode }) {
   const lineUserId = localStorage.getItem("lineUserId");
@@ -37,17 +45,26 @@ const tenantRoutes: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="home" replace /> },
 
-      // ✅ เปิดแค่ Home ก่อน
+      // ✅ Home
       { path: "home", element: <TenantHomePage /> },
 
-      // ✅ ที่เหลือ placeholder กันหน้าอื่นพังโปรเจกต์
+      // ✅ Booking: เปิดใช้จริง
+      { path: "booking", element: <FacilityListPage /> },
+
+      // ✅ ถ้าจะเปิด detail ทีหลัง ค่อยปลดคอมเมนต์
+      // { path: "booking/:id", element: <FacilityDetailPage /> },
+        { path: "booking", element: <FacilityListPage /> },
+{ path: "booking/:id", element: <FacilityDetailPage /> },
+{ path: "booking/confirm", element: <BookingConfirmPage /> },
+{ path: "booking/success", element: <BookingSuccessPage /> },
+
+      // ที่เหลือ placeholder กันหน้าอื่นพัง
       { path: "history", element: <ComingSoon title="History" /> },
       { path: "notifications", element: <ComingSoon title="Notifications" /> },
       { path: "profile", element: <ComingSoon title="Profile" /> },
       { path: "maintenance", element: <ComingSoon title="Maintenance" /> },
       { path: "parcel", element: <ComingSoon title="Parcel" /> },
       { path: "billing", element: <ComingSoon title="Billing" /> },
-      { path: "booking", element: <ComingSoon title="Booking" /> },
 
       { path: "*", element: <Navigate to="home" replace /> },
     ],
