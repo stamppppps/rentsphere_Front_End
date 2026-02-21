@@ -2,7 +2,7 @@ type Account = {
   id: number;
   bank: string;
   accountNo: string;
-  price: string;
+  accountName: string;
 };
 
 type Props = {
@@ -26,7 +26,7 @@ export default function BankAccountList({ accounts, onDelete }: Props) {
           key={acc.id}
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr auto auto",
+            gridTemplateColumns: "1fr 1fr 1fr auto",
             padding: "12px 20px",
             borderBottom: "1px solid #E5E7EB",
             alignItems: "center",
@@ -34,6 +34,7 @@ export default function BankAccountList({ accounts, onDelete }: Props) {
         >
           <span>{acc.bank}</span>
           <span>{acc.accountNo}</span>
+          <span>{acc.accountName}</span>
           <button onClick={() => onDelete(acc.id)}>🗑️</button>
         </div>
       ))}

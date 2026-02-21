@@ -1,4 +1,5 @@
 import RentSphereLogo from "@/assets/brand/rentsphere-logo.png";
+import { useEffect, useState } from "react";
 import { Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 
 const MENU = [
@@ -42,6 +43,53 @@ function SidebarItem({
     );
 }
 
+/* ===== Types ===== */
+type MeResponse = {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    displayName?: string | null;
+};
+
+/* ===== Backend call  ===== */
+async function fetchMe(): Promise<MeResponse> {
+    // TODO: GET /api/me หรือ /api/owner/me
+    const res = await fetch("/api/me", {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) throw new Error("โหลดข้อมูลผู้ใช้ไม่สำเร็จ");
+    const data = await res.json();
+
+    return {
+        id: String(data.id ?? ""),
+        firstName: data.firstName ?? null,
+        lastName: data.lastName ?? null,
+        displayName: data.displayName ?? data.name ?? null,
+    };
+}
+
+function getInitials(name: string) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "U";
+    const a = parts[0]?.[0] ?? "U";
+    const b = parts.length >= 2 ? parts[parts.length - 1]?.[0] ?? "" : "";
+    return (a + b).toUpperCase();
+}
+
+function buildDisplayName(me: MeResponse | null) {
+    if (!me) return "";
+    const dn = (me.displayName ?? "").trim();
+    if (dn) return dn;
+
+    const fn = (me.firstName ?? "").trim();
+    const ln = (me.lastName ?? "").trim();
+    const full = `${fn} ${ln}`.trim();
+    return full || "";
+}
+
 export default function AddCondoLayout() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
@@ -51,6 +99,37 @@ export default function AddCondoLayout() {
 
     const isStep0 = !!matchPath({ path: "/owner/add-condo/step-0" }, pathname);
     const isStep9 = !!matchPath({ path: "/owner/add-condo/step-9" }, pathname);
+
+    /* ===== load owner name  ===== */
+    const [me, setMe] = useState<MeResponse | null>(null);
+    const [meLoading, setMeLoading] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const run = async () => {
+            if (isStep0 || isStep9) return;
+
+            if (me) return;
+
+            setMeLoading(true);
+            try {
+                const data = await fetchMe();
+                if (cancelled) return;
+                setMe(data);
+            } catch {
+                if (cancelled) return;
+                setMe(null);
+            } finally {
+                if (!cancelled) setMeLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            cancelled = true;
+        };
+    }, [pathname, isStep0, isStep9]);
 
     if (isStep0) {
         return (
@@ -69,6 +148,9 @@ export default function AddCondoLayout() {
             </div>
         );
     }
+
+    const ownerName = buildDisplayName(me) || "Owner";
+    const initials = getInitials(ownerName);
 
     return (
         <div className="owner-ui flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans text-black/85">
@@ -102,7 +184,7 @@ export default function AddCondoLayout() {
                                     key={m.path}
                                     label={m.label}
                                     isActive={isActive(m.path)}
-                                    onClick={() => navigate(m.path, { relative: "path" })}
+                                    onClick={() => navigate(`/owner/add-condo/${m.path}`)}
                                 />
                             ))}
                         </div>
@@ -116,10 +198,11 @@ export default function AddCondoLayout() {
                 <header className="h-20 shrink-0 bg-[#D6E6FF] border-b border-blue-100/80 flex items-center justify-end px-10 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-11 h-11 rounded-full bg-white border border-blue-100 flex items-center justify-center text-blue-700 font-extrabold text-lg shadow-sm">
-                            K
+                            {meLoading ? "…" : initials}
                         </div>
+
                         <div className="text-gray-900 font-extrabold text-[16px] tracking-[0.2px]">
-                            Mr. Kittidet Suksarn
+                            {meLoading ? "กำลังโหลดชื่อ..." : ownerName}
                         </div>
                     </div>
                 </header>
@@ -129,7 +212,6 @@ export default function AddCondoLayout() {
                         <Outlet />
                     </div>
                 </div>
-
             </main>
         </div>
     );

@@ -1,6 +1,5 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { useAddCondoStore } from "@/features/owner/pages/AddCondo/store/addCondo.store";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 function moneyTHB(n?: number | null) {
@@ -49,24 +48,85 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
     );
 }
 
+/* ===== Types ===== */
+type RoomDetail = {
+    id: string;
+    roomNo: string;
+    price: number | null;
+    condoName?: string | null;
+};
+
+/* ===== Backend call (แก้ endpoint ให้ตรง) ===== */
+async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
+    // TODO: GET /api/owner/rooms/:roomId
+    const res = await fetch(`/api/owner/rooms/${encodeURIComponent(roomId)}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) throw new Error("โหลดข้อมูลห้องไม่สำเร็จ");
+    const data = await res.json();
+
+    // TODO: ปรับ mapping ตาม response จริง
+    return {
+        id: String(data.id ?? roomId),
+        roomNo: String(data.roomNo ?? data.number ?? "-"),
+        price: data.price ?? 0,
+        condoName: data.condoName ?? data.condo?.name ?? null,
+    };
+}
+
 export default function MonthlyContractPage() {
     const nav = useNavigate();
     const { roomId } = useParams();
-    const { rooms } = useAddCondoStore();
 
-    const room = useMemo(() => {
-        if (!roomId) return null;
-        return (rooms ?? []).find((r) => String(r.id) === String(roomId)) ?? null;
-    }, [rooms, roomId]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [room, setRoom] = useState<RoomDetail | null>(null);
 
-    const condoName = "สวัสดีคอนโด";
+    useEffect(() => {
+        let cancelled = false;
+
+        const load = async () => {
+            if (!roomId) {
+                setLoading(false);
+                setRoom(null);
+                setError("ไม่พบ roomId");
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+
+                const data = await fetchRoomDetail(roomId);
+                if (cancelled) return;
+
+                setRoom(data);
+                setLoading(false);
+            } catch (e: any) {
+                if (cancelled) return;
+                setRoom(null);
+                setError(e?.message ?? "เกิดข้อผิดพลาด");
+                setLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [roomId]);
+
+    const condoName = room?.condoName ?? "คอนโดมิเนียม";
     const roomNo = room?.roomNo ?? "-";
     const rent = room?.price ?? 0;
 
-    // ===== form state (mock) =====
+    // ===== form state (โครง UI เฉย ๆ) =====
     const [checkIn, setCheckIn] = useState("");
     const [checkOut, setCheckOut] = useState("");
-    const [monthlyRent, setMonthlyRent] = useState<number>(rent || 0);
+    const [monthlyRent, setMonthlyRent] = useState<number>(0);
     const [deposit, setDeposit] = useState<number>(0);
     const [depositPayBy, setDepositPayBy] = useState<string>("เงินสด");
     const [bookingFee, setBookingFee] = useState<number>(0);
@@ -84,27 +144,55 @@ export default function MonthlyContractPage() {
 
     const [note, setNote] = useState("");
 
+    // ตั้งค่าเริ่มต้นค่าเช่าตามห้อง หลังโหลด room มาแล้ว
+    useEffect(() => {
+        setMonthlyRent(Number(rent || 0));
+    }, [rent]);
+
     const total = useMemo(() => {
         return (deposit || 0) - (bookingFee || 0);
     }, [deposit, bookingFee]);
 
     const goNext = () => {
+        if (!roomId) return;
         nav(`/owner/rooms/${roomId}/advance-payment`);
     };
 
-    if (!room) {
+    if (loading) {
+        return (
+            <OwnerShell activeKey="rooms" showSidebar>
+                <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
+                    <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูล...</div>
+                </div>
+            </OwnerShell>
+        );
+    }
+
+    if (!room || error) {
         return (
             <OwnerShell activeKey="rooms" showSidebar>
                 <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
                     <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูลห้อง</div>
-                    <div className="text-gray-600 font-bold mb-6">roomId: {roomId}</div>
-                    <button
-                        type="button"
-                        onClick={() => nav("/owner/rooms")}
-                        className="px-5 py-3 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700"
-                    >
-                        กลับไปหน้าห้อง
-                    </button>
+                    <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
+                    {error && <div className="text-rose-600 font-extrabold mb-6">{error}</div>}
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => nav("/owner/rooms")}
+                            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700"
+                        >
+                            กลับไปหน้าห้อง
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
+                        >
+                            ลองใหม่
+                        </button>
+                    </div>
                 </div>
             </OwnerShell>
         );

@@ -1,12 +1,16 @@
+import ElectricIconImg from "@/assets/Electric.png";
+import WaterIconImg from "@/assets/Water.png";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UtilitySetupCard from "../components/UtilitySetupCard";
-import WaterIconImg from "@/assets/Water.png";
-import ElectricIconImg from "@/assets/Electric.png";
 
 type UtilityType = "water" | "electricity";
+type BillingType = "METER" | "METER_MIN" | "FLAT";
 
-
+type UtilityConfig = {
+  billingType: BillingType;
+  rate: number;
+};
 
 function UtilityConfigPopup({
   open,
@@ -17,9 +21,9 @@ function UtilityConfigPopup({
   open: boolean;
   utilityType: UtilityType | null;
   onClose: () => void;
-  onSave: (config: { billingType: string; rate: number }) => void;
+  onSave: (config: UtilityConfig) => void;
 }) {
-  const [billingType, setBillingType] = useState("");
+  const [billingType, setBillingType] = useState<BillingType | "">("");
   const [rate, setRate] = useState("");
 
   useEffect(() => {
@@ -43,7 +47,14 @@ function UtilityConfigPopup({
     return "ตั้งค่า";
   }, [utilityType]);
 
-  const canSave = billingType.trim().length > 0 && rate.trim().length > 0;
+  const rateNumber = useMemo(() => {
+    const raw = String(rate).replace(/,/g, "").trim();
+    if (!raw) return NaN;
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : NaN;
+  }, [rate]);
+
+  const canSave = billingType !== "" && Number.isFinite(rateNumber);
 
   if (!open) return null;
 
@@ -61,7 +72,9 @@ function UtilityConfigPopup({
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
             <div className="text-lg font-extrabold text-gray-900">{title}</div>
-            <div className="text-sm font-bold text-gray-600 mt-0.5">กำหนดรูปแบบการคิดเงินและราคา</div>
+            <div className="text-sm font-bold text-gray-600 mt-0.5">
+              กำหนดรูปแบบการคิดเงินและราคา
+            </div>
           </div>
         </div>
 
@@ -72,7 +85,7 @@ function UtilityConfigPopup({
             </label>
             <select
               value={billingType}
-              onChange={(e) => setBillingType(e.target.value)}
+              onChange={(e) => setBillingType(e.target.value as BillingType)}
               className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
                          focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
             >
@@ -89,7 +102,11 @@ function UtilityConfigPopup({
             </label>
             <input
               value={rate}
-              onChange={(e) => setRate(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!/^[0-9.,]*$/.test(next)) return;
+                setRate(next);
+              }}
               inputMode="decimal"
               placeholder="0"
               className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
@@ -109,17 +126,17 @@ function UtilityConfigPopup({
 
           <button
             type="button"
-            onClick={() =>
-              onSave({
-                billingType,
-                rate: Number(String(rate).replace(/,/g, "")),
-              })
-            }
+            onClick={() => {
+              if (billingType === "" || !Number.isFinite(rateNumber)) return;
+              onSave({ billingType, rate: rateNumber });
+            }}
             disabled={!canSave}
             className={[
               "h-[44px] px-7 rounded-xl font-black text-sm transition shadow-[0_12px_22px_rgba(0,0,0,0.14)]",
               "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
-              canSave ? "bg-[#93C5FD] hover:bg-[#7fb4fb] text-white" : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+              canSave
+                ? "bg-[#93C5FD] hover:bg-[#7fb4fb] text-white"
+                : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
             ].join(" ")}
           >
             บันทึก
@@ -136,6 +153,13 @@ const Step_2: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<UtilityType | null>(null);
 
+  const [utilityConfig, setUtilityConfig] = useState<
+    Record<UtilityType, UtilityConfig | null>
+  >({
+    water: null,
+    electricity: null,
+  });
+
   const handleOpenModal = (utility: UtilityType) => {
     setCurrentUtility(utility);
     setModalOpen(true);
@@ -146,8 +170,9 @@ const Step_2: React.FC = () => {
     setCurrentUtility(null);
   };
 
-  const handleSave = (config: { billingType: string; rate: number }) => {
-    console.log("Saving config:", { utility: currentUtility, ...config });
+  const handleSave = (config: UtilityConfig) => {
+    if (!currentUtility) return;
+    setUtilityConfig((prev) => ({ ...prev, [currentUtility]: config }));
     handleCloseModal();
   };
 
@@ -161,14 +186,20 @@ const Step_2: React.FC = () => {
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">การคิดค่าน้ำ / ค่าไฟ</div>
-            <div className="mt-1 text-sm font-bold text-gray-600">กำหนดรูปแบบการคิด พร้อมตั้งค่าเงื่อนไขและราคา</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              การคิดค่าน้ำ / ค่าไฟ
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-600">
+              กำหนดรูปแบบการคิด พร้อมตั้งค่าเงื่อนไขและราคา
+            </div>
           </div>
         </div>
 
         <div className="px-8 py-7 space-y-6">
           <div className="rounded-2xl border border-blue-100/60 bg-white p-6">
-            <div className="text-sm font-extrabold text-gray-900 mb-2">รูปแบบการกำหนดค่าน้ำค่าไฟ</div>
+            <div className="text-sm font-extrabold text-gray-900 mb-2">
+              รูปแบบการกำหนดค่าน้ำค่าไฟ
+            </div>
             <ul className="list-disc pl-6 text-sm font-bold text-gray-600 space-y-1">
               <li>คิดตามหน่วยจริงจากมิเตอร์</li>
               <li>คิดตามหน่วยจริงแบบมีขั้นต่ำ</li>
@@ -178,14 +209,35 @@ const Step_2: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <UtilitySetupCard
-              icon={<img src={WaterIconImg} alt="Water" className="w-[80px] h-[80px] object-contain drop-shadow-lg" />}
+              icon={
+                <img
+                  src={WaterIconImg}
+                  alt="Water"
+                  className="w-[80px] h-[80px] object-contain drop-shadow-lg"
+                />
+              }
               onConfigure={() => handleOpenModal("water")}
-              buttonText="ระบุการคิดค่าน้ำ"
+              buttonText={
+                utilityConfig.water
+                  ? `ตั้งค่าแล้ว: ${utilityConfig.water.billingType} (${utilityConfig.water.rate.toLocaleString()} บาท)`
+                  : "ระบุการคิดค่าน้ำ"
+              }
             />
+
             <UtilitySetupCard
-              icon={<img src={ElectricIconImg} alt="Electric" className="w-[80px] h-[80px] object-contain drop-shadow-lg" />}
+              icon={
+                <img
+                  src={ElectricIconImg}
+                  alt="Electric"
+                  className="w-[80px] h-[80px] object-contain drop-shadow-lg"
+                />
+              }
               onConfigure={() => handleOpenModal("electricity")}
-              buttonText="ระบุการคิดค่าไฟ"
+              buttonText={
+                utilityConfig.electricity
+                  ? `ตั้งค่าแล้ว: ${utilityConfig.electricity.billingType} (${utilityConfig.electricity.rate.toLocaleString()} บาท)`
+                  : "ระบุการคิดค่าไฟ"
+              }
             />
           </div>
         </div>
@@ -212,7 +264,12 @@ const Step_2: React.FC = () => {
         </button>
       </div>
 
-      <UtilityConfigPopup open={modalOpen} utilityType={currentUtility} onClose={handleCloseModal} onSave={handleSave} />
+      <UtilityConfigPopup
+        open={modalOpen}
+        utilityType={currentUtility}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+      />
     </div>
   );
 };
