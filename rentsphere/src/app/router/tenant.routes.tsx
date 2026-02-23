@@ -1,17 +1,19 @@
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
-import TenantLayout from "@/shared/layouts/TenantLayout";
+import BillingBankTransferPage from "@/features/tenant/pages/billing/pages/BillingBankTransferPage";
+import BillingPage from "@/features/tenant/pages/billing/pages/BillingPage";
+import BillingPayMethodPage from "@/features/tenant/pages/billing/pages/BillingPayMethodPage";
+import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
+import BookingSuccessPage from "@/features/tenant/pages/booking/pages/BookingSuccessPage";
+import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
+import FacilityListPage from "@/features/tenant/pages/booking/pages/FacilityListPage";
+import HistoryPageReal from "@/features/tenant/pages/history/pages/HistoryPage";
 import TenantHomePage from "@/features/tenant/pages/home/pages/TenantHomePage";
 import MaintenancePage from "@/features/tenant/pages/maintenance/pages/MaintenancePage";
 import ParcelPage from "@/features/tenant/pages/parcel/pages/ParcelPage";
-import BillingPage from "@/features/tenant/pages/billing/pages/BillingPage";
-import FacilityListPage from "@/features/tenant/pages/booking/pages/FacilityListPage";
-import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
-import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
-import BookingSuccessPage from "@/features/tenant/pages/booking/pages/BookingSuccessPage";
-import HistoryPageReal from "@/features/tenant/pages/history/pages/HistoryPage";
 import TenantProfilePage from "@/features/tenant/pages/profile/pages/TenantProfilePage";
+import TenantLayout from "@/shared/layouts/TenantLayout";
 
 const NotificationsPage = () => <div className="min-h-screen bg-gradient-to-b from-[#f0f7ff] via-[#f0f5ff] to-white pb-32 p-4 pt-10 text-center text-gray-500 font-medium ">การแจ้งเตือน</div>;
 
@@ -39,6 +41,8 @@ const tenantRoutes: RouteObject[] = [
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "billing", element: <BillingPage /> },
+      { path: "billing/:billId/pay", element: <BillingPayMethodPage /> },
+      { path: "billing/:billId/pay/bank-transfer", element: <BillingBankTransferPage /> },
       { path: "booking", element: <FacilityListPage /> },
       { path: "booking/:id", element: <FacilityDetailPage /> },
       { path: "booking/confirm", element: <BookingConfirmPage /> },
