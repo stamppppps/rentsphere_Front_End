@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAddCondoStore } from "../store/addCondo.store";
+import type { Room } from "../types/addCondo.types";
 
 type ServiceOption = { id: number; label: string; price: number };
 
@@ -12,24 +12,44 @@ const SERVICE_OPTIONS: ServiceOption[] = [
 export default function Step8_RoomService() {
     const nav = useNavigate();
 
-    const { rooms, floorCount, roomsPerFloor, generateRoomsIfEmpty, setServiceForRooms } =
-        useAddCondoStore();
+    // ======================
+    // Local state (no store)
+    // ======================
+    const [floorCount, setFloorCount] = useState<number>(0);
+    const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
+    const [rooms, setRooms] = useState<Room[]>([]);
 
+    // ======================
+    // TODO: API (backend will connect later)
+    // - GET rooms + floorCount + roomsPerFloor
+    // - setFloorCount(...)
+    // - setRoomsPerFloor(...)
+    // - setRooms(...)
+    // ======================
     useEffect(() => {
-        generateRoomsIfEmpty();
-    }, [generateRoomsIfEmpty]);
+        // Example:
+        // const res = await api.getCondoSetupDraft(...)
+        // setFloorCount(res.floorCount)
+        // setRoomsPerFloor(res.roomsPerFloor)
+        // setRooms(res.rooms)
+    }, []);
 
+    // ======================
+    // Selection
+    // ======================
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
     const selectedCount = selectedIds.length;
 
     const roomsByFloor = useMemo(() => {
-        const map = new Map<number, typeof rooms>();
+        const map = new Map<number, Room[]>();
         for (let f = 1; f <= floorCount; f++) map.set(f, []);
+
         rooms.forEach((r) => {
-            if (!r.isActive) return;
+            if (!r.isActive) return; // แสดงเฉพาะห้องที่เปิดใช้งาน
             map.get(r.floor)?.push(r);
         });
+
         map.forEach((arr) => arr.sort((a, b) => a.roomNo.localeCompare(b.roomNo)));
         return map;
     }, [rooms, floorCount]);
@@ -48,6 +68,9 @@ export default function Step8_RoomService() {
         setSelectedIds((prev) => prev.filter((id) => !ids.has(id)));
     };
 
+    // ======================
+    // Modal
+    // ======================
     const [openModal, setOpenModal] = useState(false);
     const [serviceId, setServiceId] = useState<number | "">("");
 
@@ -60,6 +83,17 @@ export default function Step8_RoomService() {
         if (selectedCount === 0) return;
         setServiceId("");
         setOpenModal(true);
+    };
+
+    // ======================
+    // Local update + TODO API
+    // ======================
+    const setServiceForRooms = (roomIds: string[], serviceId: number | null) => {
+        const ids = new Set(roomIds);
+        setRooms((prev) => prev.map((r) => (ids.has(r.id) ? { ...r, serviceId } : r)));
+
+        // TODO: API
+        // await api.setRoomServiceBulk({ roomIds, serviceId })
     };
 
     const onSaveService = () => {
@@ -96,97 +130,110 @@ export default function Step8_RoomService() {
                 </div>
 
                 <div className="px-8 py-7 space-y-5">
-                    {Array.from({ length: floorCount }, (_, i) => i + 1).map((floor) => {
-                        const floorRooms = roomsByFloor.get(floor) ?? [];
-                        const countHint = roomsPerFloor?.[floor - 1] ?? floorRooms.length;
+                    {floorCount <= 0 ? (
+                        <div className="rounded-2xl border border-blue-100/60 bg-white px-6 py-8 shadow-sm text-center">
+                            <div className="text-sm font-extrabold text-gray-900">ยังไม่มีข้อมูลห้อง</div>
+                            <div className="mt-1 text-sm font-bold text-gray-600">
+                                รอ backend ส่ง floorCount / rooms / roomsPerFloor มาให้ แล้วหน้านี้จะพร้อมใช้งาน
+                            </div>
+                        </div>
+                    ) : (
+                        Array.from({ length: floorCount }, (_, i) => i + 1).map((floor) => {
+                            const floorRooms = roomsByFloor.get(floor) ?? [];
+                            const countHint = roomsPerFloor?.[floor - 1] ?? floorRooms.length;
 
-                        return (
-                            <div
-                                key={floor}
-                                className="rounded-2xl border border-blue-100/60 bg-white shadow-sm overflow-hidden"
-                            >
-                                <div className="flex items-center justify-between gap-4 px-6 py-4 bg-[#f3f7ff] border-b border-blue-100/60">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
-                                        <div className="text-lg font-extrabold text-gray-900">ชั้นที่ {floor}</div>
-                                        <div className="text-sm font-bold text-gray-600">· {countHint} ห้อง</div>
-                                    </div>
+                            return (
+                                <div
+                                    key={floor}
+                                    className="rounded-2xl border border-blue-100/60 bg-white shadow-sm overflow-hidden"
+                                >
+                                    <div className="flex items-center justify-between gap-4 px-6 py-4 bg-[#f3f7ff] border-b border-blue-100/60">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
+                                            <div className="text-lg font-extrabold text-gray-900">ชั้นที่ {floor}</div>
+                                            <div className="text-sm font-bold text-gray-600">· {countHint} ห้อง</div>
+                                        </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => selectAllOnFloor(floor)}
-                                            className="h-[44px] px-5 rounded-xl bg-white border border-blue-200 text-blue-700 font-extrabold text-sm shadow-sm hover:bg-blue-50 active:scale-[0.98]
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => selectAllOnFloor(floor)}
+                                                className="h-[44px] px-5 rounded-xl bg-white border border-blue-200 text-blue-700 font-extrabold text-sm shadow-sm hover:bg-blue-50 active:scale-[0.98]
                                  focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        >
-                                            เลือกทั้งชั้น
-                                        </button>
+                                            >
+                                                เลือกทั้งชั้น
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => unselectAllOnFloor(floor)}
-                                            className="h-[44px] px-5 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98]
+                                            <button
+                                                type="button"
+                                                onClick={() => unselectAllOnFloor(floor)}
+                                                className="h-[44px] px-5 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98]
                                  focus:outline-none focus:ring-2 focus:ring-gray-200"
-                                        >
-                                            ยกเลิกทั้งชั้น
-                                        </button>
+                                            >
+                                                ยกเลิกทั้งชั้น
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="px-6 py-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        {floorRooms.map((r) => {
-                                            const isSelected = selectedSet.has(r.id);
-                                            const service = getService(r.serviceId);
+                                    <div className="px-6 py-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                            {floorRooms.map((r) => {
+                                                const isSelected = selectedSet.has(r.id);
+                                                const service = getService(r.serviceId);
 
-                                            return (
-                                                <button
-                                                    key={r.id}
-                                                    type="button"
-                                                    onClick={() => toggleRoom(r.id)}
-                                                    className={[
-                                                        "rounded-2xl border px-6 py-5 bg-white shadow-sm transition text-left",
-                                                        "active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-200",
-                                                        isSelected
-                                                            ? "border-blue-300 ring-4 ring-blue-200/60"
-                                                            : "border-blue-100/70 hover:border-blue-200",
-                                                    ].join(" ")}
-                                                >
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <div className="text-base font-extrabold text-gray-900">ห้อง {r.roomNo}</div>
+                                                return (
+                                                    <button
+                                                        key={r.id}
+                                                        type="button"
+                                                        onClick={() => toggleRoom(r.id)}
+                                                        className={[
+                                                            "rounded-2xl border px-6 py-5 bg-white shadow-sm transition text-left",
+                                                            "active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-200",
+                                                            isSelected
+                                                                ? "border-blue-300 ring-4 ring-blue-200/60"
+                                                                : "border-blue-100/70 hover:border-blue-200",
+                                                        ].join(" ")}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div className="text-base font-extrabold text-gray-900">ห้อง {r.roomNo}</div>
+
+                                                            <div
+                                                                className={[
+                                                                    "h-[34px] px-3 rounded-xl text-xs font-extrabold border flex items-center",
+                                                                    isSelected
+                                                                        ? "bg-blue-600 text-white border-blue-600"
+                                                                        : "bg-white text-gray-700 border-gray-200",
+                                                                ].join(" ")}
+                                                            >
+                                                                {isSelected ? "เลือกแล้ว" : "เลือก"}
+                                                            </div>
+                                                        </div>
 
                                                         <div
                                                             className={[
-                                                                "h-[34px] px-3 rounded-xl text-xs font-extrabold border flex items-center",
-                                                                isSelected
-                                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                                    : "bg-white text-gray-700 border-gray-200",
+                                                                "mt-4 inline-flex items-center px-4 py-2 rounded-xl border text-sm font-extrabold",
+                                                                service
+                                                                    ? "bg-blue-50 border-blue-200 text-blue-900"
+                                                                    : "bg-gray-50 border-gray-200 text-gray-700",
                                                             ].join(" ")}
                                                         >
-                                                            {isSelected ? "เลือกแล้ว" : "เลือก"}
+                                                            {service
+                                                                ? `${service.label} · ${service.price.toLocaleString()} บาท`
+                                                                : "ยังไม่ได้เลือกค่าบริการ"}
                                                         </div>
-                                                    </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
 
-                                                    <div
-                                                        className={[
-                                                            "mt-4 inline-flex items-center px-4 py-2 rounded-xl border text-sm font-extrabold",
-                                                            service ? "bg-blue-50 border-blue-200 text-blue-900" : "bg-gray-50 border-gray-200 text-gray-700",
-                                                        ].join(" ")}
-                                                    >
-                                                        {service ? `${service.label} · ${service.price.toLocaleString()} บาท` : "ยังไม่ได้เลือกค่าบริการ"}
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <div className="mt-6 text-sm font-bold text-gray-600">
-                                        ชั้นนี้มี <span className="font-extrabold text-gray-900">{countHint}</span> ห้อง
+                                        <div className="mt-6 text-sm font-bold text-gray-600">
+                                            ชั้นนี้มี <span className="font-extrabold text-gray-900">{countHint}</span> ห้อง
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    )}
                 </div>
             </div>
 
@@ -214,8 +261,8 @@ export default function Step8_RoomService() {
                     type="button"
                     onClick={() => nav("../step-9")}
                     className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
-                         focus:outline-none focus:ring-2 focus:ring-blue-300"
+                   bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                   focus:outline-none focus:ring-2 focus:ring-blue-300"
                 >
                     ต่อไป
                 </button>
@@ -233,9 +280,7 @@ export default function Step8_RoomService() {
                         <div className="flex items-center gap-3 px-7 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
                             <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
                             <div>
-                                <div className="text-lg font-extrabold text-gray-900 tracking-tight">
-                                    ระบุค่าบริการเพิ่มเติม
-                                </div>
+                                <div className="text-lg font-extrabold text-gray-900 tracking-tight">ระบุค่าบริการเพิ่มเติม</div>
                                 <div className="mt-1 text-xs font-bold text-gray-600">
                                     เลือกบริการให้กับ {selectedCount.toLocaleString()} ห้องที่เลือก
                                 </div>

@@ -1,15 +1,14 @@
-// BankAccountForm.tsx
 import { useState } from "react";
 
 export function useBankAccountForm() {
   const [bank, setBank] = useState("");
   const [accountNo, setAccountNo] = useState("");
-  const [price, setPrice] = useState("");
+  const [accountName, setAccountName] = useState("");
 
   const reset = () => {
     setBank("");
     setAccountNo("");
-    setPrice("");
+    setAccountName("");
   };
 
   return {
@@ -17,8 +16,8 @@ export function useBankAccountForm() {
     setBank,
     accountNo,
     setAccountNo,
-    price,
-    setPrice,
+    accountName,
+    setAccountName,
     reset,
   };
 }

@@ -1,12 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAddCondoStore } from "../store/addCondo.store";
+
+type ServiceDraft = {
+  id: string;
+  name: string;
+  price: number;
+  isVariable: boolean;
+  variableType: "NONE" | "WATER" | "ELECTRIC" | "BOTH";
+};
 
 const Step_1: React.FC = () => {
   const nav = useNavigate();
 
-  const services = useAddCondoStore((s) => s.services);
-  const addService = useAddCondoStore((s) => s.addService);
+  const [services, setServices] = useState<ServiceDraft[]>([]);
 
   const [serviceName, setServiceName] = useState("");
   const [priceText, setPriceText] = useState("");
@@ -24,25 +30,42 @@ const Step_1: React.FC = () => {
   const canAdd =
     serviceName.trim().length > 0 && !Number.isNaN(priceNumber) && priceNumber >= 0;
 
+  const variableType: ServiceDraft["variableType"] =
+    !isVariable
+      ? "NONE"
+      : useWater && useElectric
+        ? "BOTH"
+        : useWater
+          ? "WATER"
+          : useElectric
+            ? "ELECTRIC"
+            : "NONE";
+
   const handleAdd = () => {
     const cleanName = serviceName.trim();
     if (!cleanName) return;
 
-    const dup = (services ?? []).some(
+    const dup = services.some(
       (s) => s.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
     if (dup) return;
 
-    addService({
-      id: Date.now(),
-      name: cleanName,
-      price: priceNumber,
-      isVariable,
-    });
+    setServices((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: cleanName,
+        price: priceNumber,
+        isVariable,
+        variableType,
+      },
+    ]);
 
     setServiceName("");
     setPriceText("");
     setIsVariable(false);
+    setUseWater(false);
+    setUseElectric(false);
   };
 
   return (
@@ -120,15 +143,15 @@ const Step_1: React.FC = () => {
             </div>
           </div>
 
-          {/* ===== Meter Variable Section ===== */}
           <div className="rounded-2xl overflow-hidden">
             <label className="flex items-center gap-3 px-6 py-4 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isVariable}
                 onChange={(e) => {
-                  setIsVariable(e.target.checked);
-                  if (!e.target.checked) {
+                  const checked = e.target.checked;
+                  setIsVariable(checked);
+                  if (!checked) {
                     setUseWater(false);
                     setUseElectric(false);
                   }
@@ -143,7 +166,7 @@ const Step_1: React.FC = () => {
             <div
               className="overflow-hidden transition-all duration-300 ease-in-out"
               style={{
-                maxHeight: isVariable ? '200px' : '0px',
+                maxHeight: isVariable ? "200px" : "0px",
                 opacity: isVariable ? 1 : 0,
               }}
             >
@@ -160,7 +183,8 @@ const Step_1: React.FC = () => {
                     className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
                   />
                   <span className="text-sm font-bold text-gray-700">
-                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าน้ำ</span>
+                    จำนวนหน่วยการใช้ -{" "}
+                    <span className="font-extrabold text-black-900">ค่าน้ำ</span>
                   </span>
                 </label>
 
@@ -172,7 +196,8 @@ const Step_1: React.FC = () => {
                     className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
                   />
                   <span className="text-sm font-bold text-gray-700">
-                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าไฟ</span>
+                    จำนวนหน่วยการใช้ -{" "}
+                    <span className="font-extrabold text-black-900">ค่าไฟ</span>
                   </span>
                 </label>
               </div>
@@ -188,20 +213,28 @@ const Step_1: React.FC = () => {
               <div className="col-span-2 text-right">ราคา</div>
             </div>
 
-            {(services ?? []).length === 0 ? (
+            {services.length === 0 ? (
               <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">
                 ยังไม่มีรายการค่าบริการ
               </div>
             ) : (
               <div className="bg-white">
-                {(services ?? []).map((s) => (
+                {services.map((s) => (
                   <div
-                    key={String(s.id)}
+                    key={s.id}
                     className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40"
                   >
                     <div className="col-span-7 font-extrabold text-gray-900">{s.name}</div>
                     <div className="col-span-3 font-bold text-gray-600">
-                      {s.isVariable ? "มิเตอร์" : "คงที่"}
+                      {s.isVariable
+                        ? s.variableType === "BOTH"
+                          ? "มิเตอร์ (น้ำ+ไฟ)"
+                          : s.variableType === "WATER"
+                            ? "มิเตอร์ (น้ำ)"
+                            : s.variableType === "ELECTRIC"
+                              ? "มิเตอร์ (ไฟ)"
+                              : "มิเตอร์"
+                        : "คงที่"}
                     </div>
                     <div className="col-span-2 text-right font-extrabold text-gray-900">
                       {Number(s.price).toLocaleString()} บาท

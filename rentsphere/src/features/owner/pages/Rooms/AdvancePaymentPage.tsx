@@ -1,6 +1,5 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { useAddCondoStore } from "@/features/owner/pages/AddCondo/store/addCondo.store";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 function moneyTHB(n?: number | null) {
@@ -39,17 +38,11 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
                             {it.n}
                         </div>
 
-                        <div
-                            className={
-                                active ? "font-extrabold text-blue-700" : "font-bold text-gray-600"
-                            }
-                        >
+                        <div className={active ? "font-extrabold text-blue-700" : "font-bold text-gray-600"}>
                             {it.label}
                         </div>
 
-                        {idx !== items.length - 1 ? (
-                            <div className="w-20 h-[3px] rounded-full bg-blue-100" />
-                        ) : null}
+                        {idx !== items.length - 1 ? <div className="w-20 h-[3px] rounded-full bg-blue-100" /> : null}
                     </div>
                 );
             })}
@@ -57,21 +50,82 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
     );
 }
 
+/* ===== Types ===== */
+type RoomDetail = {
+    id: string;
+    roomNo: string;
+    price: number | null;
+    condoName?: string | null;
+};
+
+/* ===== Backend call (แก้ endpoint ให้ตรง) ===== */
+async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
+    // TODO: GET /api/owner/rooms/:roomId
+    const res = await fetch(`/api/owner/rooms/${encodeURIComponent(roomId)}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) throw new Error("โหลดข้อมูลห้องไม่สำเร็จ");
+    const data = await res.json();
+
+    // TODO: ปรับ mapping ตาม response จริง
+    return {
+        id: String(data.id ?? roomId),
+        roomNo: String(data.roomNo ?? data.number ?? "-"),
+        price: data.price ?? 0,
+        condoName: data.condoName ?? data.condo?.name ?? null,
+    };
+}
+
 export default function AdvancePaymentPage() {
     const nav = useNavigate();
     const { roomId } = useParams();
-    const { rooms } = useAddCondoStore();
 
-    const room = useMemo(() => {
-        if (!roomId) return null;
-        return (rooms ?? []).find((r) => String(r.id) === String(roomId)) ?? null;
-    }, [rooms, roomId]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [room, setRoom] = useState<RoomDetail | null>(null);
 
-    const condoName = "สวัสดีคอนโด";
+    useEffect(() => {
+        let cancelled = false;
+
+        const load = async () => {
+            if (!roomId) {
+                setLoading(false);
+                setRoom(null);
+                setError("ไม่พบ roomId");
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+
+                const data = await fetchRoomDetail(roomId);
+                if (cancelled) return;
+
+                setRoom(data);
+                setLoading(false);
+            } catch (e: any) {
+                if (cancelled) return;
+                setRoom(null);
+                setError(e?.message ?? "เกิดข้อผิดพลาด");
+                setLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [roomId]);
+
+    const condoName = room?.condoName ?? "คอนโดมิเนียม";
     const roomNo = room?.roomNo ?? "-";
     const rent = room?.price ?? 0;
 
-    // ===== state (mock) =====
+    // ===== state (โครง) =====
     const [roundDate, setRoundDate] = useState("");
     const [detail, setDetail] = useState("");
     const [payBy, setPayBy] = useState("เงินสด");
@@ -79,10 +133,24 @@ export default function AdvancePaymentPage() {
 
     const [advanceMonths, setAdvanceMonths] = useState<number>(1);
 
+    // กัน input ติดลบ / NaN
+    const safeMonths = useMemo(() => {
+        const m = Number(advanceMonths);
+        if (!Number.isFinite(m)) return 0;
+        return Math.max(0, Math.floor(m));
+    }, [advanceMonths]);
+
     const advanceAmount = useMemo(() => {
-        const m = Number.isFinite(advanceMonths) ? Math.max(0, advanceMonths) : 0;
-        return (rent || 0) * m;
-    }, [rent, advanceMonths]);
+        return (rent || 0) * safeMonths;
+    }, [rent, safeMonths]);
+
+    // ตั้งค่า detail อัตโนมัติแบบโครง ถ้าผู้ใช้ยังไม่กรอก
+    useEffect(() => {
+        if (detail.trim()) return;
+        if (!safeMonths) return;
+        setDetail(`ค่าเช่าล่วงหน้า ${safeMonths} เดือน`);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [safeMonths]);
 
     const goBack = () => {
         if (!roomId) {
@@ -100,21 +168,41 @@ export default function AdvancePaymentPage() {
         nav(`/owner/rooms/${roomId}/meter`, { replace: true });
     };
 
-    if (!room) {
+    if (loading) {
         return (
             <OwnerShell activeKey="rooms" showSidebar>
                 <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
-                    <div className="text-xl font-extrabold text-gray-900 mb-2">
-                        ไม่พบข้อมูลห้อง
+                    <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูล...</div>
+                </div>
+            </OwnerShell>
+        );
+    }
+
+    if (!room || error) {
+        return (
+            <OwnerShell activeKey="rooms" showSidebar>
+                <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
+                    <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูลห้อง</div>
+                    <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
+                    {error && <div className="text-rose-600 font-extrabold mb-6">{error}</div>}
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => nav("/owner/rooms", { replace: true })}
+                            className="px-5 py-3 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700"
+                        >
+                            กลับไปหน้าห้อง
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
+                        >
+                            ลองใหม่
+                        </button>
                     </div>
-                    <div className="text-gray-600 font-bold mb-6">roomId: {roomId}</div>
-                    <button
-                        type="button"
-                        onClick={() => nav("/owner/rooms", { replace: true })}
-                        className="px-5 py-3 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700"
-                    >
-                        กลับไปหน้าห้อง
-                    </button>
                 </div>
             </OwnerShell>
         );
@@ -138,12 +226,8 @@ export default function AdvancePaymentPage() {
                 <div className="p-6">
                     {/* header */}
                     <div className="mb-4">
-                        <div className="text-xl font-extrabold text-gray-900">
-                            รับเงินค่าเช่าล่วงหน้า ตอนทำสัญญา
-                        </div>
-                        <div className="text-sm font-bold text-gray-500 mt-1">
-                            คำนวณจากจำนวนเดือนล่วงหน้า × ค่าเช่าต่อเดือน
-                        </div>
+                        <div className="text-xl font-extrabold text-gray-900">รับเงินค่าเช่าล่วงหน้า ตอนทำสัญญา</div>
+                        <div className="text-sm font-bold text-gray-500 mt-1">คำนวณจากจำนวนเดือนล่วงหน้า × ค่าเช่าต่อเดือน</div>
                     </div>
                     <div className="h-px bg-gray-200 mb-6" />
 
@@ -177,9 +261,7 @@ export default function AdvancePaymentPage() {
                         </div>
 
                         <div className="lg:col-span-2">
-                            <div className="text-sm font-extrabold text-gray-800 mb-2">
-                                รายละเอียด (สำหรับแสดงในสัญญา/ใบเสร็จ)
-                            </div>
+                            <div className="text-sm font-extrabold text-gray-800 mb-2">รายละเอียด (สำหรับแสดงในสัญญา/ใบเสร็จ)</div>
                             <input
                                 value={detail}
                                 onChange={(e) => setDetail(e.target.value)}
@@ -237,7 +319,7 @@ export default function AdvancePaymentPage() {
                     <div className="mt-8 flex items-center justify-end gap-3">
                         <button
                             type="button"
-                            onClick={() => nav(-1)}
+                            onClick={goBack}
                             className="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
                         >
                             ย้อนกลับ
@@ -245,12 +327,11 @@ export default function AdvancePaymentPage() {
 
                         <button
                             type="button"
-                            onClick={() => nav(`/owner/rooms/${roomId}/meter`)}
+                            onClick={goNext}
                             className="px-7 py-3 rounded-xl !bg-blue-600 text-white font-extrabold shadow-[0_12px_22px_rgba(37,99,235,0.22)] hover:!bg-blue-700"
                         >
                             ต่อไป
                         </button>
-
                     </div>
                 </div>
             </div>

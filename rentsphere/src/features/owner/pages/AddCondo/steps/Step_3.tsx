@@ -3,27 +3,26 @@ import { useNavigate } from "react-router-dom";
 
 import { useBankAccountForm } from "../components/BankAccountForm";
 import BankAccountList from "../components/BankAccountList";
+import { BANK_OPTIONS } from "../constants/bankOptions";
+
+type BankAccount = {
+  id: number;
+  bank: string;
+  accountName: string;
+  accountNo: string;
+};
 
 export default function Step_3() {
   const nav = useNavigate();
-
   const form = useBankAccountForm();
 
   const isFormValid =
     form.bank.trim() !== "" &&
-    form.accountNo.trim() !== "" &&
-    form.price.trim() !== "";
+    form.accountName.trim() !== "" &&
+    form.accountNo.trim() !== "";
 
   const [showSaved, setShowSaved] = useState(false);
-
-  const [accounts, setAccounts] = useState(
-    [] as {
-      id: number;
-      bank: string;
-      accountNo: string;
-      price: string;
-    }[]
-  );
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
 
   const handleAddAccount = () => {
     if (!isFormValid) return;
@@ -32,9 +31,9 @@ export default function Step_3() {
       ...prev,
       {
         id: Date.now(),
-        bank: form.bank,
-        accountNo: form.accountNo,
-        price: form.price,
+        bank: form.bank.trim(),
+        accountName: form.accountName.trim(),
+        accountNo: form.accountNo.trim(),
       },
     ]);
 
@@ -87,10 +86,26 @@ export default function Step_3() {
                 onChange={(e) => form.setBank(e.target.value)}
               >
                 <option value="">เลือกธนาคาร</option>
-                <option>กรุงเทพ (Bangkok Bank)</option>
-                <option>กสิกรไทย (Kasikorn)</option>
-                <option>ไทยพาณิชย์ (SCB)</option>
+                {BANK_OPTIONS.map((b) => (
+                  <option key={b.code} value={b.code}>
+                    {b.label}
+                  </option>
+                ))}
               </select>
+            </div>
+
+            <div className="min-w-[220px] flex-1">
+              <label className="block text-sm font-extrabold text-gray-800 mb-2">
+                ชื่อบัญชี <span className="text-rose-600">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full h-12 rounded-xl border border-gray-200 bg-[#fffdf2] px-4 text-sm font-bold text-gray-900 shadow-sm
+                           focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+                value={form.accountName}
+                onChange={(e) => form.setAccountName(e.target.value)}
+                placeholder="เช่น บริษัท เรนท์สเฟียร์ จำกัด"
+              />
             </div>
 
             <div className="min-w-[220px] flex-1">
@@ -103,19 +118,7 @@ export default function Step_3() {
                            focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
                 value={form.accountNo}
                 onChange={(e) => form.setAccountNo(e.target.value)}
-              />
-            </div>
-
-            <div className="min-w-[220px] flex-1">
-              <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ราคาต่อหน่วย <span className="text-rose-600">*</span>
-              </label>
-              <input
-                type="text"
-                className="w-full h-12 rounded-xl border border-gray-200 bg-[#fffdf2] px-4 text-sm font-bold text-gray-900 shadow-sm
-                           focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
-                value={form.price}
-                onChange={(e) => form.setPrice(e.target.value)}
+                placeholder="เช่น 123-4-56789-0"
               />
             </div>
 
@@ -135,7 +138,8 @@ export default function Step_3() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 items-center rounded-full bg-[#f3f7ff] border border-blue-100/60 px-6 py-3 text-sm font-extrabold text-gray-700">
+          <div className="grid grid-cols-3 items-center rounded-full bg-[#f3f7ff] border border-blue-100/60 px-6 py-3 text-sm font-extrabold text-gray-700">
+            <span>ธนาคาร</span>
             <span>ชื่อบัญชี</span>
             <span className="justify-self-end">เลขบัญชี</span>
           </div>
