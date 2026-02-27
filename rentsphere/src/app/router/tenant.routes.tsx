@@ -3,7 +3,10 @@ import { Navigate } from "react-router-dom";
 
 import BillingBankTransferPage from "@/features/tenant/pages/billing/pages/BillingBankTransferPage";
 import BillingPage from "@/features/tenant/pages/billing/pages/BillingPage";
+import BillingPaymentDetailPage from "@/features/tenant/pages/billing/pages/BillingPaymentDetailPage";
 import BillingPayMethodPage from "@/features/tenant/pages/billing/pages/BillingPayMethodPage";
+import BillingPdfViewerPage from "@/features/tenant/pages/billing/pages/BillingPdfViewerPage";
+import BillingSubmitSuccessPage from "@/features/tenant/pages/billing/pages/BillingSubmitSuccessPage";
 import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
 import BookingSuccessPage from "@/features/tenant/pages/booking/pages/BookingSuccessPage";
 import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
@@ -43,6 +46,9 @@ const tenantRoutes: RouteObject[] = [
       { path: "billing", element: <BillingPage /> },
       { path: "billing/:billId/pay", element: <BillingPayMethodPage /> },
       { path: "billing/:billId/pay/bank-transfer", element: <BillingBankTransferPage /> },
+      { path: "billing/:billId/pay/success", element: <BillingSubmitSuccessPage /> },
+      { path: "billing/:billId/payment-detail", element: <BillingPaymentDetailPage /> },
+      { path: "billing/:billId/pdf", element: <BillingPdfViewerPage /> },
       { path: "booking", element: <FacilityListPage /> },
       { path: "booking/:id", element: <FacilityDetailPage /> },
       { path: "booking/confirm", element: <BookingConfirmPage /> },

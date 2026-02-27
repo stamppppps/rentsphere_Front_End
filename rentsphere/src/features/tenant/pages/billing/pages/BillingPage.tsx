@@ -1,4 +1,4 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +14,10 @@ type CurrentBill = {
   items: BillItem[];
 };
 type PaymentHistory = { id: string; monthText: string; amount: number; status: "PAID" | "PENDING_REVIEW" };
+
+function cx(...cls: Array<string | false | undefined | null>) {
+  return cls.filter(Boolean).join(" ");
+}
 
 function formatNumber(n: number) {
   return n.toLocaleString("th-TH");
@@ -49,9 +53,18 @@ function statusBadgeClass(s: BillStatus) {
 }
 
 /* ================= UI Shells ================= */
-function CardShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function CardShell({
+  children,
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <div
+      style={style}
       className={[
         "bg-white",
         "rounded-[18px]",
@@ -66,16 +79,25 @@ function CardShell({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
-function SoftPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function SoftPanel({
+  children,
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <div
-      className={[
-        "rounded-[16px]",
+      style={style}
+      className={cx(
+        "rounded-[18px]",
         "bg-[#F4F8FF]",
-        "border border-blue-100/60",
+        "border border-blue-100/70",
         "shadow-inner",
-        className,
-      ].join(" ")}
+        className
+      )}
     >
       {children}
     </div>
@@ -94,7 +116,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 /* ================= SVG Icons ================= */
 function IconBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-10 h-10 rounded-[14px] bg-[#EEF3FF] border border-blue-100/60 shadow-inner flex items-center justify-center text-[#2F6BFF]">
+    <div className="w-10 h-10 rounded-[14px] bg-white/70 border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] flex items-center justify-center text-[#2F6BFF]">
       {children}
     </div>
   );
@@ -154,57 +176,69 @@ function BillItemIcon({ type }: { type: BillItemKey }) {
   return <IconBox><CommonFeeSvg /></IconBox>;
 }
 
-/* ================= Buttons (Action) ================= */
+/* ================= Buttons ================= */
 function ActionButton({
   label,
   variant,
   onClick,
   leftIcon,
   delayMs = 0,
+  disabled,
 }: {
   label: string;
   variant: "primary" | "ghost";
   onClick?: () => void;
   leftIcon: React.ReactNode;
   delayMs?: number;
+  disabled?: boolean;
 }) {
   const base =
-    "relative h-[60px] w-full rounded-[18px] flex items-center justify-center gap-3 font-black text-[17px] transition active:scale-[0.98] overflow-hidden";
+    "relative h-[60px] w-full rounded-[20px] flex items-center justify-center gap-3 font-black text-[17px] transition overflow-hidden";
   const cls =
     variant === "primary"
-      ? "bg-[#2F6BFF] text-white shadow-[0_16px_28px_rgba(47,107,255,0.28)]"
-      : "bg-white border border-blue-100/70 text-slate-900 shadow-[0_12px_22px_rgba(15,23,42,0.06)]";
+      ? "bg-[#2F6BFF] text-white shadow-[0_18px_34px_rgba(47,107,255,0.30)]"
+      : "bg-white border border-blue-100/70 text-slate-900 shadow-[0_14px_26px_rgba(15,23,42,0.07)]";
+
+  const disabledCls = disabled ? "opacity-55 cursor-not-allowed active:scale-100" : "active:scale-[0.98] hover:-translate-y-[1px]";
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={[
-        base,
-        cls,
-        "animate-in fade-in slide-in-from-bottom-2",
-        "hover:-translate-y-[1px]",
-      ].join(" ")}
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      className={cx(base, cls, "animate-in fade-in slide-in-from-bottom-2", disabledCls)}
       style={{ animationDelay: `${delayMs}ms`, animationFillMode: "both" }}
     >
-      {variant === "primary" && (
-        <span className="pointer-events-none absolute inset-0 opacity-40">
+      {variant === "primary" && !disabled && (
+        <span className="pointer-events-none absolute inset-0 opacity-35">
           <span className="absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/35 to-transparent animate-[shimmer_2.6s_infinite]" />
         </span>
       )}
 
       <span
-        className={[
-          "shrink-0 inline-flex items-center justify-center w-12 h-12 rounded-[16px]",
-          variant === "primary" ? "bg-white/18 text-white" : "bg-[#EEF3FF] border border-blue-100/60 text-[#2F6BFF]",
-        ].join(" ")}
+        className={cx(
+          "relative shrink-0 inline-flex items-center justify-center w-12 h-12 rounded-[16px]",
+          variant === "primary"
+            ? "bg-white/18 text-white"
+            : "bg-[#EEF3FF] border border-blue-100/60 text-[#2F6BFF]"
+        )}
       >
         {leftIcon}
       </span>
 
-      <span className="tracking-[0.2px]">{label}</span>
+      <span className="relative tracking-[0.2px]">{label}</span>
     </button>
   );
+}
+
+function HistoryStatusPill({ status }: { status: PaymentHistory["status"] }) {
+  const cls =
+    status === "PAID"
+      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+      : "bg-amber-100 text-amber-800 border-amber-200";
+  const text = status === "PAID" ? "ชำระแล้ว" : "รอตรวจสอบ";
+
+  return <span className={cx("px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap", cls)}>{text}</span>;
 }
 
 /* ================= Page ================= */
@@ -244,23 +278,29 @@ export default function BillingPage() {
   // ===== ROUTES =====
   const goPay = () => nav(`/tenant/billing/${currentBill.billId}/pay`, { state: { billId: currentBill.billId } });
   const goUploadSlip = () => nav(`/tenant/billing/${currentBill.billId}/upload`, { state: { billId: currentBill.billId } });
-  const goBillDetail = () => nav(`/tenant/billing/${currentBill.billId}/detail`, { state: { billId: currentBill.billId } });
+  const goBillDetail = () =>
+  nav(`/tenant/billing/${currentBill.billId}/pdf`, {
+    state: { billId: currentBill.billId },
+  });
   const goHistory = () => nav(`/tenant/billing/history`);
   const goSummary = () => nav(`/tenant/billing/summary`);
 
   return (
     <div className="min-h-screen bg-[#F8FAFF] pb-24">
-      {/* local keyframes (no plugin needed) */}
       <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-120%); }
-          100% { transform: translateX(260%); }
-        }
+        @keyframes shimmer { 0% { transform: translateX(-120%);} 100% { transform: translateX(260%);} }
+        @keyframes pop { 0% { transform: translateY(10px); opacity: 0;} 100% { transform: translateY(0); opacity: 1;} }
       `}</style>
+
+      {/* soft glow background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[520px] h-[520px] rounded-full bg-[#2F6BFF]/10 blur-3xl" />
+        <div className="absolute -bottom-24 right-0 w-[360px] h-[360px] rounded-full bg-indigo-400/10 blur-3xl" />
+      </div>
 
       {/* ===== Top Bar ===== */}
       <div className="sticky top-0 z-40">
-        <div className="bg-[#F8FAFF]/85 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg">
+        <div className="bg-[#F8FAFF]/85 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg border-b border-blue-100/40">
           <div className="px-6 pt-7 pb-3">
             <div className="relative flex items-center justify-center">
               <button
@@ -279,37 +319,41 @@ export default function BillingPage() {
         </div>
       </div>
 
-      <div className="px-6">
-        {/* ===== Header Card ===== */}
+      <div className="px-6 relative">
+        {/* ===== Header (Premium summary) ===== */}
         <CardShell
-          className={[
-            "mt-2",
-            mounted ? "animate-in fade-in slide-in-from-bottom-2" : "opacity-0",
-          ].join(" ")}
+          className={cx("mt-3", mounted ? "opacity-100" : "opacity-0")}
+          style={{ animation: mounted ? "pop .32s ease-out both" : undefined }}
         >
-          <div className="p-5">
-            <div className="flex items-start justify-between gap-4">
+          <div className="relative p-5">
+            {/* gradient wash */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.13]">
+              <div className="h-full w-full bg-gradient-to-br from-blue-300 via-indigo-200 to-transparent" />
+            </div>
+
+            <div className="relative flex items-start justify-between gap-4">
               <div>
-                <div className="text-[22px] font-black text-slate-900 leading-tight">
-                  ยอดที่ต้องชำระ : <span className="ml-1">{formatNumber(currentBill.total)}</span>
+                <div className="text-[12px] font-black text-slate-600 tracking-widest">ยอดที่ต้องชำระ</div>
+                <div className="mt-1 text-[32px] font-black text-slate-900 leading-none">
+                  {formatNumber(currentBill.total)} <span className="text-[14px] font-black text-slate-600">บาท</span>
                 </div>
-                <div className="mt-1 text-sm font-bold text-slate-600">
-                  วันครบกำหนดชำระ: {currentBill.dueDateText}
+
+                <div className="mt-3 text-sm font-bold text-slate-600">วันครบกำหนดชำระ: {currentBill.dueDateText}</div>
+
+                <div className="mt-2 inline-flex items-center gap-2 text-xs font-black text-slate-500">
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
+                    ใบแจ้งหนี้ #{currentBill.billId}
+                  </span>
                 </div>
               </div>
 
-              <div
-                className={[
-                  "px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap",
-                  statusBadgeClass(currentBill.status),
-                ].join(" ")}
-              >
+              <div className={cx("px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap", statusBadgeClass(currentBill.status))}>
                 {statusText(currentBill.status)}
               </div>
             </div>
 
             {!isPayable && (
-              <div className="mt-3 text-[12px] font-bold text-slate-500">
+              <div className="relative mt-3 text-[12px] font-bold text-slate-500">
                 สถานะปัจจุบันไม่สามารถ “ชำระเงินทันที” ได้
               </div>
             )}
@@ -323,16 +367,11 @@ export default function BillingPage() {
             variant="primary"
             onClick={goPay}
             delayMs={60}
+            disabled={!isPayable}
             leftIcon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path
-                  d="M14 6l6 6-6 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M14 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             }
           />
@@ -345,13 +384,7 @@ export default function BillingPage() {
             leftIcon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path
-                  d="M8 7l4-4 4 4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M8 7l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M4 21h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             }
@@ -360,31 +393,52 @@ export default function BillingPage() {
 
         {/* ===== Current Bill Card ===== */}
         <div className="mt-6">
-          <CardShell className={mounted ? "animate-in fade-in slide-in-from-bottom-2" : "opacity-0"} >
-            <button
-              type="button"
-              onClick={goBillDetail}
-              className="w-full text-left px-5 py-4 flex items-center justify-between"
-            >
-              <div className="text-xl font-black text-slate-900">บิลปัจจุบัน</div>
-              <div className="text-slate-400 text-2xl font-black">{">"}</div>
-            </button>
+          <CardShell
+            className={cx(mounted ? "opacity-100" : "opacity-0")}
+            style={{ animation: mounted ? "pop .32s ease-out .06s both" : undefined }}
+          >
+            {/* iOS-style row */}
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div>
+                <div className="text-[18px] font-black text-slate-900 leading-tight">บิลปัจจุบัน</div>
+                <div className="mt-1 text-[12px] font-bold text-slate-500">แตะเพื่อดูรายละเอียดบิล</div>
+              </div>
 
-            <div className="px-5 pb-5">
+              {/* กดได้เฉพาะ chevron แบบ iOS */}
+              <button
+                type="button"
+                onClick={goBillDetail}
+                className={cx(
+                  "w-11 h-11 rounded-full",
+                  "bg-[#F4F7FF] text-slate-500",
+                  "border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
+                  "flex items-center justify-center",
+                  "active:scale-95 transition"
+                )}
+                aria-label="ดูรายละเอียดบิล"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
+
+            <div className="h-px bg-blue-100/70" />
+
+            <div className="px-5 pb-5 pt-4">
               <SoftPanel className="p-5">
                 <div className="space-y-4">
                   {currentBill.items.map((it, idx) => (
                     <div
                       key={it.key}
-                      className={[
-                        "flex items-center justify-between",
-                        "animate-in fade-in slide-in-from-bottom-2",
-                      ].join(" ")}
-                      style={{ animationDelay: `${120 + idx * 60}ms`, animationFillMode: "both" }}
+                      className="flex items-center justify-between"
+                      style={{
+                        animation: mounted ? "pop .32s ease-out both" : undefined,
+                        animationDelay: `${120 + idx * 60}ms`,
+                        animationFillMode: "both",
+                      }}
                     >
                       <div className="flex items-center gap-3">
                         <BillItemIcon type={it.key} />
-                        <div className="text-[17px] font-extrabold text-slate-800">{it.label}</div>
+                        <div className="text-[16px] font-extrabold text-slate-800">{it.label}</div>
                       </div>
                       <div className="text-[20px] font-black text-slate-900">{formatNumber(it.amount)}</div>
                     </div>
@@ -402,15 +456,18 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={goSummary}
-                className={[
-                  "mt-5 w-full h-[56px] rounded-[18px] font-black text-lg tracking-[0.2px]",
+                className={cx(
+                  "mt-5 w-full h-[56px] rounded-[20px] font-black text-[16px] tracking-[0.2px]",
                   "bg-[#2F6BFF] text-white",
                   "shadow-[0_16px_28px_rgba(47,107,255,0.26)]",
                   "active:scale-[0.98] transition",
-                  "hover:-translate-y-[1px]",
-                ].join(" ")}
+                  "relative overflow-hidden"
+                )}
               >
-                สรุปค่าใช้จ่าย
+                <span className="absolute inset-0 opacity-30 pointer-events-none">
+                  <span className="absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/35 to-transparent animate-[shimmer_2.6s_infinite]" />
+                </span>
+                <span className="relative">สรุปค่าใช้จ่าย</span>
               </button>
             </div>
           </CardShell>
@@ -430,27 +487,28 @@ export default function BillingPage() {
           </div>
 
           <div className="mt-3">
-            <CardShell className={mounted ? "animate-in fade-in slide-in-from-bottom-2" : "opacity-0"}>
+            <CardShell
+              className={cx(mounted ? "opacity-100" : "opacity-0")}
+              style={{ animation: mounted ? "pop .32s ease-out .10s both" : undefined }}
+            >
               <div className="px-2 py-1">
                 {history.map((h, idx) => (
                   <div key={h.id}>
                     <button
                       type="button"
                       onClick={() => nav(`/tenant/billing/history/${h.id}`, { state: { historyId: h.id } })}
-                      className={[
+                      className={cx(
                         "w-full text-left px-4 py-4 flex items-center justify-between transition",
                         "hover:bg-[#F6F9FF]",
-                        "active:scale-[0.995]",
-                      ].join(" ")}
+                        "active:scale-[0.995]"
+                      )}
                     >
-                      <div className="text-[18px] font-black text-slate-900">{h.monthText}</div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="text-[18px] font-black text-slate-900">{formatNumber(h.amount)}</div>
-                        <span className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-black">
-                          ชำระแล้ว
-                        </span>
+                      <div>
+                        <div className="text-[18px] font-black text-slate-900">{h.monthText}</div>
+                        <div className="mt-1 text-xs font-bold text-slate-500">ยอด {formatNumber(h.amount)} บาท</div>
                       </div>
+
+                      <HistoryStatusPill status={h.status} />
                     </button>
 
                     {idx !== history.length - 1 && <div className="mx-4 h-px bg-blue-100/70" />}
@@ -461,7 +519,6 @@ export default function BillingPage() {
           </div>
         </div>
       </div>
-
     </div>
   );
 }

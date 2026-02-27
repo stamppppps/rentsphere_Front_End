@@ -8,7 +8,7 @@ type BankAccount = {
     bankShort: string;
     accountName: string;
     accountNo: string;
-    promptPayOrQrUrl: string;
+    promptPayOrQrUrl: string; // (ยังเก็บไว้ได้ เผื่ออนาคต) แต่หน้านี้ไม่ใช้แล้ว
 };
 
 function formatNumber(n: number) {
@@ -19,7 +19,7 @@ function maskAccountNo(raw: string) {
     const acc = (raw || "").replace(/\s|-/g, "");
     if (acc.length <= 4) return acc;
 
-    // ทำให้อ่านง่าย: XXX-X-XXXXX-XXXX (ตามจำนวนที่มี)
+    // อ่านง่าย: XXX-X-XXXXX-XXXX
     const a = acc.slice(0, 3);
     const b = acc.slice(3, 4);
     const c = acc.slice(4, 9);
@@ -89,7 +89,6 @@ export default function BillingBankTransferPage() {
     const [selectedId, setSelectedId] = useState<string>("");
     const selected = useMemo(() => accounts.find((a) => a.id === selectedId) ?? accounts[0] ?? null, [accounts, selectedId]);
 
-    // set default
     useEffect(() => {
         if (!selectedId && accounts.length > 0) setSelectedId(accounts[0].id);
     }, [accounts, selectedId]);
@@ -103,7 +102,6 @@ export default function BillingBankTransferPage() {
     const [copied, setCopied] = useState(false);
     const [copyError, setCopyError] = useState<string | null>(null);
 
-    // เปลี่ยนบัญชีแล้วให้ reset copied/error
     useEffect(() => {
         setCopied(false);
         setCopyError(null);
@@ -150,7 +148,6 @@ export default function BillingBankTransferPage() {
             return;
         }
 
-        // กันรูปใหญ่มากเกิน (ตัวอย่าง 8MB)
         const max = 8 * 1024 * 1024;
         if (file.size > max) {
             setFileError("ไฟล์ใหญ่เกินไป (สูงสุด 8MB) กรุณาเลือกรูปใหม่");
@@ -170,14 +167,24 @@ export default function BillingBankTransferPage() {
     const onSubmitSlip = async () => {
         if (!slipFile || !selected) return;
 
-        // TODO: ต่อ BE จริง
-        // const fd = new FormData();
-        // fd.append("billId", String(billId));
-        // fd.append("bankAccountId", selected.id);
-        // fd.append("slip", slipFile);
-        // await fetch("/api/tenant/billing/upload-slip", { method: "POST", body: fd, credentials: "include" });
+        // TODO: upload จริงค่อยใส่
+        // await uploadSlip(...)
 
-        alert(`แนบสลิปแล้ว (mock)\nไฟล์: ${slipFile.name}\nบิล: ${billId}\nบัญชี: ${selected.id}`);
+        nav(`/tenant/billing/${billId}/pay/success`, {
+            replace: true,
+            state: {
+                total,
+                methodText: "โอนผ่านธนาคาร",
+                paymentAtText: new Date().toLocaleString("th-TH", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                }).replace(",", " |"),
+                statusText: "รอตรวจสอบ",
+            },
+        });
     };
 
     if (!selected) {
@@ -218,10 +225,7 @@ export default function BillingBankTransferPage() {
 
             <div className="px-6">
                 {/* ===== Page Title ===== */}
-                <div
-                    className={cx("mt-3", mounted ? "opacity-100" : "opacity-0")}
-                    style={{ animation: mounted ? "pop .26s ease-out both" : undefined }}
-                >
+                <div className={cx("mt-3", mounted ? "opacity-100" : "opacity-0")} style={{ animation: mounted ? "pop .26s ease-out both" : undefined }}>
                     <div className="text-[28px] font-black text-slate-900 leading-tight">โอนผ่านธนาคาร</div>
                     <div className="mt-1 text-sm font-bold text-slate-500">
                         เลือกบัญชีปลายทาง แล้วโอนเงินตามยอด จากนั้นแนบสลิปเพื่อให้เจ้าหน้าที่ตรวจสอบ
@@ -233,17 +237,22 @@ export default function BillingBankTransferPage() {
                     <div className="text-sm font-black text-slate-800 mb-2">เลือกธนาคาร / บัญชีปลายทาง</div>
 
                     <Card className="p-4">
+                        {/* ✅ relative เฉพาะกล่อง select */}
                         <div className="relative">
                             <select
                                 value={selectedId}
                                 onChange={(e) => setSelectedId(e.target.value)}
                                 className={cx(
-                                    "w-full h-[58px] px-4 pr-12 rounded-[16px]",
-                                    "bg-white border border-blue-100/70",
-                                    "shadow-[0_12px_22px_rgba(15,23,42,0.06)]",
-                                    "text-slate-900 font-extrabold",
-                                    "focus:outline-none focus:ring-2 focus:ring-blue-200/60",
-                                    "appearance-none"
+                                    "w-full h-[52px]",
+                                    "px-4 pr-12",
+                                    "rounded-[18px]",
+                                    "bg-white",
+                                    "border border-blue-200/70",
+                                    "shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
+                                    "text-[18px] font-black text-slate-900",
+                                    "leading-none",
+                                    "appearance-none",
+                                    "focus:outline-none focus:ring-2 focus:ring-blue-200/60"
                                 )}
                             >
                                 {accounts.map((a) => (
@@ -253,78 +262,82 @@ export default function BillingBankTransferPage() {
                                 ))}
                             </select>
 
-                            {/* arrow */}
-                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path
+                                        d="M7 10l5 5 5-5"
+                                        stroke="currentColor"
+                                        strokeWidth="2.2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
                                 </svg>
                             </div>
+                        </div>
 
-                            <div className="mt-3 flex items-center gap-2">
-                                <Chip>{selected.bankShort}</Chip>
-                                <div className="text-xs font-bold text-slate-500 line-clamp-1">
-                                    {selected.accountName} • {maskAccountNo(selected.accountNo)}
-                                </div>
+                        <div className="mt-3 flex items-center gap-2">
+                            <Chip>{selected.bankShort}</Chip>
+                            <div className="text-xs font-bold text-slate-500 line-clamp-1">
+                                {selected.accountName} • {maskAccountNo(selected.accountNo)}
                             </div>
                         </div>
                     </Card>
                 </div>
 
-                {/* ===== Bank + QR Card ===== */}
+                {/* ===== Account Details Card (NO QR) ===== */}
                 <div className="mt-4" style={{ animation: mounted ? "pop .26s ease-out .10s both" : undefined }}>
                     <Card>
                         <div className="p-5 relative">
+                            {/* subtle bg */}
                             <div className="absolute inset-0 pointer-events-none opacity-[0.10]">
                                 <div className="h-full w-full bg-gradient-to-br from-blue-300 via-indigo-200 to-transparent" />
                             </div>
 
-                            <div className="relative flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-11 h-11 rounded-[14px] bg-[#EEF3FF] border border-blue-100/60 shadow-inner flex items-center justify-center text-[#2F6BFF] font-black">
-                                        {selected.bankShort}
-                                    </div>
-                                    <div className="min-w-0">
+                            <div className="relative flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
                                         <div className="text-[18px] font-black text-slate-900 truncate">{selected.bankName}</div>
-                                        <div className="text-xs font-bold text-slate-600 truncate">{selected.accountName}</div>
+                                        <Chip>{selected.bankShort}</Chip>
+                                    </div>
+
+                                    <div className="mt-2 text-sm font-bold text-slate-600">
+                                        ชื่อบัญชี: <span className="font-black text-slate-800">{selected.accountName}</span>
+                                    </div>
+
+                                    <div className="mt-1 text-sm font-bold text-slate-600">
+                                        เลขบัญชี: <span className="font-black text-slate-900">{maskAccountNo(selected.accountNo)}</span>
                                     </div>
                                 </div>
 
-                                <div className="text-right">
+                                <div className="text-right shrink-0">
                                     <div className="text-xs font-bold text-slate-500">ยอดที่ต้องชำระ</div>
                                     <div className="text-[18px] font-black text-slate-900">{formatNumber(total)} THB</div>
                                 </div>
                             </div>
 
-                            <div className="relative mt-5 grid grid-cols-1 gap-4">
-                                <div className="flex justify-center">
-                                    <div className="w-[220px] h-[220px] rounded-[16px] bg-white border border-blue-100/70 shadow-[0_12px_22px_rgba(15,23,42,0.06)] overflow-hidden">
-                                        <img src={selected.promptPayOrQrUrl} alt="QR" className="w-full h-full object-contain p-3" />
-                                    </div>
+                            {/* Copy button */}
+                            <button
+                                type="button"
+                                onClick={copyAccount}
+                                className={cx(
+                                    "relative mt-4 w-full h-[56px] rounded-[16px]",
+                                    "bg-[#EEF3FF] border border-blue-100/70",
+                                    "shadow-[0_12px_22px_rgba(15,23,42,0.06)]",
+                                    "flex items-center justify-between px-4",
+                                    "active:scale-[0.99] transition"
+                                )}
+                            >
+                                <div className="text-[20px] font-black text-slate-900">{maskAccountNo(selected.accountNo)}</div>
+                                <div className="inline-flex items-center gap-2 text-[#2F6BFF] font-black">
+                                    {copied ? <Check size={18} /> : <Copy size={18} />}
+                                    {copied ? "คัดลอกแล้ว" : "คัดลอก"}
                                 </div>
+                            </button>
 
-                                <button
-                                    type="button"
-                                    onClick={copyAccount}
-                                    className={cx(
-                                        "w-full h-[56px] rounded-[16px]",
-                                        "bg-[#EEF3FF] border border-blue-100/70",
-                                        "shadow-[0_12px_22px_rgba(15,23,42,0.06)]",
-                                        "flex items-center justify-between px-4",
-                                        "active:scale-[0.99] transition"
-                                    )}
-                                >
-                                    <div className="text-[20px] font-black text-slate-900">{maskAccountNo(selected.accountNo)}</div>
-                                    <div className="inline-flex items-center gap-2 text-[#2F6BFF] font-black">
-                                        {copied ? <Check size={18} /> : <Copy size={18} />}
-                                        {copied ? "คัดลอกแล้ว" : "คัดลอก"}
-                                    </div>
-                                </button>
+                            {copyError && <div className="mt-2 text-xs font-black text-rose-600">{copyError}</div>}
 
-                                {copyError && <div className="text-xs font-black text-rose-600">{copyError}</div>}
-
-                                <div className="text-xs font-bold text-slate-500">
-                                    * หลังโอนเสร็จ กรุณาแนบสลิปเพื่อให้ระบบส่งตรวจสอบ
-                                </div>
+                            <div className="mt-3 text-xs font-bold text-slate-500">
+                                * หลังโอนเสร็จ กรุณาแนบสลิปเพื่อให้ระบบส่งตรวจสอบ
                             </div>
                         </div>
                     </Card>
@@ -335,11 +348,7 @@ export default function BillingBankTransferPage() {
                     <div className="flex items-center justify-between mb-2">
                         <div className="text-[18px] font-black text-slate-900">แนบสลิปการชำระเงิน</div>
                         {slipFile && (
-                            <button
-                                type="button"
-                                onClick={clearSlip}
-                                className="inline-flex items-center gap-2 text-rose-600 font-black text-sm active:scale-95 transition"
-                            >
+                            <button type="button" onClick={clearSlip} className="inline-flex items-center gap-2 text-rose-600 font-black text-sm active:scale-95 transition">
                                 <Trash2 size={16} /> ลบรูป
                             </button>
                         )}
@@ -347,9 +356,7 @@ export default function BillingBankTransferPage() {
 
                     <Card>
                         <div className="p-4">
-                            <div className="text-sm font-bold text-slate-500 mb-4">
-                                แนะนำให้เห็น “ชื่อบัญชี/เลขบัญชี/ยอดเงิน/วันเวลา” ชัดเจน
-                            </div>
+                            <div className="text-sm font-bold text-slate-500 mb-4">แนะนำให้เห็น “ชื่อบัญชี/เลขบัญชี/ยอดเงิน/วันเวลา” ชัดเจน</div>
 
                             {/* hidden inputs */}
                             <input
@@ -411,9 +418,7 @@ export default function BillingBankTransferPage() {
                                 {!slipPreviewUrl ? (
                                     <div className="rounded-[16px] border border-dashed border-blue-200 bg-[#F6FAFF] p-5 text-center">
                                         <div className="text-sm font-black text-slate-800">ยังไม่ได้เลือกรูป</div>
-                                        <div className="mt-1 text-xs font-bold text-slate-500">
-                                            กด “ถ่ายรูป” หรือ “อัปโหลดสลิป” เพื่อแนบหลักฐานการโอน
-                                        </div>
+                                        <div className="mt-1 text-xs font-bold text-slate-500">กด “ถ่ายรูป” หรือ “อัปโหลดสลิป” เพื่อแนบหลักฐานการโอน</div>
                                     </div>
                                 ) : (
                                     <div className="rounded-[16px] border border-blue-100/70 bg-white overflow-hidden shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
@@ -424,7 +429,28 @@ export default function BillingBankTransferPage() {
                                                     {(slipFile?.size ?? 0) > 0 ? `${Math.round((slipFile!.size / 1024) * 10) / 10} KB` : ""}
                                                 </div>
                                             </div>
-                                            <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black">
+                                            <span
+                                                className="
+                                                inline-flex items-center gap-1.5
+                                                px-3 py-1.5
+                                                rounded-full
+                                                text-[12px] font-black
+                                                text-emerald-700
+                                                bg-gradient-to-r from-emerald-50 to-emerald-100
+                                                border border-emerald-200/70
+                                                shadow-[0_6px_14px_rgba(16,185,129,0.18)]
+                                                whitespace-nowrap
+                                                "
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                    <path
+                                                        d="M20 6L9 17l-5-5"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2.4"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </svg>
                                                 พร้อมส่ง
                                             </span>
                                         </div>

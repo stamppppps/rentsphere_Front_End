@@ -2,7 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-type PayMethod = "BANK" | "PROMPTPAY";
+type PayMethod = "BANK";
 
 type BillStatus = "UNPAID" | "PENDING_REVIEW" | "PAID" | "OVERDUE";
 
@@ -62,7 +62,13 @@ function useEnterAnim() {
 /* =========================
         UI Shells
    ========================= */
-function CardShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function CardShell({
+    children,
+    className = "",
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
     return (
         <div
             className={[
@@ -83,7 +89,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex items-center gap-2 px-1">
             <div className="w-1.5 h-6 bg-[#2F6BFF] rounded-full" />
-            <span className="text-sm font-black text-slate-800 tracking-widest">{children}</span>
+            <span className="text-sm font-black text-slate-800 tracking-widest">
+                {children}
+            </span>
         </div>
     );
 }
@@ -143,41 +151,37 @@ function IconBox({
 function BankSvg() {
     return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M3 10.5 12 4l9 6.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M5 10.5V20h14v-9.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M7.5 20V12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M12 20V12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M16.5 20V12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-    );
-}
-
-function QRSvg() {
-    return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
-                d="M7 7h4v4H7V7Z"
+                d="M3 10.5 12 4l9 6.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M5 10.5V20h14v-9.5"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinejoin="round"
             />
             <path
-                d="M13 7h4v4h-4V7Z"
+                d="M7.5 20V12.5"
                 stroke="currentColor"
                 strokeWidth="2"
-                strokeLinejoin="round"
+                strokeLinecap="round"
             />
             <path
-                d="M7 13h4v4H7v-4Z"
+                d="M12 20V12.5"
                 stroke="currentColor"
                 strokeWidth="2"
-                strokeLinejoin="round"
+                strokeLinecap="round"
             />
-            <path d="M13 13h2v2h-2v-2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            <path d="M17 13h0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M13 17h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M17 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M3 3h6M3 3v6M21 3h-6M21 3v6M3 21h6M3 21v-6M21 21h-6M21 21v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path
+                d="M16.5 20V12.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
         </svg>
     );
 }
@@ -235,8 +239,12 @@ function MethodCard({
             <IconBox active={selected}>{icon}</IconBox>
 
             <div className="flex-1 min-w-0">
-                <div className="text-[18px] font-black text-slate-900 leading-tight">{title}</div>
-                <div className="mt-1 text-[12px] font-bold text-slate-600 leading-snug">{subtitle}</div>
+                <div className="text-[18px] font-black text-slate-900 leading-tight">
+                    {title}
+                </div>
+                <div className="mt-1 text-[12px] font-bold text-slate-600 leading-snug">
+                    {subtitle}
+                </div>
             </div>
 
             <Radio checked={selected} />
@@ -263,29 +271,24 @@ export default function BillingPayMethodPage() {
     const mounted = useEnterAnim();
     const [method, setMethod] = useState<PayMethod | null>(null);
 
-    const isLocked = useMemo(() => bill.status === "PAID" || bill.status === "PENDING_REVIEW", [bill.status]);
+    const isLocked = useMemo(
+        () => bill.status === "PAID" || bill.status === "PENDING_REVIEW",
+        [bill.status]
+    );
 
     const ctaText = useMemo(() => {
         if (!method) return "เลือกวิธีการชำระเงิน";
-        if (method === "PROMPTPAY") return "แสดง QR เพื่อชำระ";
         return "ดูบัญชี / อัปโหลดสลิป";
     }, [method]);
 
     const onContinue = () => {
         if (!method) return;
 
-        if (method === "PROMPTPAY") {
-            nav(`/tenant/billing/${bill.billId}/pay/qr`, {
-                state: { billId: bill.billId, total: bill.total },
-            });
-            return;
-        }
-
-        // BANK
         nav(`/tenant/billing/${bill.billId}/pay/bank-transfer`, {
             state: { billId: bill.billId, total: bill.total },
         });
     };
+
     return (
         <div className="min-h-screen bg-[#F8FAFF] pb-36">
             {/* ===== Top Bar ===== */}
@@ -302,7 +305,9 @@ export default function BillingPayMethodPage() {
                                 <ChevronLeft size={24} />
                             </button>
 
-                            <div className="text-2xl font-black text-slate-900">บิล / การชำระเงิน</div>
+                            <div className="text-2xl font-black text-slate-900">
+                                บิล / การชำระเงิน
+                            </div>
 
                             <div className="absolute right-0 w-10" />
                         </div>
@@ -323,11 +328,15 @@ export default function BillingPayMethodPage() {
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <div className="text-[18px] font-black text-slate-900">ยอดรวม</div>
-                                <div className="mt-1 text-[34px] font-black text-slate-900 leading-none">{formatNumber(bill.total)}</div>
+                                <div className="mt-1 text-[34px] font-black text-slate-900 leading-none">
+                                    {formatNumber(bill.total)}
+                                </div>
                                 <div className="mt-3 text-sm font-bold text-slate-600">
                                     วันครบกำหนดชำระ: {bill.dueDateText}
                                 </div>
-                                <div className="mt-1 text-sm font-bold text-slate-600">Unit : {bill.unitText}</div>
+                                <div className="mt-1 text-sm font-bold text-slate-600">
+                                    Unit : {bill.unitText}
+                                </div>
                             </div>
 
                             <div
@@ -354,14 +363,6 @@ export default function BillingPayMethodPage() {
                             onClick={() => !isLocked && setMethod("BANK")}
                             icon={<BankSvg />}
                         />
-
-                        <MethodCard
-                            title="QR พร้อมเพย์"
-                            subtitle="ชำระได้ทันทีผ่านแอปธนาคาร • แนะนำ"
-                            selected={method === "PROMPTPAY"}
-                            onClick={() => !isLocked && setMethod("PROMPTPAY")}
-                            icon={<QRSvg />}
-                        />
                     </div>
 
                     {/* lock hint */}
@@ -378,7 +379,9 @@ export default function BillingPayMethodPage() {
                         <div className="p-5">
                             <div className="flex items-center justify-between">
                                 <div className="text-sm font-bold text-slate-600">ยอดบิล</div>
-                                <div className="text-sm font-black text-slate-900">{formatNumber(bill.total)}</div>
+                                <div className="text-sm font-black text-slate-900">
+                                    {formatNumber(bill.total)}
+                                </div>
                             </div>
 
                             <div className="mt-2 flex items-center justify-between">
@@ -387,8 +390,12 @@ export default function BillingPayMethodPage() {
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-blue-100/70 flex items-center justify-between">
-                                <div className="text-[16px] font-black text-slate-900">ยอดที่ต้องชำระจริง</div>
-                                <div className="text-[18px] font-black text-slate-900">{formatNumber(bill.total)}</div>
+                                <div className="text-[16px] font-black text-slate-900">
+                                    ยอดที่ต้องชำระจริง
+                                </div>
+                                <div className="text-[18px] font-black text-slate-900">
+                                    {formatNumber(bill.total)}
+                                </div>
                             </div>
                         </div>
                     </CardShell>
