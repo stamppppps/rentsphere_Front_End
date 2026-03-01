@@ -1,12 +1,16 @@
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
+import BillingHistoryDetailPage from "@/features/tenant/pages/billing/pages/ BillingHistoryDetailPage";
+import BillingHistoryPage from "@/features/tenant/pages/billing/pages/ BillingHistoryPage";
 import BillingBankTransferPage from "@/features/tenant/pages/billing/pages/BillingBankTransferPage";
 import BillingPage from "@/features/tenant/pages/billing/pages/BillingPage";
 import BillingPaymentDetailPage from "@/features/tenant/pages/billing/pages/BillingPaymentDetailPage";
 import BillingPayMethodPage from "@/features/tenant/pages/billing/pages/BillingPayMethodPage";
 import BillingPdfViewerPage from "@/features/tenant/pages/billing/pages/BillingPdfViewerPage";
 import BillingSubmitSuccessPage from "@/features/tenant/pages/billing/pages/BillingSubmitSuccessPage";
+import BillingSummaryPage from "@/features/tenant/pages/billing/pages/BillingSummaryPage";
+import TenantUploadSlipPage from "@/features/tenant/pages/billing/pages/TenantUploadSlipPage";
 import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
 import BookingSuccessPage from "@/features/tenant/pages/booking/pages/BookingSuccessPage";
 import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
@@ -47,8 +51,12 @@ const tenantRoutes: RouteObject[] = [
       { path: "billing/:billId/pay", element: <BillingPayMethodPage /> },
       { path: "billing/:billId/pay/bank-transfer", element: <BillingBankTransferPage /> },
       { path: "billing/:billId/pay/success", element: <BillingSubmitSuccessPage /> },
+      { path: "billing/:billId/upload-slip", element: <TenantUploadSlipPage /> },
       { path: "billing/:billId/payment-detail", element: <BillingPaymentDetailPage /> },
       { path: "billing/:billId/pdf", element: <BillingPdfViewerPage /> },
+      { path: "billing/summary", element: <BillingSummaryPage /> },
+      { path: "billing/history", element: <BillingHistoryPage /> },
+      { path: "billing/history/:historyId", element: <BillingHistoryDetailPage /> },
       { path: "booking", element: <FacilityListPage /> },
       { path: "booking/:id", element: <FacilityDetailPage /> },
       { path: "booking/confirm", element: <BookingConfirmPage /> },

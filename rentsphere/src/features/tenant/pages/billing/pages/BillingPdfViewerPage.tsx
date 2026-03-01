@@ -1,490 +1,413 @@
 import { ChevronLeft, Download, FileText, Minus, Plus, Share2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-
-// ✅ ตั้งค่า worker (Vite/React)
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.js",
-    import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 function cx(...cls: Array<string | false | undefined | null>) {
     return cls.filter(Boolean).join(" ");
 }
 
-function useEnterAnim() {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        const t = setTimeout(() => setMounted(true), 10);
-        return () => clearTimeout(t);
-    }, []);
-    return mounted;
+type ViewerState = "loading" | "ready" | "empty" | "error";
+type LocationState = { title?: string };
+
+type MockBill = {
+    billId: string;
+    monthText: string;
+    dueDateText: string;
+    roomNo: string;
+    tenantName: string;
+    total: number;
+    pdfBase64?: string;
+};
+
+const MOCK_BILLS: Record<string, MockBill> = {
+    "1025": {
+        billId: "1025",
+        monthText: "รอบเดือน 12-2025",
+        dueDateText: "10 ธ.ค. 2025",
+        roomNo: "101",
+        tenantName: "วิลาวัณย์ เทียนเฮง",
+        total: 8240,
+        pdfBase64:
+            "JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwvVHlwZS9DYXRhbG9nL1BhZ2VzIDIgMCBSPj4KZW5kb2JqCjIgMCBvYmoKPDwvVHlwZS9QYWdlcy9Db3VudCAxL0tpZHNbMyAwIFJdPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgNjEyIDc5Ml0vUmVzb3VyY2VzPDwvRm9udDw8L0YxIDQgMCBSPj4+Pi9Db250ZW50cyA1IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYT4+CmVuZG9iago1IDAgb2JqCjw8L0xlbmd0aCAxMTY+PnN0cmVhbQpCVAovRjEgMjQgVGYKMTAwIDcwMCBUZAooUmVudFNwaGVyZSBJbnZvaWNlICMxMDI1KSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxMCAwMDAwMCBuIAowMDAwMDAwMDYyIDAwMDAwIG4gCjAwMDAwMDAxMTkgMDAwMDAgbiAKMDAwMDAwMDI2NCAwMDAwMCBuIAowMDAwMDAwMzQxIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNDU0CiUlRU9G",
+    },
+};
+
+async function mockGetBillFromDb(billId: string): Promise<MockBill | null> {
+    await new Promise((r) => setTimeout(r, 250));
+    return MOCK_BILLS[billId] ?? null;
 }
 
-type ViewerState = "loading" | "ready" | "empty" | "error";
-type LocationState = { pdfUrl?: string; title?: string };
+/** base64 -> Blob URL (ปลอดภัยกับ react-pdf มากกว่า data/ArrayBuffer) */
+function base64ToBlobUrl(base64: string) {
+    // รองรับทั้ง base64 ปกติ และ base64 ที่มี prefix data:application/pdf;base64,
+    const clean = base64.includes(",") ? base64.split(",").pop()! : base64;
+
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    return URL.createObjectURL(blob);
+}
 
 export default function BillingPdfViewerPage() {
     const nav = useNavigate();
-    const { billId } = useParams<{ billId: string }>();
+    const { billId = "1025" } = useParams<{ billId: string }>();
     const location = useLocation();
-    const mounted = useEnterAnim();
-
     const locState = (location.state || {}) as LocationState;
 
-    // ✅ mock: วาง pdf ใน public แล้วเรียก /sample.pdf
-    const mockPdfUrl = useMemo(() => locState.pdfUrl ?? "/sample.pdf", [locState.pdfUrl]);
-    const title = locState.title ?? "รายละเอียดบิล";
-
     const [viewState, setViewState] = useState<ViewerState>("loading");
-    const [pdfUrl, setPdfUrl] = useState<string>("");
+    const [bill, setBill] = useState<MockBill | null>(null);
 
-    const [numPages, setNumPages] = useState<number>(1);
-    const [page, setPage] = useState<number>(1);
-    const [scale, setScale] = useState<number>(1.0);
+    const [blobUrl, setBlobUrl] = useState<string>("");
+    const blobRef = useRef<string>("");
 
-    const canPrev = page > 1;
-    const canNext = page < numPages;
+    const [numPages, setNumPages] = useState(0);
+    const [page, setPage] = useState(1);
+    const [scale, setScale] = useState(1.0);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const title = useMemo(() => locState.title ?? "รายละเอียดบิล", [locState.title]);
+
+    const cleanupBlob = () => {
+        if (blobRef.current) {
+            URL.revokeObjectURL(blobRef.current);
+            blobRef.current = "";
+        }
+        setBlobUrl("");
+    };
 
     useEffect(() => {
-        // mock loading (ตอนต่อ BE ค่อย fetch แล้ว set)
-        const t = setTimeout(() => {
-            if (mockPdfUrl) {
-                setPdfUrl(mockPdfUrl);
-                setViewState("ready");
-            } else {
+        let alive = true;
+
+        (async () => {
+            setViewState("loading");
+            setBill(null);
+            setNumPages(0);
+            setPage(1);
+            cleanupBlob();
+
+            const data = await mockGetBillFromDb(String(billId));
+            if (!alive) return;
+
+            if (!data) {
                 setViewState("empty");
+                return;
             }
-        }, 320);
-        return () => clearTimeout(t);
-    }, [mockPdfUrl]);
+
+            setBill(data);
+
+            if (!data.pdfBase64) {
+                setViewState("empty");
+                return;
+            }
+
+            try {
+                const url = base64ToBlobUrl(data.pdfBase64);
+                blobRef.current = url;
+                setBlobUrl(url);
+                // รอ Document onLoadSuccess แล้วค่อย set ready
+            } catch (e) {
+                console.error("mock pdf decode error:", e);
+                setViewState("error");
+            }
+        })();
+
+        return () => {
+            alive = false;
+            cleanupBlob();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [billId, reloadKey]);
 
     useEffect(() => {
+        if (numPages <= 0) return;
         setPage((p) => Math.min(Math.max(1, p), numPages));
     }, [numPages]);
+
+    const canPrev = page > 1;
+    const canNext = numPages > 0 && page < numPages;
 
     const zoomOut = () => setScale((s) => Math.max(0.6, Number((s - 0.1).toFixed(2))));
     const zoomIn = () => setScale((s) => Math.min(2.0, Number((s + 0.1).toFixed(2))));
 
+    const canUseActions = viewState === "ready" && !!blobUrl;
+
     const onDownload = () => {
-        if (!pdfUrl) return;
-        window.open(pdfUrl, "_blank"); // เปิดแท็บใหม่ให้ browser download/open
+        if (!blobUrl) return;
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `invoice-${billId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     };
 
     const onShare = async () => {
-        if (!pdfUrl) return;
-
-        // Web Share API (มือถือจะเวิร์คสุด)
-        const canShare = typeof navigator !== "undefined" && (navigator as any).share;
-        if (canShare) {
-            try {
-                await (navigator as any).share({
-                    title: `Invoice #${billId ?? ""}`,
-                    text: "แชร์ไฟล์ใบแจ้งหนี้",
-                    url: window.location.origin + pdfUrl,
-                });
-            } catch {
-                // ผู้ใช้กดยกเลิก ก็เงียบๆ
-            }
-            return;
-        }
-
-        // fallback: copy link
         try {
-            await navigator.clipboard.writeText(window.location.origin + pdfUrl);
-            alert("คัดลอกลิงก์แล้ว ✅");
+            await navigator.clipboard.writeText(`Invoice #${billId}`);
+            alert("คัดลอกข้อความแล้ว");
         } catch {
-            alert("แชร์ไม่ได้ ลองกดดาวน์โหลดแทนนะ");
+            alert("แชร์ไม่ได้ในตอนนี้");
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFF] pb-20">
-            <style>{`
-        @keyframes pop { 
-          0% { transform: translateY(10px); opacity: 0; } 
-          100% { transform: translateY(0); opacity: 1; } 
-        }
-        @keyframes shimmer { 
-          0% { transform: translateX(-120%); } 
-          100% { transform: translateX(260%); } 
-        }
-      `}</style>
-
-            {/* soft glow background */}
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute -top-28 left-1/2 -translate-x-1/2 w-[560px] h-[560px] rounded-full bg-[#2F6BFF]/10 blur-3xl" />
-                <div className="absolute -bottom-24 right-0 w-[380px] h-[380px] rounded-full bg-indigo-400/10 blur-3xl" />
-            </div>
-
-            {/* ===== Top Bar ===== */}
+        <div className="min-h-screen bg-[#F6F8FF] pb-20">
+            {/* Top bar */}
             <div className="sticky top-0 z-40">
-                <div className="bg-[#F8FAFF]/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur-lg border-b border-blue-100/40">
-                    <div className="px-6 pt-7 pb-3">
+                <div className="bg-[#F6F8FF]/85 backdrop-blur border-b border-blue-100/50">
+                    <div className="px-5 pt-6 pb-3">
                         <div className="relative flex items-center justify-center">
                             <button
                                 type="button"
                                 onClick={() => nav(-1)}
-                                className="absolute left-0 p-2.5 rounded-2xl bg-white/70 backdrop-blur border border-white/60 text-slate-800 shadow-sm active:scale-95 transition"
-                                aria-label="Back"
+                                className="absolute left-0 p-3 rounded-2xl bg-white/80 border border-blue-100/70 shadow-sm active:scale-95 transition"
                             >
-                                <ChevronLeft size={24} />
+                                <ChevronLeft size={22} />
                             </button>
-
-                            <div className="text-2xl font-black text-slate-900">{title}</div>
+                            <div className="text-[22px] font-black text-slate-900">{title}</div>
                             <div className="absolute right-0 w-10" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-6 relative">
-                {/* ===== Header ===== */}
-                <div
-                    className={cx("mt-4", mounted ? "opacity-100" : "opacity-0")}
-                    style={{ animation: mounted ? "pop .32s ease-out both" : undefined }}
-                >
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <div className="text-[18px] font-black text-slate-900">ใบแจ้งหนี้ #{billId ?? "—"}</div>
-                            <div className="mt-1 text-xs font-bold text-slate-600">ดูไฟล์ PDF ที่เจ้าของห้องอัปโหลด</div>
-                        </div>
-
-                        {/* iOS-like chips */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={onDownload}
-                                className={cx(
-                                    "h-10 px-3 rounded-2xl",
-                                    "bg-white/75 backdrop-blur",
-                                    "border border-blue-100/70",
-                                    "shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
-                                    "active:scale-[0.98] transition",
-                                    viewState !== "ready" && "opacity-50 pointer-events-none"
-                                )}
-                            >
-                                <div className="flex items-center gap-2 text-slate-800">
-                                    <Download size={18} />
-                                    <span className="text-xs font-black">ดาวน์โหลด</span>
+            <div className="px-5">
+                {/* Header */}
+                <div className="mt-4">
+                    <div className="rounded-[22px] bg-gradient-to-b from-[#EAF0FF] to-[#F6F8FF] border border-blue-100/70 shadow-[0_18px_50px_rgba(15,23,42,0.08)] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-[22px] font-black text-slate-900 leading-tight truncate">
+                                    ใบแจ้งหนี้ #{billId}
                                 </div>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={onShare}
-                                className={cx(
-                                    "h-10 px-3 rounded-2xl",
-                                    "bg-white/75 backdrop-blur",
-                                    "border border-blue-100/70",
-                                    "shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
-                                    "active:scale-[0.98] transition",
-                                    viewState !== "ready" && "opacity-50 pointer-events-none"
-                                )}
-                            >
-                                <div className="flex items-center gap-2 text-slate-800">
-                                    <Share2 size={18} />
-                                    <span className="text-xs font-black">แชร์</span>
+                                <div className="mt-1 text-[13px] font-bold text-slate-600 leading-tight">
+                                    {bill ? `${bill.monthText} • กำหนดชำระ ${bill.dueDateText}` : "กำลังโหลดข้อมูลบิล…"}
                                 </div>
-                            </button>
+                                {bill && (
+                                    <div className="mt-2 text-[13px] font-black text-slate-900">
+                                        รวม {bill.total.toLocaleString("th-TH")} บาท • ห้อง {bill.roomNo}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={onDownload}
+                                    className={cx(
+                                        "h-11 px-4 rounded-2xl bg-white/85 border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] active:scale-[0.98] transition",
+                                        !canUseActions && "opacity-50 pointer-events-none"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 text-slate-800">
+                                        <Download size={18} />
+                                        <span className="text-[13px] font-black">ดาวน์โหลด</span>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={onShare}
+                                    className={cx(
+                                        "h-11 px-4 rounded-2xl bg-white/85 border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] active:scale-[0.98] transition",
+                                        viewState === "empty" && "opacity-50 pointer-events-none"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 text-slate-800">
+                                        <Share2 size={18} />
+                                        <span className="text-[13px] font-black">แชร์</span>
+                                    </div>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ===== Viewer Card ===== */}
-                <div
-                    className={cx("mt-4", mounted ? "opacity-100" : "opacity-0")}
-                    style={{ animation: mounted ? "pop .32s ease-out .06s both" : undefined }}
-                >
-                    <div className="rounded-[24px] overflow-hidden border border-blue-100/70 bg-white/65 backdrop-blur shadow-[0_18px_60px_rgba(15,23,42,0.10)]">
+                {/* Viewer */}
+                <div className="mt-4">
+                    <div className="rounded-[26px] overflow-hidden border border-blue-100/70 bg-white shadow-[0_22px_70px_rgba(15,23,42,0.10)]">
                         {/* Toolbar */}
-                        <div className="px-5 py-4 border-b border-blue-100/50 bg-white/60">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-11 h-11 rounded-2xl bg-[#EEF3FF] border border-blue-100/70 shadow-inner flex items-center justify-center text-[#2F6BFF]">
-                                        <FileText size={22} />
+                        <div className="p-4 border-b border-blue-100/60 bg-white">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-11 h-11 rounded-2xl bg-[#EEF3FF] border border-blue-100/70 shadow-inner flex items-center justify-center text-[#2F6BFF] shrink-0">
+                                            <FileText size={22} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-[14px] font-black text-slate-900 truncate leading-tight">
+                                                ใบแจ้งหนี้ (PDF)
+                                            </div>
+                                            <div className="text-[12px] font-bold text-slate-500 leading-tight">
+                                                แสดงผลในแอป (mock จาก database)
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div className="min-w-0">
-                                        <div className="text-[14px] font-black text-slate-900 truncate">เอกสารบิล (PDF)</div>
-                                        <div className="text-[11px] font-bold text-slate-500">แสดงผลแบบฝังในแอป</div>
+                                    <div className="shrink-0">
+                                        {viewState === "ready" && (
+                                            <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                พร้อมดู
+                                            </span>
+                                        )}
+                                        {viewState === "loading" && (
+                                            <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-800 border border-amber-200">
+                                                กำลังโหลด…
+                                            </span>
+                                        )}
+                                        {viewState === "empty" && (
+                                            <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-700 border border-rose-200">
+                                                ไม่พบไฟล์
+                                            </span>
+                                        )}
+                                        {viewState === "error" && (
+                                            <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-700 border border-rose-200">
+                                                โหลดไม่ได้
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* right controls */}
-                                <div className="flex items-center gap-2">
-                                    {/* status */}
-                                    {viewState === "ready" && (
-                                        <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            พร้อมดู
-                                        </span>
-                                    )}
-                                    {viewState === "loading" && (
-                                        <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-800 border border-amber-200">
-                                            กำลังโหลด…
-                                        </span>
-                                    )}
-                                    {viewState === "empty" && (
-                                        <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-700 border border-rose-200">
-                                            ไม่พบไฟล์
-                                        </span>
-                                    )}
-                                    {viewState === "error" && (
-                                        <span className="px-3 py-1.5 rounded-full text-[11px] font-black bg-rose-50 text-rose-700 border border-rose-200">
-                                            โหลดไม่ได้
-                                        </span>
-                                    )}
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="h-11 rounded-2xl bg-[#F6F8FF] border border-blue-100/70 shadow-inner overflow-hidden flex">
+                                        <button
+                                            type="button"
+                                            onClick={zoomOut}
+                                            disabled={viewState !== "ready"}
+                                            className={cx(
+                                                "w-12 h-11 flex items-center justify-center text-slate-800 active:scale-[0.98] transition",
+                                                viewState !== "ready" && "opacity-40 cursor-not-allowed"
+                                            )}
+                                        >
+                                            <Minus size={18} />
+                                        </button>
+                                        <div className="px-4 h-11 flex items-center justify-center text-[13px] font-black text-slate-700 tabular-nums">
+                                            {Math.round(scale * 100)}%
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={zoomIn}
+                                            disabled={viewState !== "ready"}
+                                            className={cx(
+                                                "w-12 h-11 flex items-center justify-center text-slate-800 active:scale-[0.98] transition",
+                                                viewState !== "ready" && "opacity-40 cursor-not-allowed"
+                                            )}
+                                        >
+                                            <Plus size={18} />
+                                        </button>
+                                    </div>
 
-                                    {/* zoom / page (iOS segmented) */}
-                                    <div className="hidden md:flex items-center gap-2">
-                                        <div className="h-10 rounded-2xl bg-white/80 border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] overflow-hidden flex">
-                                            <button
-                                                type="button"
-                                                onClick={zoomOut}
-                                                className="w-10 h-10 flex items-center justify-center text-slate-800 hover:bg-slate-50 active:scale-[0.98] transition"
-                                                aria-label="Zoom out"
-                                            >
-                                                <Minus size={18} />
-                                            </button>
-                                            <div className="px-3 h-10 flex items-center justify-center text-xs font-black text-slate-700 tabular-nums">
-                                                {Math.round(scale * 100)}%
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={zoomIn}
-                                                className="w-10 h-10 flex items-center justify-center text-slate-800 hover:bg-slate-50 active:scale-[0.98] transition"
-                                                aria-label="Zoom in"
-                                            >
-                                                <Plus size={18} />
-                                            </button>
+                                    <div className="h-11 px-3 rounded-2xl bg-[#F6F8FF] border border-blue-100/70 shadow-inner flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={!canPrev || viewState !== "ready"}
+                                            onClick={() => canPrev && setPage((p) => p - 1)}
+                                            className={cx(
+                                                "w-9 h-9 rounded-xl font-black text-slate-700",
+                                                canPrev && viewState === "ready" ? "active:scale-[0.98] transition" : "opacity-40 cursor-not-allowed"
+                                            )}
+                                        >
+                                            ‹
+                                        </button>
+
+                                        <div className="text-[13px] font-black text-slate-700 tabular-nums min-w-[64px] text-center">
+                                            {page} / {Math.max(1, numPages)}
                                         </div>
 
-                                        <div className="h-10 px-3 rounded-2xl bg-white/80 border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                disabled={!canPrev}
-                                                onClick={() => canPrev && setPage((p) => p - 1)}
-                                                className={cx(
-                                                    "w-8 h-8 rounded-xl font-black",
-                                                    canPrev ? "hover:bg-slate-50" : "opacity-40 cursor-not-allowed"
-                                                )}
-                                            >
-                                                ‹
-                                            </button>
-                                            <div className="text-xs font-black text-slate-700 tabular-nums">
-                                                {page} / {numPages}
-                                            </div>
-                                            <button
-                                                type="button"
-                                                disabled={!canNext}
-                                                onClick={() => canNext && setPage((p) => p + 1)}
-                                                className={cx(
-                                                    "w-8 h-8 rounded-xl font-black",
-                                                    canNext ? "hover:bg-slate-50" : "opacity-40 cursor-not-allowed"
-                                                )}
-                                            >
-                                                ›
-                                            </button>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={!canNext || viewState !== "ready"}
+                                            onClick={() => canNext && setPage((p) => p + 1)}
+                                            className={cx(
+                                                "w-9 h-9 rounded-xl font-black text-slate-700",
+                                                canNext && viewState === "ready" ? "active:scale-[0.98] transition" : "opacity-40 cursor-not-allowed"
+                                            )}
+                                        >
+                                            ›
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Content: thumbnails + main */}
+                        {/* Content */}
                         <div className="p-4">
-                            {viewState === "loading" && (
-                                <div className="rounded-[20px] overflow-hidden border border-blue-100/60 bg-white shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
-                                    <div className="h-[70vh] relative">
-                                        <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-[#F3F7FF] to-white" />
-                                        <div className="absolute inset-0 opacity-30 pointer-events-none">
-                                            <div className="absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2.6s_infinite]" />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {viewState === "empty" && (
-                                <div className="rounded-[20px] border border-blue-100/60 bg-white p-6 text-center shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
+                                <div className="rounded-[22px] border border-blue-100/70 bg-white p-6 text-center shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
                                     <div className="text-[16px] font-black text-slate-900">ยังไม่มีไฟล์ PDF ของบิล</div>
-                                    <div className="mt-2 text-xs font-bold text-slate-500">
-                                        เจ้าของห้องยังไม่ได้อัปโหลดบิล หรือไฟล์ถูกลบ
-                                    </div>
-
+                                    <div className="mt-2 text-xs font-bold text-slate-500">(mock DB ยังไม่ได้ใส่ pdfBase64)</div>
                                     <button
                                         type="button"
-                                        onClick={() => nav(-1)}
-                                        className="mt-5 h-[52px] w-full rounded-2xl font-black bg-[#2F6BFF] text-white shadow-[0_16px_28px_rgba(47,107,255,0.26)] active:scale-[0.98] transition"
+                                        onClick={() => setReloadKey((k) => k + 1)}
+                                        className="mt-5 h-[52px] w-full rounded-2xl font-black bg-[#2F6BFF] text-white shadow-[0_14px_24px_rgba(47,107,255,0.24)] active:scale-[0.98] transition"
                                     >
-                                        กลับ
+                                        ลองโหลดใหม่
                                     </button>
                                 </div>
                             )}
 
-                            {(viewState === "ready" || viewState === "error") && (
-                                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
-                                    {/* Thumbnails (md+) */}
-                                    <div className="hidden md:block">
-                                        <div className="rounded-[20px] border border-blue-100/60 bg-white shadow-[0_12px_22px_rgba(15,23,42,0.06)] overflow-hidden">
-                                            <div className="px-4 py-3 border-b border-blue-100/60 text-xs font-black text-slate-700">
-                                                หน้า
-                                            </div>
-
-                                            <div className="p-3 space-y-3 max-h-[70vh] overflow-auto">
-                                                <Document
-                                                    file={pdfUrl}
-                                                    onLoadSuccess={({ numPages }) => {
-                                                        setNumPages(numPages);
-                                                        setViewState("ready");
-                                                    }}
-                                                    onLoadError={() => setViewState("error")}
-                                                    loading={<div className="text-xs font-bold text-slate-500">กำลังโหลด…</div>}
-                                                >
-                                                    {Array.from({ length: numPages }).map((_, i) => {
-                                                        const p = i + 1;
-                                                        const active = p === page;
-
-                                                        return (
-                                                            <button
-                                                                key={p}
-                                                                type="button"
-                                                                onClick={() => setPage(p)}
-                                                                className={cx(
-                                                                    "w-full text-left p-2 rounded-2xl border transition",
-                                                                    active
-                                                                        ? "border-[#8BB2FF] bg-[#EEF3FF]"
-                                                                        : "border-blue-100/70 hover:bg-[#F6FAFF]"
-                                                                )}
-                                                            >
-                                                                <div className="rounded-xl overflow-hidden bg-white border border-blue-100/60">
-                                                                    <Page
-                                                                        pageNumber={p}
-                                                                        width={190}
-                                                                        renderTextLayer={false}
-                                                                        renderAnnotationLayer={false}
-                                                                    />
-                                                                </div>
-                                                                <div className="mt-2 text-xs font-black text-slate-700">หน้า {p}</div>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </Document>
-                                            </div>
+                            {blobUrl && (
+                                <Document
+                                    key={blobUrl}
+                                    file={blobUrl}
+                                    onLoadSuccess={({ numPages }) => {
+                                        setNumPages(numPages);
+                                        setViewState("ready");
+                                    }}
+                                    onLoadError={(e) => {
+                                        console.error("PDF load error:", e);
+                                        setViewState("error");
+                                    }}
+                                    loading={
+                                        <div className="rounded-[22px] overflow-hidden border border-blue-100/60 bg-white shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
+                                            <div className="h-[64vh] animate-pulse bg-gradient-to-b from-[#F3F7FF] to-white" />
                                         </div>
-                                    </div>
-
-                                    {/* Main PDF */}
-                                    <div className="rounded-[20px] overflow-hidden border border-blue-100/60 bg-white shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
+                                    }
+                                >
+                                    <div className="rounded-[22px] overflow-hidden border border-blue-100/60 bg-white shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
                                         <div className="p-3 overflow-auto">
                                             <div className="flex justify-center">
-                                                <Document
-                                                    file={pdfUrl}
-                                                    onLoadSuccess={({ numPages }) => {
-                                                        setNumPages(numPages);
-                                                        setViewState("ready");
-                                                    }}
-                                                    onLoadError={() => setViewState("error")}
-                                                    loading={<div className="p-6 text-slate-600 font-bold">กำลังโหลด PDF…</div>}
-                                                >
-                                                    <Page
-                                                        pageNumber={page}
-                                                        scale={scale}
-                                                        renderTextLayer={false}
-                                                        renderAnnotationLayer={false}
-                                                    />
-                                                </Document>
+                                                <Page pageNumber={page} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
                                             </div>
-
-                                            {viewState === "error" && (
-                                                <div className="p-4 text-center">
-                                                    <div className="text-sm font-black text-rose-700">โหลดไฟล์ PDF ไม่ได้</div>
-                                                    <div className="mt-1 text-xs font-bold text-slate-500">
-                                                        ลองกด “ดาวน์โหลด” เพื่อเปิดในแท็บใหม่
-                                                    </div>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
+                                </Document>
+                            )}
+
+                            {viewState === "error" && (
+                                <div className="mt-3 rounded-[22px] border border-blue-100/70 bg-white p-6 shadow-[0_12px_22px_rgba(15,23,42,0.06)]">
+                                    <div className="text-[18px] font-black text-slate-900">Failed to load PDF file.</div>
+                                    <div className="mt-2 text-xs font-bold text-slate-500">
+                                        ถ้ายัง error ให้เช็คว่า `npm ls pdfjs-dist` เหลือ 5.4.296 ตัวเดียว และ worker เป็น .mjs?url
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReloadKey((k) => k + 1)}
+                                        className="mt-4 h-[52px] w-full rounded-2xl font-black bg-[#2F6BFF] text-white shadow-[0_14px_24px_rgba(47,107,255,0.24)] active:scale-[0.98] transition"
+                                    >
+                                        ลองโหลดใหม่
+                                    </button>
                                 </div>
                             )}
 
                             <div className="mt-3 text-[11px] font-bold text-slate-500 leading-relaxed">
-                                * ถ้าไฟล์ไม่แสดงผล ลองกด “ดาวน์โหลด” เพื่อเปิดในแท็บใหม่
+                                * ตอนนี้เป็น mock DB + mock PDF เพื่อทดสอบ UI/Viewer ก่อนต่อ backend
                             </div>
-
-                            {/* Mobile controls */}
-                            {viewState === "ready" && (
-                                <div className="md:hidden mt-3 flex items-center justify-between gap-2">
-                                    <button
-                                        type="button"
-                                        disabled={!canPrev}
-                                        onClick={() => canPrev && setPage((p) => p - 1)}
-                                        className={cx(
-                                            "h-11 px-4 rounded-2xl font-black text-sm",
-                                            "bg-white border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
-                                            !canPrev && "opacity-40"
-                                        )}
-                                    >
-                                        ก่อนหน้า
-                                    </button>
-
-                                    <div className="text-xs font-black text-slate-700 tabular-nums">
-                                        {page} / {numPages} • {Math.round(scale * 100)}%
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        disabled={!canNext}
-                                        onClick={() => canNext && setPage((p) => p + 1)}
-                                        className={cx(
-                                            "h-11 px-4 rounded-2xl font-black text-sm",
-                                            "bg-white border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)]",
-                                            !canNext && "opacity-40"
-                                        )}
-                                    >
-                                        ถัดไป
-                                    </button>
-                                </div>
-                            )}
-
-                            {viewState === "ready" && (
-                                <div className="md:hidden mt-2 flex items-center justify-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={zoomOut}
-                                        className="h-11 w-11 rounded-2xl bg-white border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] active:scale-[0.98] transition flex items-center justify-center"
-                                    >
-                                        <Minus size={18} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={zoomIn}
-                                        className="h-11 w-11 rounded-2xl bg-white border border-blue-100/70 shadow-[0_10px_18px_rgba(15,23,42,0.06)] active:scale-[0.98] transition flex items-center justify-center"
-                                    >
-                                        <Plus size={18} />
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* ===== Bottom ===== */}
-                <div
-                    className={cx("mt-4", mounted ? "opacity-100" : "opacity-0")}
-                    style={{ animation: mounted ? "pop .32s ease-out .12s both" : undefined }}
-                >
+                {/* Bottom */}
+                <div className="mt-4">
                     <button
                         type="button"
                         onClick={() => nav(`/tenant/billing`, { replace: true })}
-                        className={cx(
-                            "w-full h-[58px] rounded-2xl font-black text-[17px]",
-                            "bg-white/80 backdrop-blur",
-                            "border border-blue-100/70",
-                            "shadow-[0_14px_26px_rgba(15,23,42,0.07)]",
-                            "active:scale-[0.98] transition"
-                        )}
+                        className="w-full h-[58px] rounded-2xl font-black text-[17px] bg-white/85 border border-blue-100/70 shadow-[0_14px_26px_rgba(15,23,42,0.07)] active:scale-[0.98] transition"
                     >
                         กลับไปหน้าบิล
                     </button>
@@ -492,4 +415,4 @@ export default function BillingPdfViewerPage() {
             </div>
         </div>
     );
-} 
+}

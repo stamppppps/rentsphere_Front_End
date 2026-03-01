@@ -8,7 +8,7 @@ type BankAccount = {
     bankShort: string;
     accountName: string;
     accountNo: string;
-    promptPayOrQrUrl: string; // (ยังเก็บไว้ได้ เผื่ออนาคต) แต่หน้านี้ไม่ใช้แล้ว
+    promptPayOrQrUrl: string;
 };
 
 function formatNumber(n: number) {
@@ -19,7 +19,6 @@ function maskAccountNo(raw: string) {
     const acc = (raw || "").replace(/\s|-/g, "");
     if (acc.length <= 4) return acc;
 
-    // อ่านง่าย: XXX-X-XXXXX-XXXX
     const a = acc.slice(0, 3);
     const b = acc.slice(3, 4);
     const c = acc.slice(4, 9);
@@ -121,7 +120,7 @@ export default function BillingBankTransferPage() {
         }
     };
 
-    // ===== slip upload (camera/gallery) =====
+    // ===== slip upload  =====
     const cameraInputRef = useRef<HTMLInputElement | null>(null);
     const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -237,7 +236,6 @@ export default function BillingBankTransferPage() {
                     <div className="text-sm font-black text-slate-800 mb-2">เลือกธนาคาร / บัญชีปลายทาง</div>
 
                     <Card className="p-4">
-                        {/* ✅ relative เฉพาะกล่อง select */}
                         <div className="relative">
                             <select
                                 value={selectedId}

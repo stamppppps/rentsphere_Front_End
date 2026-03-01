@@ -167,9 +167,6 @@ export default function BillingPaymentDetailPage() {
 
     const sum = useMemo(() => data.items.reduce((acc, it) => acc + (it.amount || 0), 0), [data.items]);
 
-    // ✅ ตามที่ขอ:
-    // - กลับไปหน้าชำระเงิน => ไปหน้า success
-    // - ไปหน้าแรก => ไปหน้า billing page
     const goSuccess = () => nav(`/tenant/billing/${data.billId}/pay/success`, { replace: true });
     const goBillingHome = () => nav(`/tenant/billing`, { replace: true });
 

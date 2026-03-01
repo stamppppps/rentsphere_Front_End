@@ -13,7 +13,14 @@ type CurrentBill = {
   dueDateText: string;
   items: BillItem[];
 };
-type PaymentHistory = { id: string; monthText: string; amount: number; status: "PAID" | "PENDING_REVIEW" };
+
+type PaymentHistory = {
+  id: string;
+  monthText: string;
+  amount: number;
+  status: "PAID" | "PENDING_REVIEW";
+  paidAtISO: string;
+};
 
 function cx(...cls: Array<string | false | undefined | null>) {
   return cls.filter(Boolean).join(" ");
@@ -108,7 +115,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 px-1">
       <div className="w-1.5 h-6 bg-[#2F6BFF] rounded-full" />
-      <span className="text-sm font-black text-slate-800 tracking-widest">{children}</span>
+      <span className="text-sm font-black text-slate-800 tracking-widest">
+        {children}
+      </span>
     </div>
   );
 }
@@ -131,7 +140,12 @@ function RentSvg() {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-      <path d="M9.5 22.5V14a2.5 2.5 0 0 1 5 0v8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M9.5 22.5V14a2.5 2.5 0 0 1 5 0v8.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -144,14 +158,24 @@ function WaterSvg() {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-      <path d="M9.5 16.5c.6 1.3 1.8 2 3.5 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M9.5 16.5c.6 1.3 1.8 2 3.5 2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 function ElectricSvg() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M13 2 4 14h7l-1 8 10-14h-7l0-6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M13 2 4 14h7l-1 8 10-14h-7l0-6Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -164,16 +188,40 @@ function CommonFeeSvg() {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-      <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M8 8h8M8 12h8M8 16h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function BillItemIcon({ type }: { type: BillItemKey }) {
-  if (type === "rent") return <IconBox><RentSvg /></IconBox>;
-  if (type === "water") return <IconBox><WaterSvg /></IconBox>;
-  if (type === "electricity") return <IconBox><ElectricSvg /></IconBox>;
-  return <IconBox><CommonFeeSvg /></IconBox>;
+  if (type === "rent")
+    return (
+      <IconBox>
+        <RentSvg />
+      </IconBox>
+    );
+  if (type === "water")
+    return (
+      <IconBox>
+        <WaterSvg />
+      </IconBox>
+    );
+  if (type === "electricity")
+    return (
+      <IconBox>
+        <ElectricSvg />
+      </IconBox>
+    );
+  return (
+    <IconBox>
+      <CommonFeeSvg />
+    </IconBox>
+  );
 }
 
 /* ================= Buttons ================= */
@@ -199,14 +247,21 @@ function ActionButton({
       ? "bg-[#2F6BFF] text-white shadow-[0_18px_34px_rgba(47,107,255,0.30)]"
       : "bg-white border border-blue-100/70 text-slate-900 shadow-[0_14px_26px_rgba(15,23,42,0.07)]";
 
-  const disabledCls = disabled ? "opacity-55 cursor-not-allowed active:scale-100" : "active:scale-[0.98] hover:-translate-y-[1px]";
+  const disabledCls = disabled
+    ? "opacity-55 cursor-not-allowed active:scale-100"
+    : "active:scale-[0.98] hover:-translate-y-[1px]";
 
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
-      className={cx(base, cls, "animate-in fade-in slide-in-from-bottom-2", disabledCls)}
+      className={cx(
+        base,
+        cls,
+        "animate-in fade-in slide-in-from-bottom-2",
+        disabledCls
+      )}
       style={{ animationDelay: `${delayMs}ms`, animationFillMode: "both" }}
     >
       {variant === "primary" && !disabled && (
@@ -238,7 +293,16 @@ function HistoryStatusPill({ status }: { status: PaymentHistory["status"] }) {
       : "bg-amber-100 text-amber-800 border-amber-200";
   const text = status === "PAID" ? "ชำระแล้ว" : "รอตรวจสอบ";
 
-  return <span className={cx("px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap", cls)}>{text}</span>;
+  return (
+    <span
+      className={cx(
+        "px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap",
+        cls
+      )}
+    >
+      {text}
+    </span>
+  );
 }
 
 /* ================= Page ================= */
@@ -266,8 +330,20 @@ export default function BillingPage() {
   };
 
   const history: PaymentHistory[] = [
-    { id: "h-1", monthText: "เมษายน 2024", amount: 4150, status: "PAID" },
-    { id: "h-2", monthText: "มีนาคม 2024", amount: 4100, status: "PAID" },
+    {
+      id: "h-2024-04",
+      monthText: "เมษายน 2024",
+      amount: 4150,
+      status: "PAID",
+      paidAtISO: "2024-04-07",
+    },
+    {
+      id: "h-2024-03",
+      monthText: "มีนาคม 2024",
+      amount: 4100,
+      status: "PAID",
+      paidAtISO: "2024-03-06",
+    },
   ];
 
   const isPayable = useMemo(
@@ -276,14 +352,38 @@ export default function BillingPage() {
   );
 
   // ===== ROUTES =====
-  const goPay = () => nav(`/tenant/billing/${currentBill.billId}/pay`, { state: { billId: currentBill.billId } });
-  const goUploadSlip = () => nav(`/tenant/billing/${currentBill.billId}/upload`, { state: { billId: currentBill.billId } });
+  const goPay = () =>
+    nav(`/tenant/billing/${currentBill.billId}/pay`, {
+      state: { billId: currentBill.billId },
+    });
+
+  const goUploadSlip = () =>
+    nav(`/tenant/billing/${currentBill.billId}/upload-slip`, {
+      state: {
+        billTitle: `ใบแจ้งหนี้ #${currentBill.billId}`,
+        amountDue: currentBill.total,
+      },
+    });
+
   const goBillDetail = () =>
-  nav(`/tenant/billing/${currentBill.billId}/pdf`, {
-    state: { billId: currentBill.billId },
-  });
+    nav(`/tenant/billing/${currentBill.billId}/pdf`, {
+      state: { billId: currentBill.billId },
+    });
+
   const goHistory = () => nav(`/tenant/billing/history`);
   const goSummary = () => nav(`/tenant/billing/summary`);
+
+  const goHistoryDetail = (h: PaymentHistory) => {
+    nav(`/tenant/billing/history/${h.id}`, {
+      state: {
+        historyId: h.id,
+        monthText: h.monthText,
+        amount: h.amount,
+        status: h.status,
+        paidAtISO: h.paidAtISO,
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFF] pb-24">
@@ -312,7 +412,9 @@ export default function BillingPage() {
                 <ChevronLeft size={24} />
               </button>
 
-              <div className="text-2xl font-black text-slate-900">บิล / การชำระเงิน</div>
+              <div className="text-2xl font-black text-slate-900">
+                บิล / การชำระเงิน
+              </div>
               <div className="absolute right-0 w-10" />
             </div>
           </div>
@@ -333,12 +435,19 @@ export default function BillingPage() {
 
             <div className="relative flex items-start justify-between gap-4">
               <div>
-                <div className="text-[12px] font-black text-slate-600 tracking-widest">ยอดที่ต้องชำระ</div>
+                <div className="text-[12px] font-black text-slate-600 tracking-widest">
+                  ยอดที่ต้องชำระ
+                </div>
                 <div className="mt-1 text-[32px] font-black text-slate-900 leading-none">
-                  {formatNumber(currentBill.total)} <span className="text-[14px] font-black text-slate-600">บาท</span>
+                  {formatNumber(currentBill.total)}{" "}
+                  <span className="text-[14px] font-black text-slate-600">
+                    บาท
+                  </span>
                 </div>
 
-                <div className="mt-3 text-sm font-bold text-slate-600">วันครบกำหนดชำระ: {currentBill.dueDateText}</div>
+                <div className="mt-3 text-sm font-bold text-slate-600">
+                  วันครบกำหนดชำระ: {currentBill.dueDateText}
+                </div>
 
                 <div className="mt-2 inline-flex items-center gap-2 text-xs font-black text-slate-500">
                   <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
@@ -347,7 +456,12 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <div className={cx("px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap", statusBadgeClass(currentBill.status))}>
+              <div
+                className={cx(
+                  "px-4 py-2 rounded-full border text-xs font-black whitespace-nowrap",
+                  statusBadgeClass(currentBill.status)
+                )}
+              >
                 {statusText(currentBill.status)}
               </div>
             </div>
@@ -397,14 +511,16 @@ export default function BillingPage() {
             className={cx(mounted ? "opacity-100" : "opacity-0")}
             style={{ animation: mounted ? "pop .32s ease-out .06s both" : undefined }}
           >
-            {/* iOS-style row */}
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
-                <div className="text-[18px] font-black text-slate-900 leading-tight">บิลปัจจุบัน</div>
-                <div className="mt-1 text-[12px] font-bold text-slate-500">แตะเพื่อดูรายละเอียดบิล</div>
+                <div className="text-[18px] font-black text-slate-900 leading-tight">
+                  บิลปัจจุบัน
+                </div>
+                <div className="mt-1 text-[12px] font-bold text-slate-500">
+                  แตะเพื่อดูรายละเอียดบิล
+                </div>
               </div>
 
-              {/* กดได้เฉพาะ chevron แบบ iOS */}
               <button
                 type="button"
                 onClick={goBillDetail}
@@ -438,17 +554,25 @@ export default function BillingPage() {
                     >
                       <div className="flex items-center gap-3">
                         <BillItemIcon type={it.key} />
-                        <div className="text-[16px] font-extrabold text-slate-800">{it.label}</div>
+                        <div className="text-[16px] font-extrabold text-slate-800">
+                          {it.label}
+                        </div>
                       </div>
-                      <div className="text-[20px] font-black text-slate-900">{formatNumber(it.amount)}</div>
+                      <div className="text-[20px] font-black text-slate-900">
+                        {formatNumber(it.amount)}
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-blue-100/80">
                   <div className="flex items-center justify-between">
-                    <div className="text-[17px] font-black text-slate-900">รวมทั้งหมด</div>
-                    <div className="text-[24px] font-black text-slate-900">{formatNumber(currentBill.total)}</div>
+                    <div className="text-[17px] font-black text-slate-900">
+                      รวมทั้งหมด
+                    </div>
+                    <div className="text-[24px] font-black text-slate-900">
+                      {formatNumber(currentBill.total)}
+                    </div>
                   </div>
                 </div>
               </SoftPanel>
@@ -496,22 +620,28 @@ export default function BillingPage() {
                   <div key={h.id}>
                     <button
                       type="button"
-                      onClick={() => nav(`/tenant/billing/history/${h.id}`, { state: { historyId: h.id } })}
+                      onClick={() => goHistoryDetail(h)} // ✅ ไป detail
                       className={cx(
                         "w-full text-left px-4 py-4 flex items-center justify-between transition",
                         "hover:bg-[#F6F9FF]",
                         "active:scale-[0.995]"
                       )}
                     >
-                      <div>
-                        <div className="text-[18px] font-black text-slate-900">{h.monthText}</div>
-                        <div className="mt-1 text-xs font-bold text-slate-500">ยอด {formatNumber(h.amount)} บาท</div>
+                      <div className="min-w-0">
+                        <div className="text-[18px] font-black text-slate-900 truncate">
+                          {h.monthText}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-slate-500">
+                          ยอด {formatNumber(h.amount)} บาท
+                        </div>
                       </div>
 
                       <HistoryStatusPill status={h.status} />
                     </button>
 
-                    {idx !== history.length - 1 && <div className="mx-4 h-px bg-blue-100/70" />}
+                    {idx !== history.length - 1 && (
+                      <div className="mx-4 h-px bg-blue-100/70" />
+                    )}
                   </div>
                 ))}
               </div>

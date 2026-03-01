@@ -324,7 +324,6 @@ export default function BillingPaymentSuccessPage() {
                             <div className="mt-6 w-full space-y-3">
                                 <PrimaryButton
                                     onClick={() => {
-                                        // ถ้ามีหน้ารายละเอียดบิลจริง ๆ ค่อยเปลี่ยนไป route รายละเอียด
                                         nav(`/tenant/billing/${billId}/payment-detail`, {
                                             state: {
                                                 billId,
@@ -332,7 +331,7 @@ export default function BillingPaymentSuccessPage() {
                                                 methodText,
                                                 paymentAtText,
                                                 statusText,
-                                                unitText: "A-302",//ใส่จริงจาก BE ทีหลัง
+                                                unitText: "A-302",
                                                 billDateText: "24 พฤษภาคม 2024",
                                                 slipUrl: "....",//url สลิปจริง
                                             },
