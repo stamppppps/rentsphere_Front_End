@@ -3,7 +3,9 @@ import { Navigate } from "react-router-dom";
 
 import TenantLayout from "@/shared/layouts/TenantLayout";
 import TenantHomePage from "@/features/tenant/pages/home/pages/TenantHomePage";
-import MaintenancePage from "@/features/tenant/pages/maintenance/pages/MaintenancePage";
+import RepairRequestPage from "@/features/tenant/pages/maintenance/pages/RepairRequestPage";
+import RepairHistoryPage from "@/features/tenant/pages/maintenance/pages/RepairHistoryPage";
+import RepairDetailPage from "@/features/tenant/pages/maintenance/pages/RepairDetailPage";
 import ParcelPage from "@/features/tenant/pages/parcel/pages/ParcelPage";
 import BillingPage from "@/features/tenant/pages/billing/pages/BillingPage";
 import FacilityListPage from "@/features/tenant/pages/booking/pages/FacilityListPage";
@@ -21,6 +23,8 @@ const tenantRoutes: RouteObject[] = [
   { path: "/notifications", element: <Navigate to="/tenant/notifications" replace /> },
   { path: "/profile", element: <Navigate to="/tenant/profile" replace /> },
   { path: "/maintenance", element: <Navigate to="/tenant/maintenance" replace /> },
+  { path: "/maintenance/history", element: <Navigate to="/tenant/maintenance/history" replace /> },
+  { path: "/maintenance/:id", element: <Navigate to="/tenant/maintenance/:id" replace /> },
   { path: "/parcel", element: <Navigate to="/tenant/parcel" replace /> },
   { path: "/billing", element: <Navigate to="/tenant/billing" replace /> },
   { path: "/booking", element: <Navigate to="/tenant/booking" replace /> },
@@ -36,7 +40,9 @@ const tenantRoutes: RouteObject[] = [
       { path: "history", element: <HistoryPageReal /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "profile", element: <TenantProfilePage /> },
-      { path: "maintenance", element: <MaintenancePage /> },
+      { path: "maintenance", element: <RepairRequestPage /> },
+      { path: "maintenance/history", element: <RepairHistoryPage /> },
+      { path: "maintenance/:id", element: <RepairDetailPage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "billing", element: <BillingPage /> },
       { path: "booking", element: <FacilityListPage /> },
