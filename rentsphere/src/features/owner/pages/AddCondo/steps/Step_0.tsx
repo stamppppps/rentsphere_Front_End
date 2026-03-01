@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CondoInfoSection from "../components/CondoInfoSection";
 import OtherDetailsSection from "../components/OtherDetailsSection";
 import PaymentSection from "../components/PaymentSection";
+import { api } from "@/shared/api/http";
+
+const STEP0_DRAFT_KEY = "add_condo_step0_draft";
 
 interface FormData {
   logoFile: File | null;
@@ -12,29 +15,25 @@ interface FormData {
   addressEn: string;
   phoneNumber: string;
   taxId: string;
-  paymentDueDate: string; //YYYY-MM-DD
-  fineAmount: string;
+  dueDay: string;
+  finePerDay: string;
   acceptFine: boolean;
 }
 
-/* =========================
-   Backend DTO
-   ========================= */
 type CreateCondoPayload = {
   nameTh: string;
   addressTh: string;
-  nameEn?: string;
-  addressEn?: string;
-  phoneNumber?: string;
-  taxId?: string;
-  paymentDueDate?: string; //YYYY-MM-DD
-  acceptFine: boolean;
-  fineAmount?: number;
+  nameEn?: string | null;
+  addressEn?: string | null;
+  phoneNumber?: string | null;
+  taxId?: string | null;
+  billing: {
+    dueDay: number;
+    acceptFine: boolean;
+    finePerDay?: number | null;
+  };
 };
 
-/* =========================
-   Helpers
-   ========================= */
 const normalizeMoney = (v: string) => {
   const raw = String(v ?? "").replace(/,/g, "").trim();
   if (!raw) return undefined;
@@ -42,49 +41,62 @@ const normalizeMoney = (v: string) => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+const asOpt = (v: string) => (v?.trim() ? v.trim() : null);
 
-function buildCreateCondoFormData(form: FormData) {
-  const payload: CreateCondoPayload = {
-    nameTh: form.nameTh.trim(),
-    addressTh: form.addressTh.trim(),
-    nameEn: form.nameEn.trim() || undefined,
-    addressEn: form.addressEn.trim() || undefined,
-    phoneNumber: form.phoneNumber.trim() || undefined,
-    taxId: form.taxId.trim() || undefined,
-    paymentDueDate: form.paymentDueDate || undefined,
-    acceptFine: Boolean(form.acceptFine),
-    fineAmount: form.acceptFine ? normalizeMoney(form.fineAmount) : undefined,
-  };
-
-  const fd = new FormData();
-  fd.append("payload", JSON.stringify(payload)); // backend parse JSON string
-  if (form.logoFile) fd.append("logo", form.logoFile);
-  return fd;
+function toDueDay(dueDay: string): number | null {
+  const n = Number(String(dueDay ?? "").trim());
+  if (!Number.isFinite(n)) return null;
+  const day = Math.trunc(n);
+  return day >= 1 && day <= 28 ? day : null;
 }
 
-/* ===== Backend call  ===== */
-async function createCondo(form: FormData): Promise<{ condoId: string }> {
-  // TODO: POST /api/owner/condos
-  // รับเป็น multipart
-  // payload: json string
-  // logo: file
-  const res = await fetch("/api/owner/condos", {
-    method: "POST",
-    credentials: "include",
-    body: buildCreateCondoFormData(form),
-  });
+function buildCreateCondoJson(form: FormData): CreateCondoPayload {
+  const dueDay = toDueDay(form.dueDay);
+  if (!dueDay) throw new Error("กรุณาเลือกวันครบกำหนดชำระ (1–28)");
 
-  if (!res.ok) {
-    let msg = "สร้างคอนโดไม่สำเร็จ";
-    try {
-      const data = await res.json();
-      msg = data?.message ?? msg;
-    } catch {}
-    throw new Error(msg);
+  const acceptFine = Boolean(form.acceptFine);
+  const fine = normalizeMoney(form.finePerDay);
+
+  if (acceptFine && fine == null) {
+    throw new Error("กรุณากรอกค่าปรับ/วัน เมื่อเปิดใช้งานค่าปรับ");
   }
 
-  const data = await res.json();
-  return { condoId: String(data.condoId ?? data.id ?? "") };
+  return {
+    nameTh: form.nameTh.trim(),
+    addressTh: form.addressTh.trim(),
+    nameEn: asOpt(form.nameEn),
+    addressEn: asOpt(form.addressEn),
+    phoneNumber: asOpt(form.phoneNumber),
+    taxId: asOpt(form.taxId),
+    billing: {
+      dueDay,
+      acceptFine,
+      finePerDay: acceptFine ? fine! : null,
+    },
+  };
+}
+
+async function createCondo(form: FormData): Promise<{ condoId: string }> {
+  const payload = buildCreateCondoJson(form);
+
+  const data = await api<any>("/owner/condos", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const condoId = String(data?.id ?? data?.condoId ?? "");
+  if (!condoId) throw new Error("สร้างคอนโดไม่สำเร็จ (ไม่ได้รับ condoId)");
+  return { condoId };
+}
+
+async function uploadCondoLogo(condoId: string, file: File) {
+  const fd = new FormData();
+  fd.append("logo", file);
+
+  return await api<any>(`/owner/condos/${condoId}/logo`, {
+    method: "POST",
+    body: fd,
+  });
 }
 
 function CardShell({
@@ -107,7 +119,6 @@ function CardShell({
           </div>
         </div>
       </div>
-
       <div className="px-8 py-7">{children}</div>
     </div>
   );
@@ -116,18 +127,57 @@ function CardShell({
 export default function Step_0() {
   const nav = useNavigate();
 
-  const [formData, setFormData] = useState<FormData>({
-    logoFile: null,
-    nameTh: "",
-    addressTh: "",
-    nameEn: "",
-    addressEn: "",
-    phoneNumber: "",
-    taxId: "",
-    paymentDueDate: "",
-    fineAmount: "",
-    acceptFine: false,
+  const [formData, setFormData] = useState<FormData>(() => {
+    try {
+      const raw = sessionStorage.getItem(STEP0_DRAFT_KEY);
+      if (!raw) {
+        return {
+          logoFile: null,
+          nameTh: "",
+          addressTh: "",
+          nameEn: "",
+          addressEn: "",
+          phoneNumber: "",
+          taxId: "",
+          dueDay: "",
+          finePerDay: "",
+          acceptFine: false,
+        };
+      }
+      const parsed = JSON.parse(raw);
+      return {
+        logoFile: null, 
+        nameTh: String(parsed?.nameTh ?? ""),
+        addressTh: String(parsed?.addressTh ?? ""),
+        nameEn: String(parsed?.nameEn ?? ""),
+        addressEn: String(parsed?.addressEn ?? ""),
+        phoneNumber: String(parsed?.phoneNumber ?? ""),
+        taxId: String(parsed?.taxId ?? ""),
+        dueDay: String(parsed?.dueDay ?? ""),
+        finePerDay: String(parsed?.finePerDay ?? ""),
+        acceptFine: Boolean(parsed?.acceptFine ?? false),
+      };
+    } catch {
+      return {
+        logoFile: null,
+        nameTh: "",
+        addressTh: "",
+        nameEn: "",
+        addressEn: "",
+        phoneNumber: "",
+        taxId: "",
+        dueDay: "",
+        finePerDay: "",
+        acceptFine: false,
+      };
+    }
   });
+
+  
+  useEffect(() => {
+    const { logoFile, ...rest } = formData;
+    sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(rest));
+  }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -135,7 +185,11 @@ export default function Step_0() {
 
     if (type === "checkbox") {
       const { checked } = e.target as HTMLInputElement;
-      setFormData((prev) => ({ ...prev, [name]: checked }));
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+        ...(name === "acceptFine" && !checked ? { finePerDay: "" } : {}),
+      }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -146,14 +200,16 @@ export default function Step_0() {
   };
 
   const canCreate = useMemo(() => {
-    const hasBasic = formData.nameTh.trim().length > 0 && formData.addressTh.trim().length > 0;
+    const hasBasic = formData.nameTh.trim() && formData.addressTh.trim();
     if (!hasBasic) return false;
 
+    const dueDay = toDueDay(formData.dueDay);
+    if (!dueDay) return false;
+
     if (formData.acceptFine) {
-      const fine = normalizeMoney(formData.fineAmount);
+      const fine = normalizeMoney(formData.finePerDay);
       if (fine == null) return false;
     }
-
     return true;
   }, [formData]);
 
@@ -167,7 +223,15 @@ export default function Step_0() {
     try {
       const { condoId } = await createCondo(formData);
 
-      nav("/owner/add-condo/step-1", { state: { condoId } });
+      if (formData.logoFile) {
+        await uploadCondoLogo(condoId, formData.logoFile);
+      }
+
+ 
+
+      nav("/owner/add-condo/step-1",{
+        state: { condoId, condoName: formData.nameTh.trim() },
+      });
     } catch (e: any) {
       setSubmitError(e?.message ?? "เกิดข้อผิดพลาด");
     } finally {
@@ -191,7 +255,6 @@ export default function Step_0() {
             </div>
           </div>
         </div>
-
         <div className="px-8 py-7">
           <ul className="list-disc pl-6 text-base text-gray-700 space-y-2 font-bold">
             <li>กรอกชื่อ/ที่อยู่คอนโด (TH/EN)</li>
@@ -202,11 +265,7 @@ export default function Step_0() {
       </div>
 
       <CardShell title="ข้อมูลคอนโด" hint="ชื่อ, ที่อยู่, โลโก้ และข้อมูลติดต่อ">
-        <CondoInfoSection
-          formData={formData}
-          handleChange={handleChange}
-          handleFileChange={handleFileChange}
-        />
+        <CondoInfoSection formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} />
       </CardShell>
 
       <CardShell title="รายละเอียดอื่น ๆ" hint="ข้อมูลเพิ่มเติมสำหรับเอกสาร/การติดต่อ">

@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+
+const STEP0_DRAFT_KEY = "add_condo_step0_draft";
 
 type ServiceDraft = {
   id: string;
@@ -9,8 +11,34 @@ type ServiceDraft = {
   variableType: "NONE" | "WATER" | "ELECTRIC" | "BOTH";
 };
 
+type Step1NavState = {
+  condoId?: string;
+  condoName?: string;
+};
+
+function readCondoNameFromDraft(): string | undefined {
+  try {
+    const raw = sessionStorage.getItem(STEP0_DRAFT_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    const name = String(parsed?.nameTh ?? "").trim();
+    return name || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const Step_1: React.FC = () => {
   const nav = useNavigate();
+  const location = useLocation();
+
+  const st = (location.state ?? {}) as Step1NavState;
+
+  const condoId = st.condoId ?? "";
+  const condoName =
+    (st.condoName?.trim() ? st.condoName.trim() : undefined) ||
+    readCondoNameFromDraft() ||
+    (condoId ? `คอนโด #${condoId.slice(0, 8)}` : "ตั้งค่าคอนโดมิเนียม");
 
   const [services, setServices] = useState<ServiceDraft[]>([]);
 
@@ -68,11 +96,29 @@ const Step_1: React.FC = () => {
     setUseElectric(false);
   };
 
+  const handleRemove = (id: string) => {
+    setServices((prev) => prev.filter((x) => x.id !== id));
+  };
+
+  const goBack = () => {
+    nav("../step-0", { state: { condoId, condoName } });
+  };
+
+  const goNext = () => {
+    nav("../step-2", { state: { condoId, condoName } });
+  };
+
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
-      <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
-        ตั้งค่าคอนโดมิเนียม
-      </h1>
+      <div className="text-center mb-[6px] mt-[6px]">
+        <h1 className="text-[34px] font-extrabold text-black/85 tracking-[0.2px]">
+          ตั้งค่าคอนโดมิเนียม
+        </h1>
+
+        <div className="mt-2 inline-flex items-center px-4 py-2 rounded-full bg-white shadow-sm border border-blue-100/60 text-sm font-extrabold text-gray-800">
+          {condoName}
+        </div>
+      </div>
 
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
@@ -222,7 +268,7 @@ const Step_1: React.FC = () => {
                 {services.map((s) => (
                   <div
                     key={s.id}
-                    className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40"
+                    className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40 items-center"
                   >
                     <div className="col-span-7 font-extrabold text-gray-900">{s.name}</div>
                     <div className="col-span-3 font-bold text-gray-600">
@@ -236,21 +282,37 @@ const Step_1: React.FC = () => {
                               : "มิเตอร์"
                         : "คงที่"}
                     </div>
-                    <div className="col-span-2 text-right font-extrabold text-gray-900">
-                      {Number(s.price).toLocaleString()} บาท
+
+                    <div className="col-span-2 text-right flex items-center justify-end gap-3">
+                      <div className="font-extrabold text-gray-900">
+                        {Number(s.price).toLocaleString()} บาท
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(s.id)}
+                        className="px-3 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-extrabold text-xs hover:bg-rose-100"
+                      >
+                        ลบ
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {!condoId && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-800 font-extrabold">
+              ⚠️ ไม่พบ condoId (เข้าหน้านี้โดยตรง) แนะนำกลับไป Step0 แล้วกด “สร้าง” ใหม่
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
         <button
           type="button"
-          onClick={() => nav("../step-0")}
+          onClick={goBack}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
                          focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
@@ -259,10 +321,14 @@ const Step_1: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => nav("../step-2")}
-          className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
-                         focus:outline-none focus:ring-2 focus:ring-blue-300"
+          onClick={goNext}
+          disabled={!condoId}
+          className={[
+            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+            "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+            "focus:outline-none focus:ring-2 focus:ring-blue-300",
+            "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
+          ].join(" ")}
         >
           ต่อไป
         </button>

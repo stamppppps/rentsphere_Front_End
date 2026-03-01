@@ -20,7 +20,7 @@ export const useOwnerRegisterStore = create<State>()(
       phone: null,
       channel: null,
 
-      setStart: ({ requestId, email, phone, channel }) => set({ requestId, email, phone, channel }),
+      setStart: ({ requestId, email, phone, channel }) => set({ requestId,email,phone,channel }),
       setRequestId: (requestId) => set({ requestId }),
       clear: () => set({ requestId: null, email: null, phone: null, channel: null }),
     }),

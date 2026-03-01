@@ -1,13 +1,14 @@
 type Account = {
-  id: number;
-  bank: string;
+  id: string;
+  bankCode: string;
+  bankLabel: string; 
   accountNo: string;
   accountName: string;
 };
 
 type Props = {
   accounts: Account[];
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 };
 
 export default function BankAccountList({ accounts, onDelete }: Props) {
@@ -30,12 +31,15 @@ export default function BankAccountList({ accounts, onDelete }: Props) {
             padding: "12px 20px",
             borderBottom: "1px solid #E5E7EB",
             alignItems: "center",
+            gap: 12,
           }}
         >
-          <span>{acc.bank}</span>
-          <span>{acc.accountNo}</span>
+          <span>{acc.bankLabel}</span>
           <span>{acc.accountName}</span>
-          <button onClick={() => onDelete(acc.id)}>🗑️</button>
+          <span style={{ justifySelf: "end" }}>{acc.accountNo}</span>
+          <button type="button" onClick={() => onDelete(acc.id)}>
+            🗑️
+          </button>
         </div>
       ))}
     </>
