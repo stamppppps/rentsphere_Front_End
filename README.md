@@ -81,6 +81,15 @@ rentsphere/
 เปิด Terminal ที่โฟลเดอร์ `rentsphere/` แล้วรัน:
 ```bash
 npm install
+
+ถ้าอยากติดตั้งเองทีละตัว (กรณีสร้างโปรเจกต์ใหม่)
+สร้างโปรเจกต์ใหม่ด้วย Vite
+npm create vite@latest rentsphere -- --template react-ts
+cd rentsphere
+npm install
+แล้ว install เพิ่มเอง
+npm install react-router-dom zustand recharts react-hot-toast lucide-react
+npm install -D tailwindcss @tailwindcss/vite
 ```
 
 ถ้าติด error แปลก ๆ ให้ลอง:
@@ -121,7 +130,7 @@ npm run dev
 
 ---
 
-## 5) เชื่อมต่อ Backend (สำคัญมาก)
+## 5) เชื่อมต่อ Backend 
 
 ### A) API Client อยู่ที่ไหน?
 Frontend เรียก API ผ่านไฟล์:
@@ -155,7 +164,7 @@ npm run lint      # ตรวจ eslint
 
 ---
 
-# 🏗 RentSphere Frontend Architecture (สำหรับส่งอาจารย์)
+# 🏗 RentSphere Frontend Architecture 
 
 ## ✅ แนวคิดสถาปัตยกรรม (Architecture Concept)
 
@@ -215,7 +224,7 @@ feature/
 
 ---
 
-## 🔐 Authentication Flow (อธิบายเป็นขั้นตอน)
+## 🔐 Authentication Flow 
 
 1) ผู้ใช้กรอกข้อมูล login บน Frontend  
 2) Frontend ส่ง `POST /auth/login` ไป Backend  
@@ -225,7 +234,7 @@ feature/
 
 ---
 
-## 🏢 Role-Based Layout Separation (อธิบายง่าย)
+## 🏢 Role-Based Layout Separation 
 
 - `/admin/*` → ใช้ Admin Layout + Admin Pages
 - `/owner/*` → ใช้ Owner Layout + Owner Pages
@@ -285,7 +294,7 @@ BackendAPI --> Database
 
 ---
 
-# 🧪 Troubleshooting (เจอบ่อย)
+# 🧪 Troubleshooting 
 
 ### 1) API ยิงไม่ได้ / 401
 - เช็ค `VITE_API_URL` ถูกไหม
