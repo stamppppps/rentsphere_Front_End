@@ -58,13 +58,13 @@ function MiniCalendar({
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 w-full max-w-[340px]">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <button type="button" onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                <button type="button" onClick={prev} aria-label="เดือนก่อนหน้า" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 </button>
                 <div className="font-extrabold text-gray-900 text-base tracking-tight">
                     {MONTHS_TH[viewMonth]} {viewYear + 543}
                 </div>
-                <button type="button" onClick={next} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                <button type="button" onClick={next} aria-label="เดือนถัดไป" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </button>
             </div>

@@ -18,31 +18,6 @@ interface RoomMeter {
     cost: number;
 }
 
-/* ================================================================
-   Mock helpers
-   ================================================================ */
-const MOCK_ROOMS: RoomMeter[] = [
-    { id: "1", roomNo: "101", floor: 1, status: "active", oldReading: 1240, newReading: null, usage: 0, cost: 0 },
-    { id: "2", roomNo: "102", floor: 1, status: "inactive", oldReading: 850, newReading: null, usage: 0, cost: 0 },
-    { id: "3", roomNo: "201", floor: 2, status: "active", oldReading: 450, newReading: null, usage: 0, cost: 0 },
-    { id: "4", roomNo: "202", floor: 2, status: "active", oldReading: 2100, newReading: null, usage: 0, cost: 0 },
-    { id: "5", roomNo: "301", floor: 3, status: "active", oldReading: 1560, newReading: null, usage: 0, cost: 0 },
-    { id: "6", roomNo: "302", floor: 3, status: "inactive", oldReading: 720, newReading: null, usage: 0, cost: 0 },
-    { id: "7", roomNo: "401", floor: 4, status: "active", oldReading: 980, newReading: null, usage: 0, cost: 0 },
-    { id: "8", roomNo: "402", floor: 4, status: "active", oldReading: 1340, newReading: null, usage: 0, cost: 0 },
-    { id: "9", roomNo: "501", floor: 5, status: "inactive", oldReading: 620, newReading: null, usage: 0, cost: 0 },
-    { id: "10", roomNo: "502", floor: 5, status: "active", oldReading: 1890, newReading: null, usage: 0, cost: 0 },
-    { id: "11", roomNo: "601", floor: 6, status: "active", oldReading: 430, newReading: null, usage: 0, cost: 0 },
-    { id: "12", roomNo: "602", floor: 6, status: "active", oldReading: 1750, newReading: null, usage: 0, cost: 0 },
-    { id: "13", roomNo: "701", floor: 7, status: "inactive", oldReading: 310, newReading: null, usage: 0, cost: 0 },
-    { id: "14", roomNo: "702", floor: 7, status: "active", oldReading: 2450, newReading: null, usage: 0, cost: 0 },
-    { id: "15", roomNo: "801", floor: 8, status: "active", oldReading: 1100, newReading: null, usage: 0, cost: 0 },
-    { id: "16", roomNo: "802", floor: 8, status: "active", oldReading: 560, newReading: null, usage: 0, cost: 0 },
-    { id: "17", roomNo: "901", floor: 9, status: "inactive", oldReading: 890, newReading: null, usage: 0, cost: 0 },
-    { id: "18", roomNo: "902", floor: 9, status: "active", oldReading: 1670, newReading: null, usage: 0, cost: 0 },
-    { id: "19", roomNo: "1001", floor: 10, status: "active", oldReading: 2080, newReading: null, usage: 0, cost: 0 },
-    { id: "20", roomNo: "1002", floor: 10, status: "active", oldReading: 940, newReading: null, usage: 0, cost: 0 },
-];
 
 const WATER_RATE = 18;
 const ELECTRIC_RATE = 8;
@@ -59,8 +34,8 @@ export default function MeterPage2() {
 
     const rate = meterType === "water" ? WATER_RATE : ELECTRIC_RATE;
 
-    const [waterData, setWaterData] = useState<RoomMeter[]>(JSON.parse(JSON.stringify(MOCK_ROOMS)));
-    const [electricData, setElectricData] = useState<RoomMeter[]>(JSON.parse(JSON.stringify(MOCK_ROOMS)));
+    const [waterData, setWaterData] = useState<RoomMeter[]>([]);
+    const [electricData, setElectricData] = useState<RoomMeter[]>([]);
 
     const data = meterType === "water" ? waterData : electricData;
     const setData = meterType === "water" ? setWaterData : setElectricData;
@@ -96,6 +71,7 @@ export default function MeterPage2() {
                         <button
                             type="button"
                             onClick={() => navigate("/owner/meter")}
+                            aria-label="ย้อนกลับ"
                             className="h-10 w-10 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 active:scale-[0.98] transition shadow-sm"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +136,7 @@ export default function MeterPage2() {
                                     className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm font-bold text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
                                 />
                             </div>
-                            <button className="h-[42px] w-[42px] rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
+                            <button aria-label="ตัวกรอง" className="h-[42px] w-[42px] rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:bg-gray-50 transition">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                 </svg>
@@ -262,6 +238,7 @@ export default function MeterPage2() {
                                 type="button"
                                 onClick={() => setPage(Math.max(1, page - 1))}
                                 disabled={page === 1}
+                                aria-label="หน้าก่อนหน้า"
                                 className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -285,6 +262,7 @@ export default function MeterPage2() {
                                 type="button"
                                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                                 disabled={page === totalPages}
+                                aria-label="หน้าถัดไป"
                                 className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

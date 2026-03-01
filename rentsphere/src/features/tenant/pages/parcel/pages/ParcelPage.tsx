@@ -19,54 +19,7 @@ interface Parcel {
   note?: string;
 }
 
-// --- Mock Data ---
-const MOCK_PARCELS: Parcel[] = [
-  {
-    id: '1',
-    parcelCode: '#P-1024',
-    receivedDate: '29 พฤษภาคม 2024',
-    receiverName: 'นายกิตติเดช สุขสรรค์',
-    room: 'A-301',
-    dropOffLocation: 'สำนักงานนิติบุคคล',
-    staffName: 'เจ้าหน้าที่อาคาร',
-    status: 'pending',
-    imageUrl: ContainerIcon,
-    note: 'พัสดุอยู่ในสภาพเรียบร้อย\nกรุณานำบัตรประจำตัวผู้พักอาศัยมาด้วย'
-  },
-  {
-    id: '2',
-    parcelCode: '#P-1023',
-    receivedDate: '29 พฤษภาคม 2024',
-    receiverName: 'นายกิตติเดช สุขสรรค์',
-    room: 'A-301',
-    dropOffLocation: 'Lobby',
-    staffName: 'รปภ. สมชาย',
-    status: 'received',
-    imageUrl: ContainerIcon,
-  },
-  {
-    id: '3',
-    parcelCode: '#P-1022',
-    receivedDate: '20 พฤษภาคม 2024',
-    receiverName: 'นายกิตติเดช สุขสรรค์',
-    room: 'A-301',
-    dropOffLocation: 'Smart Locker',
-    staffName: '-',
-    status: 'received',
-    imageUrl: ContainerIcon,
-  },
-  {
-    id: '4',
-    parcelCode: '#P-1021',
-    receivedDate: '9 พฤษภาคม 2024',
-    receiverName: 'นายกิตติเดช สุขสรรค์',
-    room: 'A-301',
-    dropOffLocation: 'Lobby',
-    staffName: 'รปภ. สมร',
-    status: 'received',
-    imageUrl: ContainerIcon,
-  },
-];
+
 
 // --- Components ---
 
@@ -91,10 +44,11 @@ const StatusBadge: React.FC<{ status: ParcelStatus }> = ({ status }) => {
 
 const ParcelPage: React.FC = () => {
   const navigate = useNavigate();
+  const [parcels] = useState<Parcel[]>([]);
   const [view, setView] = useState<'list' | 'detail' | 'success'>('list');
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
 
-  const pendingCount = MOCK_PARCELS.filter(p => p.status === 'pending').length;
+  const pendingCount = parcels.filter(p => p.status === 'pending').length;
 
   const handleParcelClick = (parcel: Parcel) => {
     setSelectedParcel(parcel);
@@ -142,7 +96,7 @@ const ParcelPage: React.FC = () => {
 
       {/* List Items */}
       <div className="space-y-3 pb-20">
-        {MOCK_PARCELS.map((parcel) => (
+        {parcels.map((parcel) => (
           <div
             key={parcel.id}
             onClick={() => handleParcelClick(parcel)}
@@ -322,6 +276,7 @@ const ParcelPage: React.FC = () => {
       <div className="sticky top-0 z-10 bg-white px-6 pt-4 pb-3 flex items-center justify-between border-b border-gray-50">
         <button
           onClick={handleBack}
+          aria-label="ย้อนกลับ"
           className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-50 active:scale-90 transition text-gray-700"
         >
           <ChevronLeft size={26} strokeWidth={2.5} />

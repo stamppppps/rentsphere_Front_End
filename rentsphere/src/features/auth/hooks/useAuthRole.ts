@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { UserRole } from '@/types';
 
+
 export function useAuthRole() {
   const { role } = useParams<{ role: string }>();
 
@@ -9,11 +10,11 @@ export function useAuthRole() {
   const base = `/auth/${rolePath}`;
 
   return {
-    role,
-    userRole: role,
-    rolePath,
-    base,
-    basePath: base,
-    authBasePath: base,
-  };
+  role,
+  userRole: role,
+  rolePath,
+  base,
+  basePath: base,
+  authBasePath: rolePath, 
+};
 }

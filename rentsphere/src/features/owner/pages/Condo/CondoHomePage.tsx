@@ -1,7 +1,7 @@
-import { useAddCondoStore } from "@/features/owner/pages/AddCondo/store/addCondo.store";
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
+/* ====== types ====== */
 type CondoItem = {
     id: string;
     name: string;
@@ -28,10 +28,7 @@ type UserForm = {
     role: UserRole;
 };
 
-function uid() {
-    return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
-
+/* ====== icons / helpers  ====== */
 function CondoIcon() {
     return (
         <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
@@ -64,6 +61,10 @@ const emptyForm: UserForm = {
     role: "ADMIN",
 };
 
+function uid() {
+    return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
 function inputPill() {
     return [
         "w-full h-[54px] px-6 rounded-full",
@@ -91,26 +92,28 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-function UserManagementPanel({
-    condoName,
-}: {
-    condoName: string;
-}) {
-    const [users, setUsers] = useState<ManagedUser[]>([
-        {
-            id: "u-1",
-            fullName: "Mr. Kittidet Suksarn",
-            phone: "081234567",
-            email: "kittidet@gmail.com",
-            role: "OWNER",
-            condos: [condoName, "ABC คอนโด"],
-        },
-    ]);
+/* ====== UserManagementPanel  ====== */
+function UserManagementPanel({ condoName }: { condoName: string }) {
+    // ============ local state (no mock) ============
+    const [users, setUsers] = useState<ManagedUser[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState<"create" | "edit">("create");
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<UserForm>(emptyForm);
+
+    // ============ TODO: Backend later ============
+    useEffect(() => {
+        // ตัวอย่างโครง(ยังไม่เรียกจริง)
+        // setLoading(true);
+        // fetch("/api/owner/users?condoName=" + encodeURIComponent(condoName))
+        //   .then((r) => r.json())
+        //   .then((data) => setUsers(data.users ?? []))
+        //   .catch(() => setError("โหลดรายชื่อผู้ใช้งานไม่สำเร็จ"))
+        //   .finally(() => setLoading(false));
+    }, [condoName]);
 
     const rows = useMemo(() => users.map((u, idx) => ({ ...u, no: idx + 1 })), [users]);
 
@@ -124,12 +127,7 @@ function UserManagementPanel({
     const openEdit = (u: ManagedUser) => {
         setMode("edit");
         setEditingId(u.id);
-        setForm({
-            fullName: u.fullName,
-            phone: u.phone,
-            email: u.email,
-            role: u.role,
-        });
+        setForm({ fullName: u.fullName, phone: u.phone, email: u.email, role: u.role });
         setOpen(true);
     };
 
@@ -139,6 +137,10 @@ function UserManagementPanel({
         if (!form.fullName.trim()) return;
         if (!form.phone.trim()) return;
         if (!form.email.trim()) return;
+
+        // ===== TODO: backend later =====
+        // create: POST /api/owner/users
+        // edit:   PATCH /api/owner/users/:id
 
         if (mode === "create") {
             const newUser: ManagedUser = {
@@ -199,7 +201,11 @@ function UserManagementPanel({
                     </div>
 
                     <div className="px-6 pb-6">
-                        {rows.length === 0 ? (
+                        {loading ? (
+                            <div className="text-center text-gray-500 font-bold py-10">กำลังโหลด...</div>
+                        ) : error ? (
+                            <div className="text-center text-rose-600 font-extrabold py-10">{error}</div>
+                        ) : rows.length === 0 ? (
                             <div className="text-center text-gray-500 font-bold py-10">ยังไม่มีผู้ใช้งาน</div>
                         ) : (
                             <div className="divide-y divide-gray-200/80">
@@ -218,17 +224,17 @@ function UserManagementPanel({
                                         </div>
 
                                         <div className="col-span-3">
-                                            {u.condos.length === 0 ? (
+                                            {(u.condos ?? []).length === 0 ? (
                                                 <div className="text-sm font-bold text-gray-400">ยังไม่ได้ผูกคอนโด</div>
                                             ) : (
                                                 <div className="space-y-1">
-                                                    {u.condos.slice(0, 2).map((c) => (
+                                                    {(u.condos ?? []).slice(0, 2).map((c) => (
                                                         <div key={c} className="text-sm font-extrabold text-gray-700">
                                                             {c}
                                                         </div>
                                                     ))}
-                                                    {u.condos.length > 2 && (
-                                                        <div className="text-xs font-extrabold text-gray-400">+{u.condos.length - 2} เพิ่มเติม</div>
+                                                    {(u.condos ?? []).length > 2 && (
+                                                        <div className="text-xs font-extrabold text-gray-400">+{(u.condos ?? []).length - 2} เพิ่มเติม</div>
                                                     )}
                                                 </div>
                                             )}
@@ -239,8 +245,8 @@ function UserManagementPanel({
                                                 type="button"
                                                 onClick={() => openEdit(u)}
                                                 className="h-[36px] px-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm
-                                   shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                                   focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                 shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                                 focus:outline-none focus:ring-2 focus:ring-gray-200"
                                             >
                                                 edit
                                             </button>
@@ -253,11 +259,9 @@ function UserManagementPanel({
                 </div>
             </div>
 
-            {/* Modal */}
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
                     <div className="absolute inset-0 bg-black/30" onClick={close} />
-
                     <div
                         className="relative w-full max-w-[820px] rounded-2xl bg-white shadow-[0_18px_55px_rgba(0,0,0,0.35)]
                        border border-blue-100/60 overflow-hidden"
@@ -312,8 +316,7 @@ function UserManagementPanel({
                                 <button
                                     type="button"
                                     onClick={close}
-                                    className="h-[44px] px-10 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold
-                             shadow-sm hover:bg-gray-50 active:scale-[0.98] transition"
+                                    className="h-[44px] px-10 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold shadow-sm hover:bg-gray-50 active:scale-[0.98] transition"
                                 >
                                     ปิด
                                 </button>
@@ -321,13 +324,13 @@ function UserManagementPanel({
                                 <button
                                     type="button"
                                     onClick={onSave}
-                                    className="h-[44px] px-10 rounded-xl border-0 text-white font-extrabold
-                             shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                             !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98]"
+                                    className="h-[44px] px-10 rounded-xl border-0 text-white font-extrabold shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98]"
                                 >
                                     บันทึก
                                 </button>
                             </div>
+
+                            <div className="mt-3 text-xs font-bold text-gray-400">* โครงสำหรับ BE: list/create/update</div>
                         </div>
                     </div>
                 </div>
@@ -336,31 +339,80 @@ function UserManagementPanel({
     );
 }
 
+/* =========================
+    CondoHomePage backend
+   ========================= */
+type LocationState = { justCreated?: boolean; condoId?: string } | null;
+
+// แก้ URLให้ตรงbackend
+async function fetchCondosFromApi(): Promise<CondoItem[]> {
+    const res = await fetch("/api/owner/condos", {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+        throw new Error("โหลดรายการคอนโดไม่สำเร็จ");
+    }
+
+    const data = await res.json();
+
+    // รองรับ 2 แบบ API ส่งเป็น array ตรง ๆ หรือห่อ {items:[]}
+    if (Array.isArray(data)) return data as CondoItem[];
+    if (Array.isArray(data?.items)) return data.items as CondoItem[];
+    return [];
+}
+
 export default function CondoHomePage() {
     const nav = useNavigate();
-    const { rooms } = useAddCondoStore();
+    const location = useLocation();
 
-    const roomsTotal = useMemo(() => rooms.length, [rooms]);
-    const roomsActive = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
-
-    const condoNameMock = "สวัสดีแมนชั่น";
-
-    const condos: CondoItem[] = useMemo(
-        () => [
-            {
-                id: "c-1",
-                name: condoNameMock,
-                roomsTotal: roomsTotal || 0,
-                roomsActive: roomsActive || 0,
-                unpaidBills: 0,
-            },
-        ],
-        [roomsTotal, roomsActive]
-    );
+    const state = (location.state ?? null) as LocationState;
+    const justCreated = Boolean(state?.justCreated);
+    const createdCondoId = state?.condoId;
 
     const [tab, setTab] = useState<"condo" | "users">("condo");
 
-    const goDashboard = () => nav("/owner/dashboard");
+    const [condos, setCondos] = useState<CondoItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadCondos = async () => {
+        try {
+            setError(null);
+            setLoading(true);
+            const list = await fetchCondosFromApi();
+            setCondos(list);
+        } catch (e: any) {
+            setCondos([]);
+            setError(e?.message ?? "เกิดข้อผิดพลาด");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadCondos();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        if (justCreated) loadCondos();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [justCreated]);
+
+    const sortedCondos = useMemo(() => {
+        if (!createdCondoId) return condos;
+        const top = condos.find((c) => c.id === createdCondoId);
+        const rest = condos.filter((c) => c.id !== createdCondoId);
+        return top ? [top, ...rest] : condos;
+    }, [condos, createdCondoId]);
+
+    // ไปหน้า dashboard แบบผูก condoId
+    const goDashboard = (condoId: string) => nav("/owner/dashboard", { state: { condoId } });
+
+    const condoNameForUsers = sortedCondos[0]?.name ?? "—";
 
     return (
         <div className="owner-ui min-h-[calc(100vh-64px)] bg-[#EEF4FF] font-sans text-black/85">
@@ -372,6 +424,7 @@ export default function CondoHomePage() {
                         </div>
 
                         <div className="px-6 py-6">
+                            {/* tabs  */}
                             <div className="flex items-center justify-center">
                                 <div className="w-full max-w-3xl">
                                     <div className="flex items-end justify-center gap-14">
@@ -446,62 +499,108 @@ export default function CondoHomePage() {
 
                             <div className="mt-8">
                                 {tab === "condo" ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {condos.map((c) => {
-                                            const hasDebt = c.unpaidBills > 0;
+                                    <>
+                                        {/* loading / error */}
+                                        {loading && (
+                                            <div className="text-center text-gray-500 font-bold py-10">
+                                                กำลังโหลดรายการคอนโด...
+                                            </div>
+                                        )}
 
-                                            const debtBoxClass = hasDebt
-                                                ? "bg-[#FEE2E2] border-[#FCA5A5] text-[#991B1B]"
-                                                : "bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]";
+                                        {!loading && error && (
+                                            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-5 shadow-sm">
+                                                <div className="font-extrabold text-rose-700">โหลดข้อมูลไม่สำเร็จ</div>
+                                                <div className="mt-1 text-sm font-bold text-rose-600">{error}</div>
 
-                                            return (
-                                                <div key={c.id} className="rounded-2xl bg-white border border-blue-100/60 shadow-[0_18px_50px_rgba(15,23,42,0.10)] overflow-hidden">
-                                                    <div className="px-5 py-3 bg-[#f3f7ff] border-b border-blue-100/60">
-                                                        <div className="text-sm font-extrabold tracking-[0.2px] text-gray-800">{c.name}</div>
-                                                    </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={loadCondos}
+                                                    className="mt-4 h-[44px] px-6 rounded-xl bg-white border border-rose-200 text-rose-700 font-extrabold text-sm shadow-sm hover:bg-rose-100/40 active:scale-[0.98]"
+                                                >
+                                                    ลองใหม่
+                                                </button>
+                                            </div>
+                                        )}
 
-                                                    <div className="px-5 py-5">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="h-16 w-16 rounded-2xl bg-white border border-blue-100/70 shadow-[0_10px_20px_rgba(0,0,0,0.12)] flex items-center justify-center text-blue-700">
-                                                                <CondoIcon />
+                                        {/* empty state */}
+                                        {!loading && !error && sortedCondos.length === 0 && (
+                                            <div className="rounded-2xl border border-blue-100/60 bg-white px-8 py-10 text-center shadow-sm">
+                                                <div className="text-lg font-extrabold text-gray-900">ยังไม่มีคอนโดในระบบ</div>
+                                                <div className="mt-2 text-sm font-bold text-gray-600">
+                                                    กด “เพิ่มคอนโดมิเนียม” เพื่อเริ่มตั้งค่า Step 0–Step 9
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* list condos */}
+                                        {!loading && !error && sortedCondos.length > 0 && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {sortedCondos.map((c) => {
+                                                    const hasDebt = c.unpaidBills > 0;
+
+                                                    const debtBoxClass = hasDebt
+                                                        ? "bg-[#FEE2E2] border-[#FCA5A5] text-[#991B1B]"
+                                                        : "bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]";
+
+                                                    const highlight =
+                                                        createdCondoId && c.id === createdCondoId ? "ring-4 ring-blue-200/70" : "";
+
+                                                    return (
+                                                        <div
+                                                            key={c.id}
+                                                            className={[
+                                                                "rounded-2xl bg-white border border-blue-100/60 shadow-[0_18px_50px_rgba(15,23,42,0.10)] overflow-hidden",
+                                                                highlight,
+                                                            ].join(" ")}
+                                                        >
+                                                            <div className="px-5 py-3 bg-[#f3f7ff] border-b border-blue-100/60">
+                                                                <div className="text-sm font-extrabold tracking-[0.2px] text-gray-800">{c.name}</div>
                                                             </div>
 
-                                                            <div className="flex-1 grid grid-cols-3 gap-3">
-                                                                <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
-                                                                    <div className="text-lg font-extrabold text-gray-900">
-                                                                        {c.roomsActive} / {c.roomsTotal}
+                                                            <div className="px-5 py-5">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="h-16 w-16 rounded-2xl bg-white border border-blue-100/70 shadow-[0_10px_20px_rgba(0,0,0,0.12)] flex items-center justify-center text-blue-700">
+                                                                        <CondoIcon />
                                                                     </div>
-                                                                    <div className="text-[11px] font-bold text-gray-500">ห้องใช้งาน / ทั้งหมด</div>
-                                                                </div>
 
-                                                                <div className={["rounded-xl border px-4 py-3 text-center", debtBoxClass].join(" ")}>
-                                                                    <div className="text-lg font-extrabold">{c.unpaidBills}</div>
-                                                                    <div className="text-[11px] font-bold opacity-80">บิลค้างชำระ</div>
-                                                                </div>
+                                                                    <div className="flex-1 grid grid-cols-3 gap-3">
+                                                                        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
+                                                                            <div className="text-lg font-extrabold text-gray-900">
+                                                                                {c.roomsActive} / {c.roomsTotal}
+                                                                            </div>
+                                                                            <div className="text-[11px] font-bold text-gray-500">ห้องใช้งาน / ทั้งหมด</div>
+                                                                        </div>
 
-                                                                <div className="flex items-center justify-center">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={goDashboard}
-                                                                        className={[
-                                                                            "h-[40px] px-6 rounded-xl border-0 text-white font-extrabold text-sm tracking-[0.2px]",
-                                                                            "shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
-                                                                            "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
-                                                                            "focus:outline-none focus:ring-2 focus:ring-blue-200",
-                                                                        ].join(" ")}
-                                                                    >
-                                                                        จัดการ
-                                                                    </button>
+                                                                        <div className={["rounded-xl border px-4 py-3 text-center", debtBoxClass].join(" ")}>
+                                                                            <div className="text-lg font-extrabold">{c.unpaidBills}</div>
+                                                                            <div className="text-[11px] font-bold opacity-80">บิลค้างชำระ</div>
+                                                                        </div>
+
+                                                                        <div className="flex items-center justify-center">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => goDashboard(c.id)}
+                                                                                className={[
+                                                                                    "h-[40px] px-6 rounded-xl border-0 text-white font-extrabold text-sm tracking-[0.2px]",
+                                                                                    "shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+                                                                                    "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+                                                                                    "focus:outline-none focus:ring-2 focus:ring-blue-200",
+                                                                                ].join(" ")}
+                                                                            >
+                                                                                จัดการ
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
-                                    <UserManagementPanel condoName={condoNameMock} />
+                                    <UserManagementPanel condoName={condoNameForUsers} />
                                 )}
                             </div>
 

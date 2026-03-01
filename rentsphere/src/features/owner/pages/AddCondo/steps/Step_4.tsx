@@ -1,24 +1,29 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAddCondoStore } from "../store/addCondo.store";
 
 export default function Step_4() {
   const nav = useNavigate();
-  const setFloorConfig = useAddCondoStore((s) => s.setFloorConfig);
 
   const [floorCount, setFloorCount] = useState<number | "">("");
   const [roomsPerFloorText, setRoomsPerFloorText] = useState<string[]>([]);
   const [roomErrors, setRoomErrors] = useState<Record<number, string>>({});
 
-  const canGoNext = floorCount !== "";
   const hasRoomError = Object.keys(roomErrors).length > 0;
+  const canGoNext = floorCount !== "" && !hasRoomError;
+
+  const roomsPerFloorNormalized = useMemo(() => {
+    if (floorCount === "") return [];
+    return Array.from({ length: floorCount }, (_, i) => {
+      const s = roomsPerFloorText[i] ?? "1";
+      let n = Number(s);
+      if (!Number.isFinite(n)) n = 1;
+      return Math.max(1, Math.min(50, n));
+    });
+  }, [floorCount, roomsPerFloorText]);
 
   const totalRooms = useMemo(() => {
-    return roomsPerFloorText.reduce((sum, s) => {
-      const n = Number(s);
-      return sum + (Number.isFinite(n) ? n : 0);
-    }, 0);
-  }, [roomsPerFloorText]);
+    return roomsPerFloorNormalized.reduce((sum, n) => sum + n, 0);
+  }, [roomsPerFloorNormalized]);
 
   const handleFloorChange = (value: number | "") => {
     setFloorCount(value);
@@ -87,18 +92,17 @@ export default function Step_4() {
     });
   };
 
-  const handleNext = () => {
-    if (floorCount === "") return;
-    if (hasRoomError) return;
+  const handleNext = async () => {
+    if (floorCount === "" || hasRoomError) return;
 
-    const normalizedNums = Array.from({ length: floorCount }, (_, i) => {
-      const s = roomsPerFloorText[i] ?? "1";
-      let n = Number(s);
-      if (!Number.isFinite(n)) n = 1;
-      return Math.max(1, Math.min(50, n));
-    });
+    // ======================
+    // TODO: API (backend will connect later)
+    // 1) POST/PUT floor config
+    //    { floorCount, roomsPerFloor: roomsPerFloorNormalized, totalRooms }
+    // 2) หลัง backend บันทึกสำเร็จ -> ไป step-5
+    // ======================
+    // await api.saveFloorConfig({ floorCount, roomsPerFloor: roomsPerFloorNormalized, totalRooms })
 
-    setFloorConfig(floorCount, normalizedNums);
     nav("../step-5");
   };
 
@@ -112,9 +116,7 @@ export default function Step_4() {
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
-              จำนวนชั้นและจำนวนห้อง
-            </div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">จำนวนชั้นและจำนวนห้อง</div>
             <div className="mt-1 text-sm font-bold text-gray-600">
               เลือกจำนวนชั้น และกำหนดจำนวนห้องต่อชั้น (สูงสุด 50 ห้อง) — ระบบคำนวณรวมให้อัตโนมัติ
             </div>
@@ -146,8 +148,7 @@ export default function Step_4() {
             <div className="space-y-4">
               <div className="flex items-end justify-between gap-3 flex-wrap">
                 <div className="text-xl font-extrabold text-gray-900 tracking-tight">
-                  จำนวนห้องต่อชั้น{" "}
-                  <span className="text-sm font-extrabold text-gray-500">(1 - 50)</span>
+                  จำนวนห้องต่อชั้น <span className="text-sm font-extrabold text-gray-500">(1 - 50)</span>
                 </div>
 
                 <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
@@ -163,9 +164,7 @@ export default function Step_4() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
-                      <div className="text-lg font-extrabold text-gray-900">
-                        ชั้นที่ {i + 1}
-                      </div>
+                      <div className="text-lg font-extrabold text-gray-900">ชั้นที่ {i + 1}</div>
                     </div>
 
                     <div className="flex items-end gap-3">
@@ -187,9 +186,7 @@ export default function Step_4() {
                           ].join(" ")}
                         />
                         {roomErrors[i] && (
-                          <div className="mt-1 text-xs font-extrabold text-rose-600">
-                            {roomErrors[i]}
-                          </div>
+                          <div className="mt-1 text-xs font-extrabold text-rose-600">{roomErrors[i]}</div>
                         )}
                       </div>
 
@@ -197,6 +194,11 @@ export default function Step_4() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Hint สำหรับ dev ตอน backend มา */}
+              <div className="text-xs font-bold text-gray-500">
+                * โครงสำหรับ backend: บันทึก floorCount/roomsPerFloor ก่อน แล้ว Step5 จะไปดึงข้อมูลจาก API แทนการส่ง state
               </div>
             </div>
           )}
@@ -215,10 +217,15 @@ export default function Step_4() {
 
         <button
           type="button"
-          onClick={() => nav("../step-5")}
-          className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
-                         focus:outline-none focus:ring-2 focus:ring-blue-300"
+          onClick={handleNext}
+          disabled={!canGoNext}
+          className={[
+            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+            "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
+            canGoNext
+              ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] cursor-pointer"
+              : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+          ].join(" ")}
         >
           ต่อไป
         </button>

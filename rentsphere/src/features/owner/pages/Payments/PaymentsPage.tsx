@@ -16,27 +16,7 @@ interface PaymentRecord {
     autoNotify: boolean;
 }
 
-/* ================================================================
-   Mock data
-   ================================================================ */
-const MOCK_PAYMENTS: PaymentRecord[] = [
-    { id: "1", invoiceNo: "I2026010002", roomNo: "101", tenantName: "สุดหล่อ หน่นา", tenantAvatar: "สน", sentDate: "Sent: 15 ม.ค. 09:30", amount: 8240, status: "overdue", autoNotify: true },
-    { id: "2", invoiceNo: "I2026010003", roomNo: "102", tenantName: "วิสัชร เพลิง", tenantAvatar: "วพ", sentDate: null, amount: 0, status: "paid", autoNotify: false },
-    { id: "3", invoiceNo: "I2026010004", roomNo: "103", tenantName: "นฉศิษณ์ คำดี", tenantAvatar: "นค", sentDate: null, amount: 4000, status: "pending", autoNotify: false },
-    { id: "4", invoiceNo: "I2026010006", roomNo: "202", tenantName: "ปรียา วรรณดี", tenantAvatar: "ปว", sentDate: "Sent: 16 ม.ค. 08:15", amount: 9200, status: "overdue", autoNotify: true },
-    { id: "5", invoiceNo: "I2026010007", roomNo: "201", tenantName: "สมชาย ใจดี", tenantAvatar: "สจ", sentDate: "Sent: 14 ม.ค. 10:00", amount: 5600, status: "overdue", autoNotify: true },
-    { id: "6", invoiceNo: "I2026010008", roomNo: "301", tenantName: "วรรณา สุข", tenantAvatar: "วส", sentDate: null, amount: 0, status: "paid", autoNotify: false },
-    { id: "7", invoiceNo: "I2026010009", roomNo: "302", tenantName: "ธนพล เก่ง", tenantAvatar: "ธก", sentDate: null, amount: 3200, status: "pending", autoNotify: false },
-    { id: "8", invoiceNo: "I2026010010", roomNo: "401", tenantName: "มานี รักดี", tenantAvatar: "มร", sentDate: null, amount: 0, status: "paid", autoNotify: false },
-];
 
-const AVATAR_COLORS = ["bg-purple-400", "bg-blue-400", "bg-green-400", "bg-pink-400", "bg-amber-400", "bg-teal-400", "bg-indigo-400", "bg-rose-400"];
-
-const TOTAL_AMOUNT = 124500;
-const PAID_AMOUNT = 98240;
-const UNPAID_AMOUNT = 26260;
-const TOTAL_ROOMS = 20;
-const UNPAID_ROOMS = 4;
 
 /* ================================================================
    Status helpers
@@ -61,8 +41,15 @@ function statusClass(s: PaymentRecord["status"]) {
    ================================================================ */
 export default function PaymentsPage() {
     const [page, setPage] = useState(1);
-    const [data, setData] = useState<PaymentRecord[]>(MOCK_PAYMENTS);
+    const [data, setData] = useState<PaymentRecord[]>([]);
     const PER_PAGE = 4;
+
+    const AVATAR_COLORS = ["bg-purple-400", "bg-blue-400", "bg-green-400", "bg-pink-400", "bg-amber-400", "bg-teal-400", "bg-indigo-400", "bg-rose-400"];
+    const TOTAL_AMOUNT = 0;
+    const PAID_AMOUNT = 0;
+    const UNPAID_AMOUNT = 0;
+    const TOTAL_ROOMS = 0;
+    const UNPAID_ROOMS = 0;
 
     const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
     const pageData = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -75,7 +62,7 @@ export default function PaymentsPage() {
         );
     };
 
-    const paidPct = Math.round((PAID_AMOUNT / TOTAL_AMOUNT) * 100);
+    const paidPct = TOTAL_AMOUNT > 0 ? Math.round((PAID_AMOUNT / TOTAL_AMOUNT) * 100) : 0;
 
     return (
         <OwnerShell activeKey="payments">
@@ -209,6 +196,7 @@ export default function PaymentsPage() {
                                     <td className="py-5 px-4 text-center">
                                         <button
                                             onClick={() => handleToggle(r.id)}
+                                            aria-label="เปิด/ปิดแจ้งเตือนอัตโนมัติ"
                                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.autoNotify ? "bg-[#93C5FD]" : "bg-gray-200"}`}
                                         >
                                             <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform shadow-sm ${r.autoNotify ? "translate-x-6" : "translate-x-1"}`} />
@@ -226,7 +214,7 @@ export default function PaymentsPage() {
                                                 แจ้งค้างชำระ
                                             </button>
                                         ) : (
-                                            <button className="text-gray-400 hover:text-[#93C5FD] transition">
+                                            <button aria-label="ดูรายละเอียด" className="text-gray-400 hover:text-[#93C5FD] transition">
                                                 <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -260,6 +248,7 @@ export default function PaymentsPage() {
                                     type="button"
                                     onClick={() => setPage(Math.max(1, page - 1))}
                                     disabled={page === 1}
+                                    aria-label="หน้าก่อนหน้า"
                                     className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -283,6 +272,7 @@ export default function PaymentsPage() {
                                     type="button"
                                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                                     disabled={page === totalPages}
+                                    aria-label="หน้าถัดไป"
                                     className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

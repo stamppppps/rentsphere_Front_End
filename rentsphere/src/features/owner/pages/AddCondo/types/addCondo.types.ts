@@ -1,7 +1,14 @@
 export type RoomStatus = "VACANT" | "OCCUPIED";
 
+export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+
+export type RoomContractType = "MONTHLY";
+
+export type Id = string;
+
 export type Room = {
-    id: string;
+    id: Id;
+    condoId: Id;
     floor: number;
     roomNo: string;
     price: number | null;
@@ -12,25 +19,26 @@ export type Room = {
 
 export type Service = {
     id: number;
+    condoId: Id;
     name: string;
     isVariable: boolean;
     price: number;
 };
 
-export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
-
 export type BookingRow = {
-    ref: string;
+    id: Id;
+    roomId: Id;
     customer: string;
     checkIn: string;
     price: number;
     deposit: number;
     status: BookingStatus;
+    createdAt: string;
 };
 
-export type RoomContractType = "MONTHLY";
-
 export type RoomContract = {
+    id: Id;
+    roomId: Id;
     type: RoomContractType;
     tenantName: string;
     startDate: string;
@@ -41,51 +49,61 @@ export type RoomContract = {
 };
 
 export type MovedOutRow = {
+    id: Id;
+    roomId: Id;
     inDate: string;
     customer: string;
     outDate: string;
+    createdAt: string;
 };
 
-export type RoomExtraState = {
+export type RoomDetail = {
+    room: Room;
     contract: RoomContract | null;
     bookings: BookingRow[];
     movedOut: MovedOutRow[];
 };
 
-export type AddCondoState = {
+export type CondoSummary = {
+    condoId: Id;
+    condoName: string;
+    totalRooms: number;
+    activeRooms: number;
+    occupiedRooms: number;
+    vacantRooms: number;
+};
+
+export type CreateCondoPayload = {
+    condoName: string;
     floorCount: number;
     roomsPerFloor: number[];
+};
 
-    rooms: Room[];
-    selectedRoomIds: string[];
+export type CreateBookingPayload = {
+    roomId: Id;
+    customer: string;
+    checkIn: string;
+    price: number;
+    deposit: number;
+    status: BookingStatus;
+};
 
-    services: Service[];
-    addService: (service: Service) => void;
+export type UpsertMonthlyContractPayload = {
+    roomId: Id;
+    type: RoomContractType;
+    tenantName: string;
+    startDate: string;
+    endDate?: string;
+    rent: number;
+    deposit?: number;
+};
 
-    setFloorConfig: (floorCount: number, roomsPerFloor: number[]) => void;
-    generateRoomsIfEmpty: () => void;
+export type SetRoomPricePayload = {
+    roomId: Id;
+    price: number | null;
+};
 
-    toggleRoomActive: (roomId: string) => void;
-    changeRoomNo: (roomId: string, value: string) => void;
-    addRoomOnFloor: (floor: number) => void;
-    deleteRoomOnFloor: (floor: number, roomId: string) => void;
-
-    toggleRoom: (roomId: string) => void;
-    selectAllOnFloor: (floor: number) => void;
-    unselectAllOnFloor: (floor: number) => void;
-    clearSelected: () => void;
-
-    setPriceForRooms: (roomIds: string[], price: number | null) => void;
-
-    setStatusForRooms: (roomIds: string[], status: RoomStatus) => void;
-    toggleRoomStatus: (roomId: string) => void;
-
-    setServiceForRooms: (roomIds: string[], serviceId: number | null) => void;
-
-    roomExtraById: Record<string, RoomExtraState>;
-
-    getRoomExtra: (roomId: string) => RoomExtraState;
-    addBooking: (roomId: string, row: BookingRow) => void;
-    setContract: (roomId: string, contract: RoomContract | null) => void;
-    addMovedOut: (roomId: string, row: MovedOutRow) => void;
+export type SetRoomServicePayload = {
+    roomId: Id;
+    serviceId: number | null;
 };

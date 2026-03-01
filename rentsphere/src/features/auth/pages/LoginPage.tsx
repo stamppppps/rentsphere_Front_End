@@ -1,12 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import rentsphereLogo from "@/assets/brand/rentsphere-logo.png";
 import { CondoBackground, Meteors, SaaSBackground } from "@/features/auth/components/AuthBackground";
-import { useAuthRole } from "@/features/auth/hooks/useAuthRole";
+import { api } from "@/shared/api/http";
+import { useAuthStore } from "@/features/auth/auth.store";
+
+type LoginResponse = {
+  user: {
+    id: string;
+    email: string;
+    name?: string | null;
+    role: "TENANT" | "OWNER" | "ADMIN";
+  };
+  token: string;
+};
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { base } = useAuthRole();
+ 
+
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  const [identifier, setIdentifier] = useState(""); 
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const inputSaaS =
     "w-full px-5 py-4 rounded-2xl bg-white/90 border border-indigo-100 shadow-sm " +
@@ -18,14 +36,55 @@ const LoginPage: React.FC = () => {
     "w-full max-w-xl rounded-3xl bg-white/65 backdrop-blur-xl border border-white/60 " +
     "shadow-[0_24px_60px_rgba(15,23,42,0.18)] p-10";
 
+  async function handleLogin(){
+    try {
+      setLoading(true);
+      setError(null);
+
+      
+      const payload = {
+        email: identifier.trim(),
+        password,
+      };
+
+      const data = await api<LoginResponse>("/auth/login",{
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      setAuth(data.token, data.user);
+
+      
+      if (data.user.role === "OWNER") navigate("/owner/condo");
+      else if (data.user.role === "TENANT") navigate("/tenant");
+      else navigate("/admin");
+    } catch (e: any) {
+      setError(e.message || "เข้าสู่ระบบไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function onSubmit(e: React.FormEvent){
+    e.preventDefault();
+    if (!identifier.trim()){
+      setError("กรุณากรอกอีเมล");
+      return;
+    }
+    if (!password) {
+      setError("กรุณากรอกรหัสผ่าน");
+      return;
+    }
+    handleLogin();
+  }
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-full">
-      {/* Left Branding */}
+     
       <div className="hidden md:flex w-7/12 cosmic-gradient flex-col items-center justify-center relative overflow-hidden">
         <CondoBackground />
         <Meteors />
 
-        {/* Planetary Blurs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
 
@@ -35,12 +94,16 @@ const LoginPage: React.FC = () => {
             alt="RentSphere"
             className="w-56 md:w-64 lg:w-72 mb-7 drop-shadow-xl"
           />
-          <h1 className="text-6xl font-bold text-white tracking-[0.3em] mt-[-84px]">RENTSPHERE</h1>
-          <p className="mt-5 text-white/70 tracking-wide text-sm">Modern Rentsphere Management Platform</p>
+          <h1 className="text-6xl font-bold text-white tracking-[0.3em] mt-[-84px]">
+            RENTSPHERE
+          </h1>
+          <p className="mt-5 text-white/70 tracking-wide text-sm">
+            Modern Rentsphere Management Platform
+          </p>
         </div>
       </div>
 
-      {/* Right Login Form */}
+     
       <div className="flex-1 relative overflow-hidden flex items-center justify-center p-8">
         <SaaSBackground />
 
@@ -56,9 +119,24 @@ const LoginPage: React.FC = () => {
             </a>
           </p>
 
-          <div className="space-y-4">
-            <input type="text" className={inputSaaS} placeholder="อีเมล / เบอร์โทรศัพท์" />
-            <input type="password" className={inputSaaS} placeholder="รหัสผ่าน" />
+          <form onSubmit={onSubmit} className="space-y-4">
+            <input
+              type="text"
+              className={inputSaaS}
+              placeholder="อีเมล"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="email"
+            />
+
+            <input
+              type="password"
+              className={inputSaaS}
+              placeholder="รหัสผ่าน"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
 
             <div className="flex items-center gap-2 px-1">
               <input
@@ -72,24 +150,41 @@ const LoginPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => navigate("/owner/add-condo/step-0")}
-              className="w-full max-w-md py-4 btn-auth text-white rounded-2xl font-bold text-lg shadow-lg"
+              type="submit"
+              disabled={loading}
+              className={`w-full max-w-md py-4 btn-auth text-white rounded-2xl font-bold text-lg shadow-lg ${
+                loading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              เข้าสู่ระบบ
+              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </button>
+
+            {error && <p className="text-red-600 text-sm">{error}</p>}
 
             <div className="flex items-center justify-between text-[11px] pt-4 border-t border-slate-200">
               <div className="text-slate-600">
                 สมาชิกใหม่?{" "}
-                <button onClick={() => navigate(`${base}/register`)} className="text-blue-700 font-bold">
-                  สมัครลงทะเบียนทันที
-                </button>
+               <button
+                      type="button"
+                      onClick={() => navigate("/auth/owner/register")}
+                      className="text-blue-700 font-bold"
+                    >
+                      สมัครสมาชิกเพื่อเข้าใช้งานระบบ
+                    </button>
+
               </div>
-              <button onClick={() => navigate(`${base}/forgot`)} className="text-blue-700">
+
+              <button
+                type="button"
+                onClick={() => navigate("/auth/owner/forgot")}
+
+                className="text-blue-700"
+              >
                 ลืมรหัสผ่าน?
               </button>
             </div>
-          </div>
+
+          </form>
         </div>
       </div>
     </div>

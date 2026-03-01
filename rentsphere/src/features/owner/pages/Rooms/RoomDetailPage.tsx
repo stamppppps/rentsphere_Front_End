@@ -1,6 +1,5 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { useAddCondoStore } from "@/features/owner/pages/AddCondo/store/addCondo.store";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 function moneyTHB(n?: number | null) {
@@ -25,47 +24,160 @@ function StatusPill({ status }: { status?: string }) {
     );
 }
 
+/* ====== Calendar Icon ====== */
+function CalendarIcon({ className = "h-6 w-6" }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            className={className}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M8 2v3M16 2v3" />
+            <path d="M3.5 9h17" />
+            <path d="M6 4h12a2.5 2.5 0 0 1 2.5 2.5V19A2.5 2.5 0 0 1 18 21.5H6A2.5 2.5 0 0 1 3.5 19V6.5A2.5 2.5 0 0 1 6 4Z" />
+            <path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01" />
+        </svg>
+    );
+}
+
+/* ====== Types ====== */
+type RoomDetail = {
+    id: string;
+    roomNo: string;
+    price: number | null;
+    status: "VACANT" | "OCCUPIED" | string;
+    isActive: boolean;
+    condoName?: string | null;
+};
+
+type ServiceOption = {
+    id: string;
+    name: string;
+    price: number;
+};
+
+type MonthlyServiceRow = { id: string; name: string; price: number };
+
+/* ====== Backend call (แก้ endpoint ให้ตรง) ====== */
+async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
+    // TODO: GET /api/owner/rooms/:roomId
+    const res = await fetch(`/api/owner/rooms/${encodeURIComponent(roomId)}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) throw new Error("โหลดข้อมูลห้องไม่สำเร็จ");
+    const data = await res.json();
+
+    // TODO: ปรับ mapping ตาม response จริง
+    return {
+        id: String(data.id ?? roomId),
+        roomNo: String(data.roomNo ?? data.number ?? "-"),
+        price: data.price ?? null,
+        status: String(data.status ?? "VACANT"),
+        isActive: Boolean(data.isActive ?? true),
+        condoName: data.condoName ?? data.condo?.name ?? null,
+    };
+}
+
+/* ====== Services backend  ====== */
+async function fetchServiceOptions(_roomId: string): Promise<ServiceOption[]> {
+    // TODO: endpoint
+    // ex GET /api/owner/rooms/:roomId/services  หรือ  GET /api/owner/condos/:condoId/services
+    return [];
+}
+
+async function saveMonthlyServiceForRoom(_roomId: string, _serviceId: string) {
+    // TODO: POST /api/owner/rooms/:roomId/monthly-services
+    // body: { serviceId }
+    return;
+}
+
 export default function RoomDetailPage() {
     const nav = useNavigate();
     const { roomId } = useParams();
-    const { rooms } = useAddCondoStore();
 
     const btnPrimary =
         "inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(37,99,235,0.18)] hover:bg-blue-700 active:scale-[0.99] transition";
 
-    const btnSoft =
-        "inline-flex items-center justify-center rounded-xl bg-blue-50 px-5 py-2.5 text-sm font-extrabold text-blue-700 border border-blue-100 hover:bg-blue-100 transition";
-
     const tableHead = "bg-[#F3F7FF] text-gray-800 border-b border-blue-100/70";
 
-    const room = useMemo(() => {
-        if (!roomId) return null;
-        return (rooms ?? []).find((r: any) => String(r?.id) === String(roomId)) ?? null;
-    }, [rooms, roomId]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [room, setRoom] = useState<RoomDetail | null>(null);
 
-    const condoName = "สวัสดีคอนโด";
+    // ===== services  =====
+    const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+    const [serviceLoading, setServiceLoading] = useState(false);
+
+    const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+    const selectedService = useMemo(
+        () => serviceOptions.find((s) => s.id === selectedServiceId) ?? null,
+        [serviceOptions, selectedServiceId]
+    );
+
+    // list ของบริการที่ผูกแล้ว
+    const [monthlyServices, setMonthlyServices] = useState<MonthlyServiceRow[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const load = async () => {
+            if (!roomId) {
+                setLoading(false);
+                setRoom(null);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+
+                const data = await fetchRoomDetail(roomId);
+                if (cancelled) return;
+                setRoom(data);
+
+                //โหลดรายการบริการ (backend)
+                setServiceLoading(true);
+                const services = await fetchServiceOptions(roomId);
+                if (cancelled) return;
+                setServiceOptions(services);
+
+                // เลือก default อัตโนมัติถ้ามีบริการ
+                setSelectedServiceId((prev) => {
+                    if (prev) return prev;
+                    return services[0]?.id ?? "";
+                });
+
+                setServiceLoading(false);
+                setLoading(false);
+            } catch (e: any) {
+                if (cancelled) return;
+                setRoom(null);
+                setError(e?.message ?? "เกิดข้อผิดพลาด");
+                setServiceLoading(false);
+                setLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [roomId]);
+
+    const condoName = room?.condoName ?? "คอนโดมิเนียม";
     const roomNo = room?.roomNo ?? "-";
     const roomPrice = room?.price ?? null;
     const roomStatus = room?.status ?? (room?.isActive ? "VACANT" : "OCCUPIED");
 
-    // ===== Monthly service mock =====
-    const serviceOptions = [
-        { id: "allin", name: "แพ็กเกจ (All-in-One Maintenance)", price: 650 },
-        { id: "housekeeping", name: "บริการทำความสะอาด (Housekeeping)", price: 300 },
-        { id: "ev", name: "ชาร์จรถยนต์ไฟฟ้า (EV Charging)", price: 200 },
-    ];
-    const [selectedServiceId, setSelectedServiceId] = useState(serviceOptions[0]?.id);
-    const selectedService = serviceOptions.find((s) => s.id === selectedServiceId);
-    const [monthlyServices, setMonthlyServices] = useState<{ id: string; name: string; price: number }[]>([]);
-    const addMonthlyService = () => {
-        if (!selectedService) return;
-        setMonthlyServices((prev) => {
-            if (prev.some((x) => x.id === selectedService.id)) return prev;
-            return [...prev, selectedService];
-        });
-    };
-
-    // ===== Booking modal + rows (mock) =====
+    // ===== Booking modal + rows (โครง UI) =====
     const [openBookingModal, setOpenBookingModal] = useState(false);
 
     type BookingRow = {
@@ -78,13 +190,16 @@ export default function RoomDetailPage() {
     };
 
     const [bookingRows, setBookingRows] = useState<BookingRow[]>([]);
-
     const [bkRef, setBkRef] = useState("");
     const [bkCustomer, setBkCustomer] = useState("");
     const [bkCheckIn, setBkCheckIn] = useState("");
     const [bkPrice, setBkPrice] = useState<number>(Number(roomPrice ?? 0) || 0);
     const [bkDeposit, setBkDeposit] = useState<number>(0);
     const [bkStatus, setBkStatus] = useState<string>("รอเข้าพัก");
+
+    useEffect(() => {
+        setBkPrice(Number(roomPrice ?? 0) || 0);
+    }, [roomPrice]);
 
     const resetBookingForm = () => {
         setBkRef("");
@@ -101,6 +216,7 @@ export default function RoomDetailPage() {
     };
 
     const saveBooking = () => {
+        // TODO: POST booking
         if (!bkCustomer.trim()) return alert("กรุณากรอกชื่อลูกค้า");
         if (!bkCheckIn) return alert("กรุณาเลือกวันที่เข้าพัก");
 
@@ -123,18 +239,54 @@ export default function RoomDetailPage() {
         setOpenBookingModal(false);
     };
 
-    // ===== moved out mock =====
+    // ===== moved out  =====
     const movedOutRows: Array<{ inDate: string; customer: string; outDate: string }> = [];
 
-    if (!room) {
+    const addMonthlyService = async () => {
+        if (!roomId) return;
+        if (!selectedService) return;
+
+        // TODO: call backend to attach service to room
+        await saveMonthlyServiceForRoom(roomId, selectedService.id);
+
+        // UI update
+        setMonthlyServices((prev) => {
+            if (prev.some((x) => x.id === selectedService.id)) return prev;
+            return [...prev, selectedService];
+        });
+    };
+
+    if (loading) {
+        return (
+            <OwnerShell title={undefined} activeKey="rooms" showSidebar>
+                <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
+                    <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูลห้อง...</div>
+                </div>
+            </OwnerShell>
+        );
+    }
+
+    if (!roomId || error || !room) {
         return (
             <OwnerShell title={undefined} activeKey="rooms" showSidebar>
                 <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
                     <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูลห้องนี้</div>
-                    <div className="text-gray-600 font-bold mb-6">roomId: {roomId}</div>
-                    <button type="button" onClick={() => nav("/owner/rooms")} className={btnPrimary}>
-                        กลับไปหน้าห้อง
-                    </button>
+                    <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
+                    {error && <div className="text-rose-600 font-extrabold mb-6">{error}</div>}
+
+                    <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => nav("/owner/rooms")} className={btnPrimary}>
+                            กลับไปหน้าห้อง
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="inline-flex items-center justify-center rounded-xl bg-white border border-gray-200 px-5 py-2.5 text-sm font-extrabold text-gray-700 hover:bg-gray-50 active:scale-[0.99] transition"
+                        >
+                            ลองใหม่
+                        </button>
+                    </div>
                 </div>
             </OwnerShell>
         );
@@ -200,7 +352,10 @@ export default function RoomDetailPage() {
                             ].join(" ")}
                             onClick={() => nav(`/owner/rooms/${roomId}/monthly`)}
                         >
-                            <span className="text-2xl">📅</span>
+                            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
+                                <CalendarIcon className="h-6 w-6 text-white" />
+                            </span>
+
                             <span className="text-xl tracking-wide">รายเดือน</span>
                         </button>
                     </div>
@@ -217,33 +372,40 @@ export default function RoomDetailPage() {
                             <select
                                 value={selectedServiceId}
                                 onChange={(e) => setSelectedServiceId(e.target.value)}
+                                disabled={serviceLoading || serviceOptions.length === 0}
                                 className={[
                                     "flex-1 rounded-xl",
                                     "border border-blue-100 bg-white",
                                     "px-4 py-3",
                                     "font-bold text-gray-800",
                                     "focus:outline-none focus:ring-4 focus:ring-blue-200/60",
+                                    (serviceLoading || serviceOptions.length === 0) ? "opacity-70" : "",
                                 ].join(" ")}
                             >
-                                {serviceOptions.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name}
-                                    </option>
-                                ))}
+                                {serviceLoading ? (
+                                    <option value="">กำลังโหลดบริการ...</option>
+                                ) : serviceOptions.length === 0 ? (
+                                    <option value="">ยังไม่มีบริการ (รอเชื่อม Step 1 / backend)</option>
+                                ) : (
+                                    serviceOptions.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name}
+                                        </option>
+                                    ))
+                                )}
                             </select>
 
                             <button
                                 type="button"
                                 onClick={addMonthlyService}
+                                disabled={!selectedServiceId || serviceOptions.length === 0}
                                 className={[
-                                    "h-[52px] min-w-[88px]",
-                                    "rounded-xl",
-                                    "!bg-blue-600 text-white",
-                                    "font-extrabold",
-                                    "shadow-[0_10px_20px_rgba(37,99,235,0.22)]",
-                                    "border border-blue-700/10",
-                                    "hover:!bg-blue-700 active:scale-[0.99] transition",
+                                    "h-[52px] min-w-[88px] rounded-xl font-extrabold",
+                                    "shadow-[0_10px_20px_rgba(37,99,235,0.22)] border border-blue-700/10",
                                     "focus:outline-none focus-visible:ring-4 focus-visible:!ring-blue-200/70",
+                                    (!selectedServiceId || serviceOptions.length === 0)
+                                        ? "bg-blue-200 text-white/70 cursor-not-allowed shadow-none"
+                                        : "!bg-blue-600 text-white hover:!bg-blue-700 active:scale-[0.99] transition",
                                 ].join(" ")}
                             >
                                 เพิ่ม
@@ -257,7 +419,9 @@ export default function RoomDetailPage() {
                             </div>
 
                             {monthlyServices.length === 0 ? (
-                                <div className="px-4 py-4 text-sm font-bold text-gray-500">ยังไม่มีค่าบริการรายเดือน</div>
+                                <div className="px-4 py-4 text-sm font-bold text-gray-500">
+                                    ยังไม่มีค่าบริการรายเดือน (รอ backend ผูกบริการเข้าห้อง)
+                                </div>
                             ) : (
                                 monthlyServices.map((s) => (
                                     <div key={s.id} className="grid grid-cols-2 px-4 py-3 border-t border-blue-50 text-sm">
@@ -317,7 +481,7 @@ export default function RoomDetailPage() {
                                 {bookingRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-10 text-gray-500 font-bold">
-                                            ยังไม่มีรายการจอง
+                                            ยังไม่มีรายการจอง (รอ backend)
                                         </td>
                                     </tr>
                                 ) : (
@@ -361,7 +525,7 @@ export default function RoomDetailPage() {
                                 {movedOutRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={3} className="px-6 py-10 text-gray-500 font-bold">
-                                            ยังไม่มีประวัติย้ายออก
+                                            ยังไม่มีประวัติย้ายออก (รอ backend)
                                         </td>
                                     </tr>
                                 ) : (
@@ -382,7 +546,6 @@ export default function RoomDetailPage() {
             {/* ===== Booking Modal ===== */}
             {openBookingModal && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-                    {/* overlay */}
                     <button
                         type="button"
                         onClick={() => setOpenBookingModal(false)}
@@ -417,7 +580,7 @@ export default function RoomDetailPage() {
                                         value={bkCustomer}
                                         onChange={(e) => setBkCustomer(e.target.value)}
                                         className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800
-                               focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                                focus:outline-none focus:ring-4 focus:ring-blue-200/60"
                                     />
                                 </div>
 
