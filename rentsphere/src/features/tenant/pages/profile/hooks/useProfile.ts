@@ -30,7 +30,8 @@ export const useProfile = () => {
   const handleLogout = () => {
     console.log("Processing logout...");
     // Logic สำหรับการ Logout จริงๆ จะอยู่ตรงนี้
-    window.location.href = '#/home'; 
+    localStorage.removeItem('rentsphere_token');
+    window.location.replace('/tenant/login');
   };
 
   return {
