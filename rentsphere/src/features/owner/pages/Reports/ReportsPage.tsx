@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import ContainerIcon from "@/assets/Container.png";
+
 
 /* ================================================================
    Types
@@ -19,40 +19,22 @@ interface BillingRecord {
     date: string;
 }
 
-/* ================================================================
-   Mock data
-   ================================================================ */
-const MOCK_BILLING: BillingRecord[] = [
-    { id: "1", invoiceNo: "I2026010001", roomNo: "101", waterFee: 0, electricFee: 0, rentFee: 8000, otherFee: 0, totalFee: 8240, unpaidAmount: 8240, status: "overdue", date: "15/01/2569" },
-    { id: "2", invoiceNo: "-", roomNo: "102", waterFee: 0, electricFee: 0, rentFee: 0, otherFee: 0, totalFee: 0, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "3", invoiceNo: "-", roomNo: "202", waterFee: 0, electricFee: 0, rentFee: 0, otherFee: 0, totalFee: 0, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "4", invoiceNo: "I2026010022", roomNo: "203", waterFee: 120, electricFee: 840, rentFee: 7500, otherFee: 0, totalFee: 8460, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "5", invoiceNo: "-", roomNo: "301", waterFee: 0, electricFee: 0, rentFee: 0, otherFee: 0, totalFee: 0, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "6", invoiceNo: "-", roomNo: "302", waterFee: 0, electricFee: 0, rentFee: 0, otherFee: 0, totalFee: 0, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "7", invoiceNo: "I2026010033", roomNo: "401", waterFee: 150, electricFee: 900, rentFee: 6500, otherFee: 0, totalFee: 7550, unpaidAmount: 7550, status: "pending", date: "15/01/2569" },
-    { id: "8", invoiceNo: "I2026010044", roomNo: "402", waterFee: 180, electricFee: 1100, rentFee: 7000, otherFee: 100, totalFee: 8380, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "9", invoiceNo: "I2026010055", roomNo: "501", waterFee: 100, electricFee: 500, rentFee: 5500, otherFee: 0, totalFee: 6100, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-    { id: "10", invoiceNo: "-", roomNo: "502", waterFee: 0, electricFee: 0, rentFee: 0, otherFee: 0, totalFee: 0, unpaidAmount: 0, status: "paid", date: "15/01/2569" },
-];
 
-const SUMMARY = {
-    totalAmount: 142500,
-    paidAmount: 125750,
-    unpaidAmount: 16750,
-    roomCount: 45,
-};
 
 /* ================================================================
    Main Page
    ================================================================ */
 export default function ReportsPage() {
+    const [billingData] = useState<BillingRecord[]>([]);
     const [page, setPage] = useState(1);
     const PER_PAGE = 6;
 
-    const totalPages = Math.max(1, Math.ceil(MOCK_BILLING.length / PER_PAGE));
-    const pageData = MOCK_BILLING.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+    const SUMMARY = { totalAmount: 0, paidAmount: 0, unpaidAmount: 0, roomCount: 0 };
+
+    const totalPages = Math.max(1, Math.ceil(billingData.length / PER_PAGE));
+    const pageData = billingData.slice((page - 1) * PER_PAGE, page * PER_PAGE);
     const startIdx = (page - 1) * PER_PAGE + 1;
-    const endIdx = Math.min(page * PER_PAGE, MOCK_BILLING.length);
+    const endIdx = Math.min(page * PER_PAGE, billingData.length);
 
     /* Totals for footer */
     const pageTotals = useMemo(() => {
@@ -89,10 +71,10 @@ export default function ReportsPage() {
                             Export PDF
                         </button>
                         <button className="h-[40px] px-4 rounded-lg bg-white border border-gray-200 text-gray-600 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.98] transition flex items-center gap-2 shadow-sm">
-                            <img src={ContainerIcon} alt="Excel" className="w-5 h-5 object-contain" />
+                            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             Export Excel
                         </button>
-                        <button className="h-[40px] w-[40px] rounded-lg bg-[#93C5FD] text-white flex items-center justify-center shadow-lg shadow-blue-200 hover:bg-[#7fb4fb] active:scale-[0.98] transition">
+                        <button aria-label="พิมพ์" className="h-[40px] w-[40px] rounded-lg bg-[#93C5FD] text-white flex items-center justify-center shadow-lg shadow-blue-200 hover:bg-[#7fb4fb] active:scale-[0.98] transition">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                         </button>
                     </div>
@@ -184,13 +166,14 @@ export default function ReportsPage() {
                     {/* 4. Footer Pagination */}
                     <div className="flex flex-col md:flex-row items-center justify-between px-6 py-4">
                         <p className="text-sm font-bold text-gray-500 mb-4 md:mb-0">
-                            กำลังแสดง {startIdx} ถึง {endIdx} จาก {MOCK_BILLING.length} รายการ
+                            กำลังแสดง {startIdx} ถึง {endIdx} จาก {billingData.length} รายการ
                         </p>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setPage(Math.max(1, page - 1))}
                                 disabled={page === 1}
+                                aria-label="หน้าก่อนหน้า"
                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#EAF2FF] text-gray-600 hover:bg-blue-100 disabled:opacity-50 transition"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -212,6 +195,7 @@ export default function ReportsPage() {
                             <button
                                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                                 disabled={page === totalPages}
+                                aria-label="หน้าถัดไป"
                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#EAF2FF] text-gray-600 hover:bg-blue-100 disabled:opacity-50 transition"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

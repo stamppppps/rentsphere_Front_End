@@ -176,7 +176,7 @@ export default function AddCondoLayout() {
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-hidden overscroll-contain px-6 pt-4 pb-8">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 pt-4 pb-8">
                     <div className="rounded-3xl border-2 border-dashed border-blue-300/70 bg-white/35 backdrop-blur-sm p-5">
                         <div className="flex flex-col gap-4">
                             {MENU.map((m) => (

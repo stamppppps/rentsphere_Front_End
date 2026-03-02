@@ -237,6 +237,8 @@ export default function Step_5() {
                           <input
                             value={room.roomNo}
                             onChange={(e) => changeRoomNo(room.id, e.target.value)}
+                            aria-label="เลขห้อง"
+                            placeholder="เลขห้อง"
                             className="mt-4 w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
                                        focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
                           />

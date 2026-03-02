@@ -4,67 +4,18 @@ import type { BookingRecord, BookingStatus } from '../types/booking.types';
 let bookingStore: BookingRecord[] = [];
 
 export const getFacilities = async (): Promise<Facility[]> => {
-  return [
-    {
-      id: '1',
-      name: 'Swimming Pool',
-      category: 'Water Activity',
-      building: 'Facilities Center',
-      openTime: '06:00',
-      closeTime: '22:00',
-      imageUrl: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?q=80&w=500&auto=format&fit=crop',
-      status: 'available',
-      isQuotaExempt: true,
-      capacity: 12
-    },
-    {
-      id: '2',
-      name: 'Badminton Court',
-      category: 'Sport Area',
-      building: 'Sport Complex',
-      openTime: '06:00',
-      closeTime: '22:00',
-      imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=500&auto=format&fit=crop',
-      status: 'available',
-      isQuotaExempt: false,
-      capacity: 4
-    },
-    {
-      id: '3',
-      name: 'Fitness Center',
-      category: 'Health Club',
-      building: 'Facilities Center',
-      openTime: '05:00',
-      closeTime: '23:00',
-      imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=500&auto=format&fit=crop',
-      status: 'available',
-      isQuotaExempt: true,
-      capacity: 12
-    },
-    {
-      id: '4',
-      name: 'Meeting Room',
-      category: 'Working Space',
-      building: 'Business Center',
-      openTime: '08:00',
-      closeTime: '20:00',
-      imageUrl: 'https://images.unsplash.com/photo-1431540015161-0bf868a2d407?q=80&w=500&auto=format&fit=crop',
-      status: 'available',
-      isQuotaExempt: false,
-      capacity: 8
-    }
-  ];
+  return [];
 };
 
 export const getAvailability = async (facilityId: string, _date: string): Promise<TimeSlot[]> => {
   const facilities = await getFacilities();
   const facility = facilities.find(f => f.id === facilityId);
   const slots: TimeSlot[] = [];
-  
+
   for (let i = 6; i < 22; i++) {
     const start = i.toString().padStart(2, '0') + ':00';
     const end = (i + 1).toString().padStart(2, '0') + ':00';
-    
+
     const currentOccupancy = Math.floor(Math.random() * (facility?.capacity || 10));
     const isFull = currentOccupancy >= (facility?.capacity || 10);
 
@@ -92,9 +43,9 @@ export const updateBookingStatus = (id: string, status: BookingStatus) => {
   bookingStore = updated;
 };
 
-export const checkBookingQuota = (dateStr: string, facilityId: string): { 
-  allowed: boolean; 
-  reason?: string; 
+export const checkBookingQuota = (dateStr: string, facilityId: string): {
+  allowed: boolean;
+  reason?: string;
   remainingMonth?: number;
   dailyCount?: number;
   occupiedTimes?: string[];
@@ -112,9 +63,9 @@ export const checkBookingQuota = (dateStr: string, facilityId: string): {
   // 2. คำนวณโควตารายเดือน: นับตาม "จำนวนรายการจอง (Sessions)" ในเดือนปัจจุบันของระบบ
   const monthlySessionsCount = allBookings.reduce((acc, b) => {
     const bDate = new Date(b.date);
-    if (!exemptIds.includes(b.facilityId) && 
-        bDate.getMonth() === now.getMonth() && 
-        bDate.getFullYear() === now.getFullYear()) {
+    if (!exemptIds.includes(b.facilityId) &&
+      bDate.getMonth() === now.getMonth() &&
+      bDate.getFullYear() === now.getFullYear()) {
       return acc + 1;
     }
     return acc;
@@ -124,10 +75,10 @@ export const checkBookingQuota = (dateStr: string, facilityId: string): {
   const remainingMonth = Math.max(0, MAX_MONTHLY_SESSIONS - monthlySessionsCount);
 
   if (monthlySessionsCount >= MAX_MONTHLY_SESSIONS) {
-    return { 
-      allowed: false, 
-      reason: `คุณใช้สิทธิ์จอง (${MAX_MONTHLY_SESSIONS} ครั้ง/เดือน) ครบแล้ว`, 
-      remainingMonth: 0, 
+    return {
+      allowed: false,
+      reason: `คุณใช้สิทธิ์จอง (${MAX_MONTHLY_SESSIONS} ครั้ง/เดือน) ครบแล้ว`,
+      remainingMonth: 0,
       dailyCount: 0,
       occupiedTimes
     };
@@ -146,12 +97,12 @@ export const checkBookingQuota = (dateStr: string, facilityId: string): {
   }, 0);
 
   if (dailyCount >= 2) {
-    return { 
-      allowed: false, 
-      reason: 'คุณจองพื้นที่นี้ครบ 2 ชม. สำหรับวันนี้แล้ว', 
+    return {
+      allowed: false,
+      reason: 'คุณจองพื้นที่นี้ครบ 2 ชม. สำหรับวันนี้แล้ว',
       dailyCount,
       remainingMonth,
-      occupiedTimes 
+      occupiedTimes
     };
   }
 
