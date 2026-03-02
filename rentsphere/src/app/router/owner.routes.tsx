@@ -3,9 +3,6 @@ import { Navigate } from "react-router-dom";
 
 import OwnerLayout from "@/app/layouts/OwnerLayout";
 
-// Owner Auth Pages
-import OwnerLogin from "@/features/owner/pages/Auth/OwnerLogin";
-import OwnerRegister from "@/features/owner/pages/Auth/OwnerRegister";
 
 // AddCondo flow
 import AddCondoLayout from "@/features/owner/pages/AddCondo/AddCondoLayout";
@@ -54,7 +51,7 @@ import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 
 import RoleSelect from "@/features/owner/pages/tenant/RoleSelect";
 import Gate from "@/features/owner/pages/tenant/TenantGate";
-import TenantHomePage from "@/features/tenant/pages/home/pages/TenantHomePage";
+
 
 import MyRepairs from "@/features/owner/pages/tenant/repairs/MyRepairs";
 import RepairDetail from "@/features/owner/pages/tenant/repairs/RepairDetail";
@@ -73,8 +70,7 @@ function RequireLineLogin({ children }: { children: React.ReactNode }) {
 
 
 const ownerRoutes: RouteObject[] = [
-  { path: "/owner/login", element: <OwnerLogin /> },
-  { path: "/owner/register", element: <OwnerRegister /> },
+  
 
   
   {
@@ -92,7 +88,6 @@ const ownerRoutes: RouteObject[] = [
       { path: "rooms/:roomId/advance-payment", element: <AdvancePaymentPage /> },
       { path: "rooms/:roomId/meter", element: <RoomMeterPage /> },
       { path: "rooms/:roomId/access-code", element: <TenantAccessCodePage /> },
-      { path: "maintenance", element: <MaintenancePage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "meter", element: <MeterPage /> },
       { path: "billing", element: <BillingPage /> },

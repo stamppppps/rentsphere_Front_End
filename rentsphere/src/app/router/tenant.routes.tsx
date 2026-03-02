@@ -4,7 +4,6 @@ import { Navigate } from "react-router-dom";
 
 // ✅ ใช้ relative ตัดปัญหา alias @
 import TenantLayout from "../../shared/layouts/TenantLayout";
-import TenantHomePage from "../../features/tenant/pages/home/pages/TenantHomePage";
 
 import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDetailPage";
 import BookingConfirmPage from "@/features/tenant/pages/booking/pages/BookingConfirmPage";
@@ -44,9 +43,6 @@ const tenantRoutes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <Navigate to="home" replace /> },
-
-      // ✅ Home
-      { path: "home", element: <TenantHomePage /> },
 
       // ✅ Booking: เปิดใช้จริง
       { path: "booking", element: <FacilityListPage /> },
