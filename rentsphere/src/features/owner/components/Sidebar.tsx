@@ -17,7 +17,7 @@ const DEFAULT_MENU: MenuItem[] = [
     { key: "dashboard", label: "ข้อมูลภาพรวม", path: "/owner/dashboard" },
     { key: "rooms", label: "ห้อง", path: "/owner/rooms" },
     { key: "maintenance", label: "แจ้งซ่อม", path: "/owner/maintenance" },
-    { key: "parcel", label: "แจ้งพัสดุ", path: "/owner/parcel" },
+    { key: "parcel", label: "แจ้งพัสดุ", path: "/owner/admin/parcel" },
     { key: "common-area-booking", label: "จองส่วนกลาง", path: "/owner/common-area-booking" },
     { key: "meter", label: "จดมิเตอร์", path: "/owner/meter" },
     { key: "billing", label: "ออกบิล", path: "/owner/billing" },
