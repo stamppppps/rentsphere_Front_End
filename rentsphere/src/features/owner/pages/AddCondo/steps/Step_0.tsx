@@ -146,7 +146,7 @@ export default function Step_0() {
       }
       const parsed = JSON.parse(raw);
       return {
-        logoFile: null, 
+        logoFile: null,
         nameTh: String(parsed?.nameTh ?? ""),
         addressTh: String(parsed?.addressTh ?? ""),
         nameEn: String(parsed?.nameEn ?? ""),
@@ -173,7 +173,7 @@ export default function Step_0() {
     }
   });
 
-  
+
   useEffect(() => {
     const { logoFile, ...rest } = formData;
     sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(rest));
@@ -227,9 +227,9 @@ export default function Step_0() {
         await uploadCondoLogo(condoId, formData.logoFile);
       }
 
- 
 
-      nav("/owner/add-condo/step-1",{
+
+      nav("/owner/add-condo/step-1", {
         state: { condoId, condoName: formData.nameTh.trim() },
       });
     } catch (e: any) {

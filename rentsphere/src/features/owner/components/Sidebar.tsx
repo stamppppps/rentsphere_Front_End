@@ -1,10 +1,13 @@
 import RentSphereLogo from "@/assets/brand/rentsphere-logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type MenuItem = {
     key: string;
     label: string;
     path: string;
+    subItems?: Omit<MenuItem, "subItems">[];
 };
 
 type SidebarProps = {
@@ -23,35 +26,102 @@ const DEFAULT_MENU: MenuItem[] = [
     { key: "billing", label: "ออกบิล", path: "/owner/billing" },
     { key: "payments", label: "แจ้งชำระเงิน", path: "/owner/payments" },
     { key: "reports", label: "รายงาน", path: "/owner/reports" },
-    { key: "settings", label: "การตั้งค่า", path: "/owner/settings" },
+    {
+        key: "settings",
+        label: "การตั้งค่า",
+        path: "#",
+        subItems: [
+            { key: "step0", label: "ตั้งค่าคอนโด", path: "/owner/settings/step-0" },
+            { key: "step1", label: "ค่าบริการ", path: "/owner/settings/step-1" },
+            { key: "step2", label: "การคิดค่าน้ำ/ค่าไฟ", path: "/owner/settings/step-2" },
+            { key: "step3", label: "บัญชีธนาคาร", path: "/owner/settings/step-3" },
+            { key: "step4", label: "จัดการชั้น", path: "/owner/settings/step-4" },
+            { key: "step5", label: "ผังห้อง", path: "/owner/settings/step-5" },
+            { key: "step6", label: "ค่าห้อง", path: "/owner/settings/step-6" },
+            { key: "step7", label: "สถานะห้อง", path: "/owner/settings/step-7" },
+            { key: "step8", label: "ค่าบริการรายห้อง", path: "/owner/settings/step-8" },
+            { key: "add-condo", label: "เพิ่มคอนโด", path: "/owner/add-condo" },
+        ],
+    },
 ];
 
 function SidebarItem({
-    label,
+    item,
     active,
-    onClick,
+    isActivePath,
+    onNavigate,
 }: {
-    label: string;
+    item: MenuItem;
     active?: boolean;
-    onClick: () => void;
+    isActivePath: (path: string) => boolean;
+    onNavigate: (path: string) => void;
 }) {
+    const hasSubItems = !!item.subItems?.length;
+    const isSubActive = hasSubItems && item.subItems!.some((sub) => isActivePath(sub.path));
+    const [isOpen, setIsOpen] = useState(isSubActive);
+
+    const handleClick = () => {
+        if (hasSubItems) {
+            setIsOpen(!isOpen);
+        } else {
+            onNavigate(item.path);
+        }
+    };
+
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={[
-                "w-full text-left rounded-2xl",
-                "px-7 py-5",
-                "text-[18px] font-extrabold tracking-[0.2px]",
-                "transition-all duration-200",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/40",
-                active
-                    ? "bg-white text-gray-900 shadow-md translate-x-0.5"
-                    : "text-gray-800/80 hover:bg-white/60 hover:text-gray-900 hover:translate-x-0.5",
-            ].join(" ")}
-        >
-            {label}
-        </button>
+        <div className="flex flex-col w-full">
+            <button
+                type="button"
+                onClick={handleClick}
+                className={[
+                    "w-full text-left rounded-2xl",
+                    "px-7 py-5",
+                    "flex items-center justify-between",
+                    "text-[18px] font-extrabold tracking-[0.2px]",
+                    "transition-all duration-200",
+                    "focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/40",
+                    active || isSubActive
+                        ? "bg-white text-gray-900 shadow-md translate-x-0.5"
+                        : "text-gray-800/80 hover:bg-white/60 hover:text-gray-900 hover:translate-x-0.5",
+                ].join(" ")}
+            >
+                <span>{item.label}</span>
+                {hasSubItems && (
+                    isOpen ? (
+                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                    ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )
+                )}
+            </button>
+
+            {hasSubItems && isOpen && (
+                <div className="flex flex-col gap-1 pl-4 mt-2 ml-4 border-l-2 border-gray-300/50">
+                    {item.subItems!.map((sub) => {
+                        const subActive = isActivePath(sub.path);
+                        return (
+                            <button
+                                key={sub.key}
+                                type="button"
+                                onClick={() => onNavigate(sub.path)}
+                                className={[
+                                    "w-full text-left rounded-xl",
+                                    "px-4 py-3",
+                                    "text-[16px] font-bold tracking-[0.1px]",
+                                    "transition-all duration-200",
+                                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/40",
+                                    subActive
+                                        ? "bg-blue-50/80 text-blue-700 shadow-sm translate-x-1 border border-blue-200"
+                                        : "text-gray-600 hover:bg-white/80 hover:text-gray-800 hover:translate-x-1",
+                                ].join(" ")}
+                            >
+                                {sub.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -64,8 +134,10 @@ export default function Sidebar({
     const { pathname } = useLocation();
     const items = menu ?? DEFAULT_MENU;
 
-    const isActivePath = (itemPath: string) =>
-        pathname === itemPath || pathname.startsWith(itemPath + "/");
+    const isActivePath = (itemPath: string) => {
+        if (itemPath === "#") return false;
+        return pathname === itemPath || pathname.startsWith(itemPath + "/");
+    };
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
@@ -98,9 +170,10 @@ export default function Sidebar({
                         {items.map((m) => (
                             <SidebarItem
                                 key={m.key}
-                                label={m.label}
+                                item={m}
                                 active={activeKey ? m.key === activeKey : isActivePath(m.path)}
-                                onClick={() => nav(m.path)}
+                                isActivePath={isActivePath}
+                                onNavigate={(path) => nav(path)}
                             />
                         ))}
                     </div>
