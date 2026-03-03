@@ -1,6 +1,8 @@
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
+import TenantLoginPage from "@/features/tenant/pages/Auth/pages/LoginPage";
+import TenantWelcomePage from "@/features/tenant/pages/Auth/pages/WelcomePage";
 import BillingHistoryDetailPage from "@/features/tenant/pages/billing/pages/ BillingHistoryDetailPage";
 import BillingHistoryPage from "@/features/tenant/pages/billing/pages/ BillingHistoryPage";
 import BillingBankTransferPage from "@/features/tenant/pages/billing/pages/BillingBankTransferPage";
@@ -17,7 +19,9 @@ import FacilityDetailPage from "@/features/tenant/pages/booking/pages/FacilityDe
 import FacilityListPage from "@/features/tenant/pages/booking/pages/FacilityListPage";
 import HistoryPageReal from "@/features/tenant/pages/history/pages/HistoryPage";
 import TenantHomePage from "@/features/tenant/pages/home/pages/TenantHomePage";
-import MaintenancePage from "@/features/tenant/pages/maintenance/pages/MaintenancePage";
+import RepairDetailPage from "@/features/tenant/pages/maintenance/pages/RepairDetailPage";
+import RepairHistoryPage from "@/features/tenant/pages/maintenance/pages/RepairHistoryPage";
+import RepairRequestPage from "@/features/tenant/pages/maintenance/pages/RepairRequestPage";
 import ParcelPage from "@/features/tenant/pages/parcel/pages/ParcelPage";
 import TenantProfilePage from "@/features/tenant/pages/profile/pages/TenantProfilePage";
 import TenantLayout from "@/shared/layouts/TenantLayout";
@@ -25,11 +29,17 @@ import TenantLayout from "@/shared/layouts/TenantLayout";
 const NotificationsPage = () => <div className="min-h-screen bg-gradient-to-b from-[#f0f7ff] via-[#f0f5ff] to-white pb-32 p-4 pt-10 text-center text-gray-500 font-medium ">การแจ้งเตือน</div>;
 
 const tenantRoutes: RouteObject[] = [
+  { path: "/login", element: <Navigate to="/tenant/login" replace /> },
+  { path: "/welcome", element: <Navigate to="/tenant/welcome" replace /> },
+  { path: "/tenant/login", element: <TenantLoginPage /> },
+  { path: "/tenant/welcome", element: <TenantWelcomePage /> },
   { path: "/home", element: <Navigate to="/tenant/home" replace /> },
   { path: "/history", element: <Navigate to="/tenant/history" replace /> },
   { path: "/notifications", element: <Navigate to="/tenant/notifications" replace /> },
   { path: "/profile", element: <Navigate to="/tenant/profile" replace /> },
   { path: "/maintenance", element: <Navigate to="/tenant/maintenance" replace /> },
+  { path: "/maintenance/history", element: <Navigate to="/tenant/maintenance/history" replace /> },
+  { path: "/maintenance/:id", element: <Navigate to="/tenant/maintenance/:id" replace /> },
   { path: "/parcel", element: <Navigate to="/tenant/parcel" replace /> },
   { path: "/billing", element: <Navigate to="/tenant/billing" replace /> },
   { path: "/booking", element: <Navigate to="/tenant/booking" replace /> },
@@ -45,7 +55,9 @@ const tenantRoutes: RouteObject[] = [
       { path: "history", element: <HistoryPageReal /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "profile", element: <TenantProfilePage /> },
-      { path: "maintenance", element: <MaintenancePage /> },
+      { path: "maintenance", element: <RepairRequestPage /> },
+      { path: "maintenance/history", element: <RepairHistoryPage /> },
+      { path: "maintenance/:id", element: <RepairDetailPage /> },
       { path: "parcel", element: <ParcelPage /> },
       { path: "billing", element: <BillingPage /> },
       { path: "billing/:billId/pay", element: <BillingPayMethodPage /> },

@@ -19,7 +19,7 @@ import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
-import MaintenancePage from "@/features/owner/pages/Maintenance/MaintenancePage";
+import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
 import MeterPage from "@/features/owner/pages/Meter/MeterPage";
 import MeterPage2 from "@/features/owner/pages/Meter/MeterPage_2";
 import ParcelPage from "@/features/owner/pages/Parcel/ParcelPage";
@@ -32,7 +32,8 @@ import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
-
+import MaintenancePage from "@/features/owner/pages/Maintenance/AdminRepairs";
+import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 // ===== Facility Booking pages =====
 
 import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
@@ -104,6 +105,17 @@ const ownerRoutes: RouteObject[] = [
       { path: "*", element: <Navigate to="dashboard" replace /> },
     ],
   },
+
+   {
+    path: "/owner/admin-repairs",
+    element: <AdminRepairs />,
+  },
+
+  {
+    path: "/owner/admin/parcel",
+    element: <AdminParcel />,
+  },
+
 ];
 
 export default ownerRoutes;
