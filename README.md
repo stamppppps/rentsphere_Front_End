@@ -90,6 +90,7 @@ cd rentsphere
 npm install
 แล้ว install เพิ่มเอง
 npm install react-router-dom zustand recharts react-hot-toast lucide-react
+npm install pdfjs-dist
 npm install -D tailwindcss @tailwindcss/vite
 
 ```
