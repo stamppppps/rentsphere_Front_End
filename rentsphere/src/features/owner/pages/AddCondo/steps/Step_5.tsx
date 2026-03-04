@@ -1,88 +1,105 @@
+import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-type RoomStatus = "VACANT" | "OCCUPIED";
+const STEP_CONDO_ID_KEY = "add_condo_condoId";
+
+
+type OccupancyStatus = "VACANT" | "OCCUPIED";
+type RoomStatus = "NORMAL" | "MAINTENANCE" | "BROKEN" | string; // กันค่าในอนาคต
 
 type Room = {
   id: string;
   floor: number;
   roomNo: string;
   price: number | null;
-  serviceId: number | null;
   isActive: boolean;
-  status: RoomStatus;
+  occupancyStatus?: OccupancyStatus;
+  roomStatus?: RoomStatus;
 };
 
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
+type FloorConfigDto = {
+  floorCount: number;
+  roomsPerFloor: number[];
+  totalRooms: number;
+};
 
-function buildRooms(floorCount: number, roomsPerFloor: number[]): Room[] {
-  const rooms: Room[] = [];
-  for (let floor = 1; floor <= floorCount; floor++) {
-    const count = roomsPerFloor[floor - 1] ?? 1;
-    for (let i = 1; i <= count; i++) {
-      rooms.push({
-        id: `${floor}-${i}`,
-        floor,
-        roomNo: `${floor}${pad2(i)}`,
-        price: null,
-        serviceId: null,
-        isActive: true,
-        status: "VACANT",
-      });
-    }
-  }
-  return rooms;
-}
-
-function sortByFloorAndIndex(a: Room, b: Room) {
+function sortByFloorAndRoomNo(a: Room, b: Room) {
   if (a.floor !== b.floor) return a.floor - b.floor;
-  const ai = parseInt(a.id.split("-")[1] ?? "0", 10);
-  const bi = parseInt(b.id.split("-")[1] ?? "0", 10);
-  return ai - bi;
-}
-
-function renumberFloorRooms(allRooms: Room[], floor: number): Room[] {
-  const floorRooms = allRooms
-    .filter((r) => r.floor === floor)
-    .slice()
-    .sort(sortByFloorAndIndex);
-
-  const otherRooms = allRooms.filter((r) => r.floor !== floor);
-
-  const renumbered = floorRooms.map((r, idx) => ({
-    ...r,
-    id: `${floor}-${idx + 1}`,
-    roomNo: `${floor}${pad2(idx + 1)}`,
-  }));
-
-  return [...otherRooms, ...renumbered].sort(sortByFloorAndIndex);
+  return a.roomNo.localeCompare(b.roomNo);
 }
 
 export default function Step_5() {
   const nav = useNavigate();
+  const location = useLocation();
 
-  // ======================
-  // Local state
-  // ======================
+  const condoId: string = useMemo(() => {
+    const fromState = (location.state as any)?.condoId;
+    const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
+    return String(fromState ?? fromStorage ?? "");
+  }, [location.state]);
+
+  useEffect(() => {
+    if (condoId) localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
+  }, [condoId]);
+
+  useEffect(() => {
+    if (!condoId) nav("/owner/add-condo/step-0");
+  }, [condoId, nav]);
+
   const [floorCount, setFloorCount] = useState<number>(0);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  // ======================
-  // TODO: API (backend will connect later)
-  // - GET floorCount, roomsPerFloor, rooms
-  // - setFloorCount, setRooms
-  // ======================
   useEffect(() => {
-    // Ex:
-    // const mockFloorCount = 3;
-    // const mockRoomsPerFloor = [4, 4, 4];
-    // setFloorCount(mockFloorCount);
-    // setRooms(buildRooms(mockFloorCount, mockRoomsPerFloor));
-  }, []);
+    if (!condoId) return;
 
-  // Group rooms by floor (เหมือน Step6)
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      setApiError(null);
+      try {
+        const cfg = await api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, {
+          method: "GET",
+        });
+        if (!alive) return;
+
+        if (!cfg?.floorCount || cfg.floorCount <= 0) {
+          setFloorCount(0);
+          setRooms([]);
+          return;
+        }
+
+        setFloorCount(cfg.floorCount);
+
+        let list = await api<Room[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
+        if (!alive) return;
+
+     
+        if ((list ?? []).length === 0) {
+          await api(`/owner/condos/${condoId}/rooms/generate`, { method: "POST" });
+          list = await api<Room[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
+          if (!alive) return;
+        }
+
+        setRooms((list ?? []).slice().sort(sortByFloorAndRoomNo));
+      } catch (e: any) {
+        if (!alive) return;
+        setApiError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [condoId]);
+
+
   const roomsByFloor = useMemo(() => {
     const map = new Map<number, Room[]>();
     for (let f = 1; f <= floorCount; f++) map.set(f, []);
@@ -93,56 +110,108 @@ export default function Step_5() {
 
   const totalRooms = useMemo(() => rooms.length, [rooms]);
 
-  // ======================
-  // Actions (API)
-  // ======================
-  const toggleRoomActive = (roomId: string) => {
-    setRooms((prev) =>
-      prev.map((r) => (r.id === roomId ? { ...r, isActive: !r.isActive } : r))
-    );
+  const disabledAll = loading || saving;
 
-    // TODO: API
-    // await api.toggleRoomActive({ roomId })
+
+  const toggleRoomActive = async (room: Room) => {
+    if (!condoId || saving) return;
+
+    const next = !room.isActive;
+
+
+    setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, isActive: next } : r)));
+
+    setSaving(true);
+    setApiError(null);
+    try {
+      const updated = await api<Room>(`/owner/condos/${condoId}/rooms/${room.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: next }),
+      });
+
+    
+      setRooms((prev) =>
+        prev
+          .map((r) => (r.id === room.id ? { ...r, ...updated } : r))
+          .slice()
+          .sort(sortByFloorAndRoomNo)
+      );
+    } catch (e: any) {
+     
+      setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, isActive: room.isActive } : r)));
+      setApiError(e?.message ?? "อัปเดตสถานะห้องไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const changeRoomNo = (roomId: string, value: string) => {
+  const changeRoomNoLocal = (roomId: string, value: string) => {
     setRooms((prev) => prev.map((r) => (r.id === roomId ? { ...r, roomNo: value } : r)));
-
-    // TODO: API
-    // await api.updateRoom({ roomId, roomNo: value })
   };
 
-  const addRoomOnFloor = (floor: number) => {
-    setRooms((prev) => {
-      const current = prev.filter((r) => r.floor === floor);
-      const nextIndex = current.length + 1;
-      if (nextIndex > 50) return prev;
+  const saveRoomNo = async (room: Room) => {
+    if (!condoId || saving) return;
 
-      const newRoom: Room = {
-        id: `${floor}-${nextIndex}`,
-        floor,
-        roomNo: `${floor}${pad2(nextIndex)}`,
-        price: null,
-        serviceId: null,
-        isActive: true,
-        status: "VACANT",
-      };
+    const roomNo = room.roomNo.trim();
+    if (!roomNo) return;
 
-      return [...prev, newRoom].sort(sortByFloorAndIndex);
-    });
+    setSaving(true);
+    setApiError(null);
+    try {
+      const updated = await api<Room>(`/owner/condos/${condoId}/rooms/${room.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ roomNo }),
+      });
 
-    // TODO: API
-    // await api.addRoom({ floor })
+      setRooms((prev) =>
+        prev
+          .map((r) => (r.id === room.id ? { ...r, ...updated } : r))
+          .slice()
+          .sort(sortByFloorAndRoomNo)
+      );
+    } catch (e: any) {
+      setApiError(e?.message ?? "บันทึกเลขห้องไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const deleteRoomOnFloor = (floor: number, roomId: string) => {
-    setRooms((prev) => {
-      const filtered = prev.filter((r) => r.id !== roomId);
-      return renumberFloorRooms(filtered, floor);
-    });
+  const addRoomOnFloor = async (floor: number) => {
+    if (!condoId || saving) return;
 
-    // TODO: API
-    // await api.deleteRoom({ roomId })
+    setSaving(true);
+    setApiError(null);
+    try {
+     
+      const created = await api<Room>(`/owner/condos/${condoId}/rooms`, {
+        method: "POST",
+        body: JSON.stringify({ floor }),
+      });
+
+      setRooms((prev) => [...prev, created].slice().sort(sortByFloorAndRoomNo));
+    } catch (e: any) {
+      setApiError(e?.message ?? "เพิ่มห้องไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteRoomOnFloor = async (room: Room) => {
+    if (!condoId || saving) return;
+
+    setSaving(true);
+    setApiError(null);
+    try {
+      await api(`/owner/condos/${condoId}/rooms/${room.id}`, { method: "DELETE" });
+
+    
+      const list = await api<Room[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
+      setRooms((list ?? []).slice().sort(sortByFloorAndRoomNo));
+    } catch (e: any) {
+      setApiError(e?.message ?? "ลบห้องไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -151,11 +220,21 @@ export default function Step_5() {
         ตั้งค่าคอนโดมิเนียม
       </h1>
 
-      {floorCount <= 0 ? (
+      {apiError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-700 font-extrabold">
+          {apiError}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-2xl bg-white border border-blue-100/60 shadow-[0_18px_50px_rgba(15,23,42,0.12)] px-8 py-10 text-center">
+          <div className="text-lg font-extrabold text-gray-900">กำลังโหลด...</div>
+        </div>
+      ) : floorCount <= 0 ? (
         <div className="rounded-2xl bg-white border border-blue-100/60 shadow-[0_18px_50px_rgba(15,23,42,0.12)] px-8 py-10 text-center">
           <div className="text-lg font-extrabold text-gray-900">ยังไม่มีข้อมูลห้อง</div>
           <div className="mt-2 text-sm font-bold text-gray-600">
-            รอ backend ส่ง floorCount และรายการ rooms มาให้ แล้วหน้าจะพร้อมใช้งานทันที
+            กรุณาตั้งค่า “จำนวนชั้น/จำนวนห้อง” ที่ Step4 ก่อน
           </div>
         </div>
       ) : (
@@ -186,12 +265,13 @@ export default function Step_5() {
 
                     <button
                       type="button"
+                      disabled={disabledAll}
                       onClick={() => addRoomOnFloor(floor)}
                       className="h-[44px] px-5 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
                                  bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
-                                 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
                     >
-                      เพิ่มห้อง
+                      {saving ? "กำลังบันทึก..." : "เพิ่มห้อง"}
                     </button>
                   </div>
 
@@ -211,10 +291,11 @@ export default function Step_5() {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => toggleRoomActive(room.id)}
+                                disabled={disabledAll}
+                                onClick={() => toggleRoomActive(room)}
                                 className={[
                                   "px-4 py-2 rounded-xl text-xs font-extrabold border shadow-sm transition",
-                                  "active:scale-[0.98] focus:outline-none focus:ring-2",
+                                  "active:scale-[0.98] focus:outline-none focus:ring-2 disabled:opacity-60",
                                   room.isActive
                                     ? "bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 focus:ring-emerald-200"
                                     : "bg-white border-rose-200 text-rose-700 hover:bg-rose-50 focus:ring-rose-200",
@@ -225,9 +306,10 @@ export default function Step_5() {
 
                               <button
                                 type="button"
-                                onClick={() => deleteRoomOnFloor(floor, room.id)}
+                                disabled={disabledAll}
+                                onClick={() => deleteRoomOnFloor(room)}
                                 className="px-4 py-2 rounded-xl text-xs font-extrabold border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition active:scale-[0.98]
-                                           focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                           focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
                               >
                                 ลบ
                               </button>
@@ -236,20 +318,20 @@ export default function Step_5() {
 
                           <input
                             value={room.roomNo}
-                            onChange={(e) => changeRoomNo(room.id, e.target.value)}
+                            disabled={disabledAll}
+                            onChange={(e) => changeRoomNoLocal(room.id, e.target.value)}
+                            onBlur={() => saveRoomNo(room)}
                             aria-label="เลขห้อง"
                             placeholder="เลขห้อง"
                             className="mt-4 w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
-                                       focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+                                       focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300 disabled:opacity-60"
                           />
 
                           <div className="mt-4 text-sm font-bold text-gray-600">
                             สถานะ:{" "}
                             <span
                               className={
-                                room.isActive
-                                  ? "text-emerald-700 font-extrabold"
-                                  : "text-rose-700 font-extrabold"
+                                room.isActive ? "text-emerald-700 font-extrabold" : "text-rose-700 font-extrabold"
                               }
                             >
                               {room.isActive ? "เปิด" : "ปิด"}
@@ -278,19 +360,21 @@ export default function Step_5() {
 
         <button
           type="button"
-          onClick={() => nav("../step-4")}
+          disabled={disabledAll}
+          onClick={() => nav("../step-4", { state: { condoId } })}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                     focus:outline-none focus:ring-2 focus:ring-gray-200"
+                     focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
         >
           ย้อนกลับ
         </button>
 
         <button
           type="button"
-          onClick={() => nav("../step-6")}
+          disabled={disabledAll}
+          onClick={() => nav("../step-6", { state: { condoId } })}
           className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
                      bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
-                     focus:outline-none focus:ring-2 focus:ring-blue-300"
+                     focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
         >
           ต่อไป
         </button>

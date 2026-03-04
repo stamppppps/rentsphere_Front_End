@@ -37,42 +37,24 @@ export default function Step_4() {
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const hasRoomError = Object.keys(roomErrors).length > 0;
-  const canGoNext = floorCount !== "" && !hasRoomError;
 
-  const roomsPerFloorNormalized = useMemo(() => {
-    if (floorCount === "") return [];
-    return Array.from({ length: floorCount }, (_, i) => {
-      const s = roomsPerFloorText[i] ?? "1";
-      let n = Number(s);
-      if (!Number.isFinite(n)) n = 1;
-      return Math.max(1, Math.min(50, Math.trunc(n)));
-    });
-  }, [floorCount, roomsPerFloorText]);
-
-  const totalRooms = useMemo(() => {
-    return roomsPerFloorNormalized.reduce((sum, n) => sum + n, 0);
-  }, [roomsPerFloorNormalized]);
-
- 
   useEffect(() => {
     if (!condoId) return;
 
     let alive = true;
+
     (async () => {
       setLoading(true);
       setApiError(null);
       try {
-        const data = await api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, {
+        const cfg = await api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, {
           method: "GET",
         });
-
         if (!alive) return;
 
-        if (data?.floorCount && data.floorCount > 0) {
-          setFloorCount(data.floorCount);
-          setRoomsPerFloorText((data.roomsPerFloor ?? []).map((n) => String(n)));
-          setRoomErrors({});
+        if (cfg?.floorCount && cfg.floorCount > 0) {
+          setFloorCount(cfg.floorCount);
+          setRoomsPerFloorText((cfg.roomsPerFloor ?? []).map((n) => String(n)));
         }
       } catch (e: any) {
         if (!alive) return;
@@ -87,6 +69,23 @@ export default function Step_4() {
     };
   }, [condoId]);
 
+  const hasRoomError = Object.keys(roomErrors).length > 0;
+  const canGoNext = floorCount !== "" && !hasRoomError && !saving;
+
+  const roomsPerFloorNormalized = useMemo(() => {
+    if (floorCount === "") return [];
+    return Array.from({ length: floorCount }, (_, i) => {
+      const s = roomsPerFloorText[i] ?? "1";
+      let n = Number(s);
+      if (!Number.isFinite(n)) n = 1;
+      return Math.max(1, Math.min(50, n));
+    });
+  }, [floorCount, roomsPerFloorText]);
+
+  const totalRooms = useMemo(() => {
+    return roomsPerFloorNormalized.reduce((sum, n) => sum + n, 0);
+  }, [roomsPerFloorNormalized]);
+
   const handleFloorChange = (value: number | "") => {
     setFloorCount(value);
 
@@ -96,7 +95,12 @@ export default function Step_4() {
       return;
     }
 
-    setRoomsPerFloorText(Array.from({ length: value }, () => "1"));
+    // ถ้าเคยมีค่าจาก backend แล้วและจำนวนชั้นเปลี่ยน
+    setRoomsPerFloorText((prev) => {
+      const next = Array.from({ length: value }, (_, i) => prev[i] ?? "1");
+      return next;
+    });
+
     setRoomErrors({});
   };
 
@@ -143,7 +147,7 @@ export default function Step_4() {
 
     let n = Number(raw);
     if (!Number.isFinite(n)) n = 1;
-    n = Math.max(1, Math.min(50, Math.trunc(n)));
+    n = Math.max(1, Math.min(50, n));
 
     setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? String(n) : v)));
 
@@ -190,12 +194,6 @@ export default function Step_4() {
         </div>
       )}
 
-      {loading && (
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 px-6 py-4 text-blue-700 font-extrabold">
-          กำลังโหลดข้อมูล...
-        </div>
-      )}
-
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
@@ -215,8 +213,8 @@ export default function Step_4() {
 
             <select
               value={floorCount}
-              onChange={(e) => handleFloorChange(e.target.value === "" ? "" : Number(e.target.value))}
               disabled={loading || saving}
+              onChange={(e) => handleFloorChange(e.target.value === "" ? "" : Number(e.target.value))}
               className="w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
                          focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300 disabled:opacity-60"
             >
@@ -259,7 +257,7 @@ export default function Step_4() {
                           inputMode="numeric"
                           pattern="[0-9]*"
                           value={roomText}
-                          disabled={loading || saving}
+                          disabled={saving}
                           onFocus={(e) => e.currentTarget.select()}
                           onClick={(e) => e.currentTarget.select()}
                           onChange={(e) => handleRoomTextChange(i, e.target.value)}
@@ -283,7 +281,7 @@ export default function Step_4() {
               </div>
 
               <div className="text-xs font-bold text-gray-500">
-                * ระบบจะบันทึกจำนวนชั้น/จำนวนห้องต่อชั้นลงฐานข้อมูล แล้ว Step5 ค่อยไปดึงจาก API ได้
+                * เมื่อกด “ต่อไป” ระบบจะบันทึก floor-config ลง DB และ Step5 จะสร้าง/โหลดรายการห้องให้
               </div>
             </div>
           )}
@@ -293,8 +291,8 @@ export default function Step_4() {
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
         <button
           type="button"
-          onClick={() => nav("../step-3", { state: { condoId } })}
           disabled={saving}
+          onClick={() => nav("../step-3", { state: { condoId } })}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
                          focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
         >
@@ -304,11 +302,11 @@ export default function Step_4() {
         <button
           type="button"
           onClick={handleNext}
-          disabled={!canGoNext || loading || saving}
+          disabled={!canGoNext}
           className={[
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
-            canGoNext && !loading && !saving
+            canGoNext
               ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] cursor-pointer"
               : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
           ].join(" ")}

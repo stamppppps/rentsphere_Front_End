@@ -5,6 +5,7 @@ import AuthLayout from "@/features/auth/layouts/AuthLayout";
 
 
 import LoginPage from "@/features/auth/pages/LoginPage";
+import StaffInviteAcceptPage from "@/features/staff/pages/StaffInviteAcceptPage";
 
 // OWNER flow 
 import OwnerRegisterPage from "@/features/auth/pages/OwnerRegisterPage";
@@ -21,14 +22,19 @@ import RegisterSuccessPage from "@/features/auth/pages/RegisterSuccessPage";
 const authRoutes: RouteObject[] = [
   { path: "/", element: <Navigate to="/auth/owner/login" replace /> },
 
-  //OWNER 
+
+  {
+    path: "/staff/invite/:token",
+    element: <StaffInviteAcceptPage />,
+  },
+
+  //OWNER
   {
     path: "/auth/owner",
     element: <AuthLayout />,
     children: [
       { path: "login", element: <LoginPage /> },
 
-      // OWNER Register Flow
       { path: "register", element: <OwnerRegisterPage /> },
       { path: "verify-method", element: <OwnerVerifyMethodPage /> },
       { path: "verify-email", element: <OwnerVerifyEmailPage /> },
@@ -41,7 +47,6 @@ const authRoutes: RouteObject[] = [
       { index: true, element: <Navigate to="login" replace /> },
     ],
   },
-
 
   { path: "/auth", element: <Navigate to="/auth/owner/login" replace /> },
 ];
