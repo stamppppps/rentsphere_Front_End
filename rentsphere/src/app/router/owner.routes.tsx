@@ -31,8 +31,6 @@ import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
-import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
-import OwnerSettingsLayout from "@/features/owner/pages/Settings/OwnerSettingsLayout";
 import MaintenancePage from "@/features/owner/pages/Maintenance/AdminRepairs";
 import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 
@@ -69,33 +67,13 @@ const ownerRoutes: RouteObject[] = [
       { path: "payments", element: <PaymentsPage /> },
       { path: "reports", element: <ReportsPage /> },
 
-      // Duplicate AddCondo flow for Settings pages, but inside OwnerShell Layout
-      {
-        path: "settings",
-        element: <OwnerSettingsLayout />,
-        children: [
-          { index: true, element: <SettingsPage /> },
-          { path: "step-0", element: <Step_0 /> },
-          { path: "step-1", element: <Step_1 /> },
-          { path: "step-2", element: <Step_2 /> },
-          { path: "step-3", element: <Step_3 /> },
-          { path: "step-4", element: <Step_4 /> },
-          { path: "step-5", element: <Step_5 /> },
-          { path: "step-6", element: <Step6RoomPrice /> },
-          { path: "step-7", element: <Step7Review /> },
-          { path: "step-8", element: <Step8RoomService /> },
-        ],
-      },
-
-      // Step 0 - standalone page (ไม่อยู่ใน AddCondoLayout)
-      { path: "add-condo/step-0", element: <Step_0 /> },
-
-      // AddCondo flow (step-1 onwards with sidebar layout)
+      // AddCondo flow (step-0 onwards with sidebar layout)
       {
         path: "add-condo",
         element: <AddCondoLayout />,
         children: [
           { index: true, element: <Navigate to="step-0" replace /> },
+          { path: "step-0", element: <Step_0 /> },
 
           { path: "step-1", element: <Step_1 /> },
           { path: "step-2", element: <Step_2 /> },
