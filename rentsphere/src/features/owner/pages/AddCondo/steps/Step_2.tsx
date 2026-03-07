@@ -430,7 +430,7 @@ const Step_2: React.FC = () => {
               <div>
                 {utilityLabel("water")}:{" "}
                 {utilityConfig.water
-                  ? `${billingTypeLabel(utilityConfig.water.billingType)} @ ${utilityConfig.water.rate.toLocaleString()}`
+                  ? `${billingTypeLabel(utilityConfig.water.billingType)} ${utilityConfig.water.rate.toLocaleString()}`
                   : "ยังไม่ตั้งค่า"}
               </div>
               <div>
@@ -438,7 +438,7 @@ const Step_2: React.FC = () => {
                 {utilityConfig.electricity
                   ? `${billingTypeLabel(
                       utilityConfig.electricity.billingType
-                    )} @ ${utilityConfig.electricity.rate.toLocaleString()}`
+                    )}  ${utilityConfig.electricity.rate.toLocaleString()}`
                   : "ยังไม่ตั้งค่า"}
               </div>
             </div>

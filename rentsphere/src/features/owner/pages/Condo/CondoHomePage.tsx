@@ -680,7 +680,7 @@ function UserManagementPanel({
               </div>
 
               <div className="mt-3 text-xs font-bold text-gray-400">
-                * BE: /owner/condos/:condoId/staff (GET/POST/PATCH)
+            
               </div>
             </div>
           </div>
@@ -711,7 +711,7 @@ export default function CondoHomePage() {
 
   const token = useMemo(() => getTokenFromStorage(), []);
 
-  // ✅ Redirect login อัตโนมัติ ถ้าไม่มี token
+
   useEffect(() => {
     if (!token) {
       nav("/login", {
@@ -790,7 +790,7 @@ export default function CondoHomePage() {
   const goDashboard = (condoId: string) =>
     nav("/owner/dashboard", { state: { condoId } });
 
-  // ✅ ผูกหน้า “จัดการผู้ใช้งาน” กับคอนโดตัวแรกก่อน (MVP)
+
   const condoNameForUsers = sortedCondos[0]?.name ?? "—";
   const condoIdForUsers = sortedCondos[0]?.id ?? null;
 
