@@ -442,7 +442,7 @@ export default function Step8_RoomService() {
               </select>
 
               <div className="mt-3 text-xs font-bold text-gray-500">
-                ✅ เพิ่มบริการให้ห้องด้วย “บันทึก” | ถ้าจะลบบริการ ต้องเลือกบริการก่อนแล้วกด “ลบค่าบริการ”
+               
               </div>
             </div>
 

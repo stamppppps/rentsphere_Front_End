@@ -78,7 +78,7 @@ const OwnerVerifyMethodPage: React.FC = () => {
             <p className="text-xs text-white/60 leading-relaxed">
               ช่องทางที่คุณเลือกตอนสมัครคือ: <span className="font-semibold text-white/80">{channel}</span>
               <br />
-              หมายเหตุ (Production): สมัคร → ยืนยันช่องทางที่เลือก → จากนั้นล็อกอินได้เลย
+              หมายเหตุ: สมัคร ยืนยันช่องทางที่เลือก  จากนั้นล็อกอินได้เลย
             </p>
 
             <div className="pt-2 text-center">

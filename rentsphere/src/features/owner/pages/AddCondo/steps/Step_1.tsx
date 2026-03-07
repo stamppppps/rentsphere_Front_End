@@ -234,7 +234,7 @@ const Step_1: React.FC = () => {
 
             <div className="lg:col-span-5">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ราคาต่อหน่วย <span className="text-rose-600">*</span>
+                ราคา <span className="text-rose-600">*</span>
               </label>
               <div className="flex items-center">
                 <input
