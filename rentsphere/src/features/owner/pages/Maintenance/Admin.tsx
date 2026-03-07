@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 
-const API = "https://backendlinefacality.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 type Ticket = {
   id: string;

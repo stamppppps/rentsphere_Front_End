@@ -1,5 +1,10 @@
 /* ==================== component ==================== */
-export default function BillingFilter() {
+interface BillingFilterProps {
+  waterRate: number;
+  electricRate: number;
+}
+
+export default function BillingFilter({ waterRate, electricRate }: BillingFilterProps) {
   return (
     <div
       className="
@@ -25,6 +30,7 @@ export default function BillingFilter() {
 
         <div className="relative">
           <select
+            aria-label="เลือกรอบบิล"
             className="
               appearance-none
               border
@@ -43,7 +49,7 @@ export default function BillingFilter() {
               focus:ring-purple-100
             "
           >
-            <option>27-2025</option>
+            <option>{new Date().toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", month: "2-digit", year: "numeric" }).replace("/", "-")}</option>
           </select>
 
           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
@@ -75,7 +81,9 @@ export default function BillingFilter() {
 
         <input
           type="text"
-          defaultValue="18"
+          value={waterRate}
+          readOnly
+          aria-label="อัตราค่าน้ำ"
           className="
             w-20
             bg-white
@@ -103,7 +111,9 @@ export default function BillingFilter() {
 
         <input
           type="text"
-          defaultValue="7"
+          value={electricRate}
+          readOnly
+          aria-label="อัตราค่าไฟ"
           className="
             w-20
             bg-white

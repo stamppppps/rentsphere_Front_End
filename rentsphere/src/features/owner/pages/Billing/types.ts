@@ -15,4 +15,12 @@ export interface BillingItem {
   rentAmount: number;
   estimatedTotal: number;
   isPaid?: boolean;
+  /* — added for backend integration — */
+  waterRate: number;
+  electricRate: number;
+  invoiceId?: string;      // backend invoice id if exists
+  tenantName?: string;
+  condoName?: string;
+  condoAddress?: string;
+  invoiceDate?: string;     // created_at / recorded_at
 }

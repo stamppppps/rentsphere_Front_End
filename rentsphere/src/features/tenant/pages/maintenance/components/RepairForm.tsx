@@ -30,7 +30,6 @@ const RepairForm: React.FC<RepairFormProps> = ({ onSubmit, initialData }) => {
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-6">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-gray-800">รายละเอียดการแจ้งซ่อม</h2>
-          <p className="text-xs text-gray-400 font-medium">โหมดฟอร์มรอเชื่อมต่อ backend จริง</p>
         </div>
 
         <div className="space-y-2">

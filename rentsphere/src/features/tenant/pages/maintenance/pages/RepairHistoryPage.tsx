@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { RepairRequest, RepairStatus } from '../types/maintenance.types';
-import { maintenanceService } from '../services/maintenance.service';
+import { useState, useEffect } from 'react';
 
 const StatusBadge: React.FC<{ status: RepairStatus }> = ({ status }) => {
   const config = {
@@ -24,7 +24,45 @@ const StatusBadge: React.FC<{ status: RepairStatus }> = ({ status }) => {
 
 const RepairHistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const requests: RepairRequest[] = maintenanceService.getRequests();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    const fetchRepairs = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const lineUserId = localStorage.getItem("lineUserId");
+
+        if (!token && !lineUserId) {
+          navigate("/role", { replace: true });
+          return;
+        }
+
+        const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        const query = lineUserId ? `?lineUserId=${encodeURIComponent(lineUserId)}` : '';
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${API}/repair/my${query}`, {
+          headers
+        });
+
+        if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+        const data = await res.json();
+        setRequests(data.items || []);
+      } catch (e: any) {
+        setErr(e.message || "Failed to load repairs");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRepairs();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24">
@@ -62,11 +100,11 @@ const RepairHistoryPage: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                    {item.id}
+                    {item.id.slice(-6)}
                   </span>
-                  <StatusBadge status={item.status} />
+                  <StatusBadge status={item.status === "OPEN" ? "pending" : item.status === "IN_PROGRESS" || item.status === "WAITING_PARTS" ? "in_progress" : item.status === "DONE" ? "completed" : "cancelled"} />
                 </div>
-                <h3 className="text-base font-bold text-gray-800 line-clamp-1">{item.issueType}</h3>
+                <h3 className="text-base font-bold text-gray-800 line-clamp-1">{item.problem_type}</h3>
               </div>
             </div>
 
@@ -74,7 +112,7 @@ const RepairHistoryPage: React.FC = () => {
               <div className="flex items-center gap-2 text-gray-400">
                 <Clock size={14} />
                 <span className="text-[10px] font-medium">
-                  {new Date(item.createdAt).toLocaleDateString('th-TH', {
+                  {new Date(item.created_at).toLocaleDateString('th-TH', {
                     day: 'numeric',
                     month: 'short',
                     year: '2-digit',
@@ -97,14 +135,25 @@ const RepairHistoryPage: React.FC = () => {
         ))}
       </div>
 
-      {requests.length === 0 && (
+      {loading && (
+        <div className="flex justify-center items-center py-20 text-blue-600 font-bold">
+          กำลังโหลด...
+        </div>
+      )}
+
+      {err && (
+        <div className="flex justify-center items-center py-20 text-rose-600 font-bold">
+          {err}
+        </div>
+      )}
+
+      {!loading && !err && requests.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 px-10 text-center space-y-4">
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
             <AlertCircle size={40} />
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-gray-800">ยังไม่มีรายการแจ้งซ่อม</h3>
-            <p className="text-sm text-gray-400">รอเชื่อมต่อ backend เพื่อแสดงรายการจริง</p>
           </div>
           <button
             onClick={() => navigate('/tenant/maintenance', { replace: true })}

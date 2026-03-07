@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-
+function getAuthToken(): string {
+    try { const raw = localStorage.getItem("rentsphere_auth"); if (!raw) return ""; return JSON.parse(raw)?.state?.token || ""; } catch { return ""; }
+}
+function authHeaders() {
+    const t = getAuthToken();
+    return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+}
 
 const DAYS_TH = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 const MONTHS_TH = [
@@ -36,9 +44,11 @@ function getCalendarDays(year: number, month: number) {
 function MiniCalendar({
     selectedDate,
     onSelect,
+    recordedDates,
 }: {
     selectedDate: Date;
     onSelect: (d: Date) => void;
+    recordedDates: Set<string>;
 }) {
     const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
     const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
@@ -79,6 +89,8 @@ function MiniCalendar({
                 <div key={wi} className="grid grid-cols-7 text-center">
                     {week.map((day, di) => {
                         if (!day) return <div key={di} />;
+                        const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                        const hasRecord = recordedDates.has(dateStr);
                         const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
                         const isSelected = day === selectedDate.getDate() && viewMonth === selectedDate.getMonth() && viewYear === selectedDate.getFullYear();
                         return (
@@ -90,9 +102,11 @@ function MiniCalendar({
                                     "w-9 h-9 rounded-full text-sm font-bold transition mx-auto",
                                     isSelected
                                         ? "bg-[#93C5FD] text-white"
-                                        : isToday
+                                        : hasRecord
                                             ? "bg-blue-100 text-blue-700"
-                                            : "text-gray-700 hover:bg-gray-100",
+                                            : isToday
+                                                ? "bg-gray-100 text-gray-700"
+                                                : "text-gray-700 hover:bg-gray-100",
                                 ].join(" ")}
                             >
                                 {day}
@@ -106,11 +120,11 @@ function MiniCalendar({
             <div className="mt-4 flex flex-col gap-2 text-xs text-gray-500 font-bold">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#93C5FD]" />
-                    วันที่มีการบันทึก
+                    วันที่เลือก
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-300" />
-                    วันที่ยังไม่มีการบันทึก
+                    <div className="w-3 h-3 rounded-full bg-blue-100" />
+                    วันที่มีการบันทึก
                 </div>
             </div>
         </div>
@@ -122,28 +136,77 @@ function MiniCalendar({
    ================================================================ */
 function HistoryView() {
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [meterInfo, setMeterInfo] = useState<{ roomCount: number; lastWater: string | null; lastElectric: string | null }>({ roomCount: 0, lastWater: null, lastElectric: null });
+    const [recordedDates, setRecordedDates] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const condoId = getSelectedCondoId();
+                if (!condoId) return;
+
+                const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/meters`, { headers: authHeaders() });
+                if (!res.ok) return;
+                const data = await res.json();
+                const meters = data?.meters || [];
+
+                // Collect recorded dates
+                const dates = new Set<string>();
+                let latestWater: string | null = null;
+                let latestElectric: string | null = null;
+
+                for (const m of meters) {
+                    if (m.recordedAt) {
+                        const d = new Date(m.recordedAt).toISOString().slice(0, 10);
+                        dates.add(d);
+                        if (m.waterUnits > 0) latestWater = d;
+                        if (m.electricUnits > 0) latestElectric = d;
+                    }
+                }
+
+                setRecordedDates(dates);
+                setMeterInfo({
+                    roomCount: meters.length,
+                    lastWater: latestWater ? new Date(latestWater).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }) : null,
+                    lastElectric: latestElectric ? new Date(latestElectric).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }) : null,
+                });
+            } catch (e) {
+                console.error("HistoryView meter fetch:", e);
+            }
+        })();
+    }, []);
 
     return (
-        <div className="flex gap-8 items-start">
+        <div className="flex gap-8 items-start flex-wrap">
             {/* Left */}
             <div className="flex-1 min-w-0">
 
                 {/* Empty state card */}
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 text-sm font-bold text-gray-500">วันที่</div>
-                    <div className="h-px bg-gray-100 mx-4" />
-                    <div className="px-8 py-12 flex flex-col items-center text-center">
-                        <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-                            <svg className="w-7 h-7 text-[#93C5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <div className="text-lg font-extrabold text-gray-900 mb-1">ไม่มีข้อมูล</div>
-                        <div className="text-sm font-bold text-gray-400">
-                            ยังไม่มีการบันทึกรายการในขณะนี้ กรุณากดปุ่มด้านบน<br />
-                            เพื่อสร้างรายการใหม่
-                        </div>
+                    <div className="px-6 py-4 text-sm font-bold text-gray-500">
+                        ข้อมูลการจดมิเตอร์เดือนนี้
                     </div>
+                    <div className="h-px bg-gray-100 mx-4" />
+                    {meterInfo.roomCount === 0 ? (
+                        <div className="px-8 py-12 flex flex-col items-center text-center">
+                            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+                                <svg className="w-7 h-7 text-[#93C5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div className="text-lg font-extrabold text-gray-900 mb-1">ไม่มีข้อมูล</div>
+                            <div className="text-sm font-bold text-gray-400">
+                                ยังไม่มีการบันทึกรายการในขณะนี้ กรุณากดปุ่มด้านบน<br />
+                                เพื่อสร้างรายการใหม่
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="px-6 py-6">
+                            <p className="text-sm font-bold text-gray-600">
+                                บันทึกแล้ว <span className="text-[#93C5FD] font-extrabold">{meterInfo.roomCount}</span> ห้อง ในเดือนนี้
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Status cards */}
@@ -157,7 +220,7 @@ function HistoryView() {
                         </div>
                         <div>
                             <div className="text-xs font-bold text-gray-400">บันทึกไฟฟ้าล่าสุด</div>
-                            <div className="text-sm font-extrabold text-gray-700">ยังไม่มีข้อมูล</div>
+                            <div className="text-sm font-extrabold text-gray-700">{meterInfo.lastElectric || "ยังไม่มีข้อมูล"}</div>
                         </div>
                     </div>
                     {/* ประปา */}
@@ -169,7 +232,7 @@ function HistoryView() {
                         </div>
                         <div>
                             <div className="text-xs font-bold text-gray-400">บันทึกประปาล่าสุด</div>
-                            <div className="text-sm font-extrabold text-gray-700">ยังไม่มีข้อมูล</div>
+                            <div className="text-sm font-extrabold text-gray-700">{meterInfo.lastWater || "ยังไม่มีข้อมูล"}</div>
                         </div>
                     </div>
                 </div>
@@ -177,7 +240,7 @@ function HistoryView() {
 
             {/* Right: calendar */}
             <div className="shrink-0">
-                <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} />
+                <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} recordedDates={recordedDates} />
             </div>
         </div>
     );

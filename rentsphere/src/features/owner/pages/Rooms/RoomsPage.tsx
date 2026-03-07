@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
 type CondoPick = { id: string; name: string };
 
@@ -79,7 +80,7 @@ export default function RoomsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [condoId, setCondoId] = useState<string | null>(state?.condoId ?? null);
+  const [condoId, setCondoId] = useState<string | null>(state?.condoId ?? getSelectedCondoId() ?? null);
   const [condoName, setCondoName] = useState<string>("—");
 
   const [rooms, setRooms] = useState<RoomRow[]>([]);
@@ -114,8 +115,16 @@ export default function RoomsPage() {
           return;
         }
 
-        setCondoId(condos[0].id);
-        setCondoName(condos[0].name);
+        // Try zustand store first, then fall back to first condo
+        const storeId = getSelectedCondoId();
+        if (storeId) {
+          setCondoId(storeId);
+          const found = condos.find((c) => c.id === storeId);
+          if (found) setCondoName(found.name);
+        } else {
+          setCondoId(condos[0].id);
+          setCondoName(condos[0].name);
+        }
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message ?? "โหลดคอนโดไม่สำเร็จ");
@@ -296,7 +305,37 @@ export default function RoomsPage() {
                       <td className="px-6 py-4 text-right font-bold">
                         {r.isActive ? <span className="text-emerald-700">ใช้งาน</span> : <span className="text-gray-400">ปิด</span>}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                        {r.occupancyStatus === "OCCUPIED" && (
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm(`ต้องการลบผู้เช่าจากห้อง ${r.roomNo} หรือไม่?\n\n(ลบ LINE, ข้อมูลการเช่า, ใบแจ้งหนี้ และ reset รหัสเข้าระบบ)`)) return;
+                              try {
+                                const token = (() => { try { const raw = localStorage.getItem("rentsphere_auth"); if (!raw) return ""; return JSON.parse(raw)?.state?.token || ""; } catch { return ""; } })();
+                                const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+                                const res = await fetch(`${API_URL}/api/v1/owner/rooms/${r.id}/tenant`, {
+                                  method: "DELETE",
+                                  headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                });
+                                const data = await res.json();
+                                if (res.ok) {
+                                  alert("ลบผู้เช่าเรียบร้อย ✅");
+                                  setRooms((prev) => prev.map((room) => room.id === r.id ? { ...room, occupancyStatus: "VACANT" as const } : room));
+                                } else {
+                                  alert(data?.error || "ลบผู้เช่าไม่สำเร็จ");
+                                }
+                              } catch (err) {
+                                alert("เกิดข้อผิดพลาด");
+                                console.error(err);
+                              }
+                            }}
+                            className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 font-extrabold text-red-600 hover:bg-red-100 text-sm"
+                          >
+                            ลบผู้เช่า
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {

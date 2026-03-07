@@ -373,6 +373,14 @@ export default function RoomMeterPage() {
 
             <button
               type="button"
+              onClick={() => nav(`/owner/rooms/${roomId}/access-code`)}
+              className="w-full h-[52px] rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 shadow-[0_10px_20px_rgba(16,185,129,0.2)]"
+            >
+              สร้างรหัสเข้าสู่ระบบ →
+            </button>
+
+            <button
+              type="button"
               onClick={() => nav(`/owner/rooms/${roomId}`)}
               className="w-full h-[48px] rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold hover:bg-gray-50"
             >

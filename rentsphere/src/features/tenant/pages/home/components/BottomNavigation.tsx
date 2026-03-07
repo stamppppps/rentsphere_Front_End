@@ -4,10 +4,10 @@ import { Home, History, Bell, User } from 'lucide-react';
 
 const BottomNavigation: React.FC = () => {
   const navItems = [
-    { to: '/home', icon: <Home size={22} />, label: 'หน้าแรก' },
-    { to: '/history', icon: <History size={22} />, label: 'ประวัติ' },
-    { to: '/notifications', icon: <Bell size={22} />, label: 'แจ้งเตือน' },
-    { to: '/profile', icon: <User size={22} />, label: 'โปรไฟล์' },
+    { to: '/tenant/home', icon: <Home size={22} />, label: 'หน้าแรก' },
+    { to: '/tenant/history', icon: <History size={22} />, label: 'ประวัติ' },
+    { to: '/tenant/notifications', icon: <Bell size={22} />, label: 'แจ้งเตือน' },
+    { to: '/tenant/profile', icon: <User size={22} />, label: 'โปรไฟล์' },
   ];
 
   return (
@@ -16,9 +16,8 @@ const BottomNavigation: React.FC = () => {
         <NavLink
           key={item.to}
           to={item.to}
-          className={({ isActive }) => 
-            `flex flex-col items-center gap-1 flex-1 transition-all duration-300 ${
-              isActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 flex-1 transition-all duration-300 ${isActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`
           }
         >

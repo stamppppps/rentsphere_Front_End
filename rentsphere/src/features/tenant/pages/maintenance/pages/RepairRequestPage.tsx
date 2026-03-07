@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, ListFilter } from 'lucide-react';
 import RepairForm from '../components/RepairForm';
 import { maintenanceService } from '../services/maintenance.service';
+import { useState } from 'react';
 
 const RepairRequestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,9 +12,58 @@ const RepairRequestPage: React.FC = () => {
   const editId = id ?? (location.state as { editId?: string } | null)?.editId;
   const initialData = editId ? maintenanceService.getRequestById(editId) : undefined;
 
-  const handleSubmit = () => {
-    // Waiting for backend integration.
-    navigate('/tenant/maintenance/history', { replace: true });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleSubmit = async (data: any) => {
+    try {
+      setErr("");
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token");
+      const lineUserId = localStorage.getItem("lineUserId");
+
+      if (!token && !lineUserId) {
+        setErr("กรุณาเข้าสู่ระบบก่อนทำรายการ");
+        return;
+      }
+      const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+      const payload: Record<string, any> = {
+        problem_type: data.issueType,
+        room: data.roomNumber,
+        location: data.location,
+        description: data.details,
+        images: data.images || [],
+      };
+
+      if (lineUserId && !token) {
+        payload.lineUserId = lineUserId;
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API}/repair/create`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create request");
+      }
+
+      navigate('/tenant/maintenance/history', { replace: true });
+    } catch (e: any) {
+      setErr(e.message || "Something went wrong.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isEditNotFound = Boolean(editId && !initialData);
@@ -45,7 +95,14 @@ const RepairRequestPage: React.FC = () => {
       </div>
 
       <div className="px-6 mt-6">
-        {isEditNotFound ? (
+        {err && (
+          <div className="mb-4 bg-red-50 text-red-600 p-4 rounded-xl text-sm font-bold">
+            {err}
+          </div>
+        )}
+        {isSubmitting ? (
+          <div className="text-center font-bold text-gray-500 py-10">กำลังส่งข้อมูล...</div>
+        ) : isEditNotFound ? (
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center space-y-2">
             <p className="text-base font-bold text-gray-800">ยังไม่มีข้อมูลสำหรับแก้ไข</p>
             <p className="text-sm text-gray-500">รอ backend จริงเพื่อดึงข้อมูลรายการแจ้งซ่อม</p>

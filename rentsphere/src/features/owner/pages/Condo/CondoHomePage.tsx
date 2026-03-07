@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/shared/api/http";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 
 type CondoApiItem = any;
 
@@ -15,14 +16,14 @@ function normalizeCondo(x: any) {
   const roomsTotal =
     Number(
       x.roomsTotal ??
-        x.totalRooms ??
-        x.rooms_total ??
-        x.roomsCount ??
-        x.stats?.roomsTotal ??
-        x.stats?.totalRooms ??
-        x._count?.rooms ??
-        x.countRooms ??
-        0
+      x.totalRooms ??
+      x.rooms_total ??
+      x.roomsCount ??
+      x.stats?.roomsTotal ??
+      x.stats?.totalRooms ??
+      x._count?.rooms ??
+      x.countRooms ??
+      0
     ) ||
     (Array.isArray(x.rooms) ? x.rooms.length : 0) ||
     (Array.isArray(x.room) ? x.room.length : 0) ||
@@ -31,23 +32,23 @@ function normalizeCondo(x: any) {
 
   const roomsActiveDirect = Number(
     x.roomsActive ??
-      x.activeRooms ??
-      x.rooms_active ??
-      x.activeCount ??
-      x.stats?.roomsActive ??
-      x.stats?.activeRooms ??
-      x._count?.activeRooms ??
-      0
+    x.activeRooms ??
+    x.rooms_active ??
+    x.activeCount ??
+    x.stats?.roomsActive ??
+    x.stats?.activeRooms ??
+    x._count?.activeRooms ??
+    0
   );
 
   const roomsActiveFromRooms =
     Array.isArray(x.rooms)
       ? x.rooms.filter((r: any) => {
-          if (typeof r?.isActive === "boolean") return r.isActive;
-          if (typeof r?.active === "boolean") return r.active;
-          const s = String(r?.status ?? r?.state ?? "").toUpperCase();
-          return s === "ACTIVE" || s === "OCCUPIED" || s === "IN_USE";
-        }).length
+        if (typeof r?.isActive === "boolean") return r.isActive;
+        if (typeof r?.active === "boolean") return r.active;
+        const s = String(r?.status ?? r?.state ?? "").toUpperCase();
+        return s === "ACTIVE" || s === "OCCUPIED" || s === "IN_USE";
+      }).length
       : 0;
 
   const roomsActive = roomsActiveDirect || roomsActiveFromRooms || 0;
@@ -56,15 +57,15 @@ function normalizeCondo(x: any) {
   const unpaidBills =
     Number(
       x.unpaidBills ??
-        x.unpaid ??
-        x.unpaid_bills ??
-        x.unpaidCount ??
-        x.stats?.unpaidBills ??
-        x.stats?.unpaid ??
-        x.stats?.unpaidCount ??
-        x.billStats?.unpaidBills ??
-        x.billStats?.unpaidCount ??
-        0
+      x.unpaid ??
+      x.unpaid_bills ??
+      x.unpaidCount ??
+      x.stats?.unpaidBills ??
+      x.stats?.unpaid ??
+      x.stats?.unpaidCount ??
+      x.billStats?.unpaidBills ??
+      x.billStats?.unpaidCount ??
+      0
     ) || 0;
 
   return { id, name, roomsTotal, roomsActive, unpaidBills };
@@ -77,10 +78,10 @@ async function fetchCondosFromApi(): Promise<CondoItem[]> {
     Array.isArray(data)
       ? data
       : Array.isArray(data?.items)
-      ? data.items
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
+        ? data.items
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
   return list.map(normalizeCondo);
 }
@@ -126,7 +127,7 @@ type StaffItem = {
   fullName: string;
   phone?: string;
   email?: string;
-  staffPosition?: string; 
+  staffPosition?: string;
   isActive: boolean;
   allowedModules: PermissionModule[];
 };
@@ -145,7 +146,7 @@ const emptyStaffForm: StaffForm = {
   phone: "",
   email: "",
   staffPosition: "นิติ",
-  allowedModules: MODULES.map((m) => m.code), 
+  allowedModules: MODULES.map((m) => m.code),
   isActive: true,
 };
 
@@ -303,10 +304,10 @@ function UserManagementPanel({
         Array.isArray(data)
           ? data
           : Array.isArray(data?.items)
-          ? data.items
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
+            ? data.items
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
 
       setUsers(
         list.map((x: any) => ({
@@ -680,7 +681,7 @@ function UserManagementPanel({
               </div>
 
               <div className="mt-3 text-xs font-bold text-gray-400">
-            
+
               </div>
             </div>
           </div>
@@ -740,10 +741,10 @@ export default function CondoHomePage() {
         Array.isArray(data)
           ? data
           : Array.isArray(data?.items)
-          ? data.items
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
+            ? data.items
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
 
       setCondos(listRaw.map(normalizeCondo));
     } catch (e: any) {
@@ -787,8 +788,14 @@ export default function CondoHomePage() {
     return top ? [top, ...rest] : condos;
   }, [condos, createdCondoId]);
 
-  const goDashboard = (condoId: string) =>
+  const goDashboard = (condoId: string) => {
+    // Sync condo to Zustand store so sidebar pages (Repairs, Parcels, etc.) can access it
+    const condo = sortedCondos.find(c => c.id === condoId);
+    if (condo) {
+      useCondoStore.getState().selectCondo(condo.id, condo.name);
+    }
     nav("/owner/dashboard", { state: { condoId } });
+  };
 
 
   const condoNameForUsers = sortedCondos[0]?.name ?? "—";
@@ -919,7 +926,7 @@ export default function CondoHomePage() {
                 <button
                   type="button"
                   className="text-gray-500 font-bold underline underline-offset-4 hover:text-gray-700"
-                  onClick={() => {}}
+                  onClick={() => { }}
                 >
                   จัดเรียงลำดับ
                 </button>

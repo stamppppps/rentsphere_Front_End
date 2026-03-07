@@ -35,11 +35,17 @@ import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
 import MaintenancePage from "@/features/owner/pages/Maintenance/AdminRepairs";
 import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 // ===== Facility Booking pages =====
-
 import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
 import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
 import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
 import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+
+// ===== Tenant / LINE Login pages =====
+import RepairCreate from "@/features/owner/pages/tenant/repairs/RepairCreate";
+import LineLogin from "@/features/owner/pages/tenant/Linesetup/LineLogin";
+import LineLoginSuccess from "@/features/owner/pages/tenant/Linesetup/LineLoginSuccess";
+import DormRegister from "@/features/owner/pages/tenant/Linesetup/DormRegister";
+import DormLink from "@/features/owner/pages/tenant/Linesetup/DormLink";
 
 
 const ownerRoutes: RouteObject[] = [
@@ -106,7 +112,7 @@ const ownerRoutes: RouteObject[] = [
     ],
   },
 
-   {
+  {
     path: "/owner/admin-repairs",
     element: <AdminRepairs />,
   },
@@ -114,6 +120,29 @@ const ownerRoutes: RouteObject[] = [
   {
     path: "/owner/admin/parcel",
     element: <AdminParcel />,
+  },
+
+  {
+    path: "/owner/repair-create",
+    element: <RepairCreate />,
+  },
+
+  {
+    path: "/owner/line-login",
+    element: <LineLogin />,
+  },
+  {
+    path: "/owner/line-login-success",
+    element: <LineLoginSuccess />,
+  },
+
+  {
+    path: "/tenant/dorm-register",
+    element: <DormRegister />,
+  },
+  {
+    path: "/owner/dorm-link",
+    element: <DormLink />,
   },
 
 ];

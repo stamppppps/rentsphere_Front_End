@@ -7,29 +7,29 @@ const FeatureGrid: React.FC = () => {
   const navigate = useNavigate();
 
   const features = [
-    { 
-      label: 'พัสดุ', 
-      icon: <Package size={24} className="text-purple-600" />, 
+    {
+      label: 'พัสดุ',
+      icon: <Package size={24} className="text-purple-600" />,
       bgColor: 'bg-purple-50',
-      onClick: () => navigate('/parcel')
+      onClick: () => navigate('/tenant/parcel')
     },
-    { 
-      label: 'รายงานซ่อมบำรุง', 
-      icon: <Wrench size={24} className="text-blue-600" />, 
+    {
+      label: 'รายงานซ่อมบำรุง',
+      icon: <Wrench size={24} className="text-blue-600" />,
       bgColor: 'bg-blue-50',
-      onClick: () => navigate('/maintenance')
+      onClick: () => navigate('/tenant/maintenance')
     },
-    { 
-      label: 'บิล / การชำระเงิน', 
-      icon: <FileText size={24} className="text-indigo-600" />, 
+    {
+      label: 'บิล / การชำระเงิน',
+      icon: <FileText size={24} className="text-indigo-600" />,
       bgColor: 'bg-indigo-50',
-      onClick: () => navigate('/billing')
+      onClick: () => navigate('/tenant/billing')
     },
-    { 
-      label: 'จองส่วนกลาง', 
-      icon: <Calendar size={24} className="text-pink-600" />, 
+    {
+      label: 'จองส่วนกลาง',
+      icon: <Calendar size={24} className="text-pink-600" />,
       bgColor: 'bg-pink-50',
-      onClick: () => navigate('/booking')
+      onClick: () => navigate('/tenant/booking')
     },
   ];
 

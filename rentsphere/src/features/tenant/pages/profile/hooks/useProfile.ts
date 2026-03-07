@@ -29,9 +29,10 @@ export const useProfile = () => {
 
   const handleLogout = () => {
     console.log("Processing logout...");
-    // Logic สำหรับการ Logout จริงๆ จะอยู่ตรงนี้
     localStorage.removeItem('rentsphere_token');
-    window.location.replace('/tenant/login');
+    localStorage.removeItem('rentsphere_auth');
+    localStorage.removeItem('lineUserId');
+    window.location.replace('/owner/line-login');
   };
 
   return {

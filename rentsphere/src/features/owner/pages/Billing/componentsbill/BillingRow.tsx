@@ -13,7 +13,7 @@ interface BillingRowProps {
 export default function BillingRow({ item, onSelect }: BillingRowProps) {
   /* ===== derived state ===== */
   const isOccupied = item.status === "ไม่ว่าง";
-  const canCreateInvoice = isOccupied && !item.isPaid;
+  const canCreateInvoice = isOccupied;
 
   return (
     <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
@@ -91,7 +91,7 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
             "
             style={{ backgroundColor: "#7C3AED" }}
           >
-            สร้างใบแจ้งหนี้
+            {item.isPaid ? "สร้างใบแจ้งหนี้ใหม่" : "สร้างใบแจ้งหนี้"}
           </button>
         ) : (
           <button

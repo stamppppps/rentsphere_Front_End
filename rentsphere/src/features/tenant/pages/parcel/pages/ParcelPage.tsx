@@ -44,9 +44,49 @@ const StatusBadge: React.FC<{ status: ParcelStatus }> = ({ status }) => {
 
 const ParcelPage: React.FC = () => {
   const navigate = useNavigate();
-  const [parcels] = useState<Parcel[]>([]);
+  const [parcels, setParcels] = useState<Parcel[]>([]);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'detail' | 'success'>('list');
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
+
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  const loadParcels = async () => {
+    setLoading(true);
+    try {
+      const lineUserId = localStorage.getItem("lineUserId");
+      if (!lineUserId) {
+        navigate("/role", { replace: true });
+        return;
+      }
+
+      const res = await fetch(`${API}/parcel/room?lineUserId=${encodeURIComponent(lineUserId)}`);
+      if (!res.ok) throw new Error("Failed to load parcels");
+      const data = await res.json();
+
+      const mapped = (data.items || []).map((p: any) => ({
+        id: p.id,
+        parcelCode: p.trackingNo || p.id.slice(0, 8),
+        receivedDate: new Date(p.createdAt).toLocaleDateString("th-TH") + " " + new Date(p.createdAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
+        receiverName: p.tenantName,
+        room: p.room || "-",
+        dropOffLocation: "นิติบุคคล (ฝากไว้ที่ส่วนกลาง)",
+        staffName: "แอดมิน",
+        status: p.status === "PICKED_UP" ? "received" : "pending",
+        imageUrl: p.imageUrl || "https://placehold.co/400x300?text=No+Image",
+        note: p.note
+      }));
+      setParcels(mapped);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    loadParcels();
+  }, [navigate]);
 
   const pendingCount = parcels.filter(p => p.status === 'pending').length;
 
@@ -56,7 +96,9 @@ const ParcelPage: React.FC = () => {
   };
 
   const handleConfirmReceive = () => {
-    setView('success');
+    // In reality, only owner confirms in AdminParcel, but tenant can see success if it's updated. 
+    // We'll just leave it as UI or alert them to ask the owner to confirm.
+    alert("การรับพัสดุจะต้องให้เจ้าหน้าที่นิติบุคคลกดยืนยันให้");
   };
 
   const handleBack = () => {

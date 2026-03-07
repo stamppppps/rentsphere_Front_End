@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/shared/api/http";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 
 type Stat = { label: string; value: number | string };
 type LegendItem = { label: string; dotClass: string };
@@ -261,7 +262,7 @@ export default function DashboardPage() {
 
         setOwnerName(display);
       } catch {
-    
+
         if (cancelled) return;
         setOwnerName("—");
       }
@@ -294,6 +295,8 @@ export default function DashboardPage() {
         }
 
         setCondoId(condos[0].id);
+        // Sync to Zustand store so sidebar pages can access it
+        useCondoStore.getState().selectCondo(condos[0].id, condos[0].name);
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message ?? "เกิดข้อผิดพลาด");
@@ -322,6 +325,10 @@ export default function DashboardPage() {
         if (cancelled) return;
 
         setData(res);
+        // Sync condo name to store after fetching dashboard
+        if (res?.summary?.condoName) {
+          useCondoStore.getState().selectCondo(condoId, res.summary.condoName);
+        }
         setLoading(false);
       } catch (e: any) {
         if (cancelled) return;
@@ -398,7 +405,7 @@ export default function DashboardPage() {
       title="ข้อมูลภาพรวม"
       activeKey="dashboard"
       showSidebar={true}
-   
+
       ownerName={ownerName}
       condoName={condoName}
     >

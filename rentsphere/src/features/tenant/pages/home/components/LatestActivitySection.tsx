@@ -10,13 +10,13 @@ interface LatestActivitySectionProps {
 
 const getIconData = (type: FeatureType) => {
   switch (type) {
-    case FeatureType.PARCEL: 
+    case FeatureType.PARCEL:
       return { icon: <Package size={20} />, color: 'text-purple-600', bg: 'bg-purple-50' };
-    case FeatureType.BILLING: 
+    case FeatureType.BILLING:
       return { icon: <FileText size={20} />, color: 'text-indigo-600', bg: 'bg-indigo-50' };
-    case FeatureType.MAINTENANCE: 
+    case FeatureType.MAINTENANCE:
       return { icon: <Wrench size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' };
-    case FeatureType.BOOKING: 
+    case FeatureType.BOOKING:
       return { icon: <Calendar size={20} />, color: 'text-pink-600', bg: 'bg-pink-50' };
   }
 };
@@ -28,22 +28,22 @@ const LatestActivitySection: React.FC<LatestActivitySectionProps> = ({ activitie
     <div className="px-6 mt-8 mb-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-bold text-gray-800 text-lg">รายการล่าสุด</h3>
-        <button 
-          onClick={() => navigate('/history')}
+        <button
+          onClick={() => navigate('/tenant/history')}
           className="text-sm text-blue-600 font-semibold hover:underline active:opacity-70 transition-opacity"
         >
           ดูทั้งหมด
         </button>
       </div>
-      
+
       <div className="space-y-3">
         {activities.map((activity) => {
           const { icon, color, bg } = getIconData(activity.type);
           return (
-            <div 
-              key={activity.id} 
+            <div
+              key={activity.id}
               className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-100 transition-all cursor-pointer group"
-              onClick={() => navigate('/history')}
+              onClick={() => navigate('/tenant/history')}
             >
               <div className={`w-11 h-11 ${bg} ${color} rounded-xl flex items-center justify-center transition-transform group-hover:scale-105`}>
                 {icon}

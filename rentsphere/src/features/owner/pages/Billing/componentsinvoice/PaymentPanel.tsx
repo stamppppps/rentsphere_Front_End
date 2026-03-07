@@ -16,6 +16,7 @@ interface PaymentPanelProps {
   estimatedTotal: number;
   onComplete: () => void;
   onReset: () => void;
+  onNotifyLine?: () => Promise<void>;
 }
 
 const PaymentPanel: React.FC<PaymentPanelProps> = ({
@@ -27,12 +28,13 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   isFormValid,
   estimatedTotal,
   onComplete,
-  onReset
+  onReset,
+  onNotifyLine,
 }) => {
   return (
     <div className="lg:w-[420px] flex flex-col gap-6">
       {!isPaid ? (
-        <PaymentForm 
+        <PaymentForm
           paymentAmount={paymentAmount}
           setPaymentAmount={setPaymentAmount}
           paymentMethod={paymentMethod}
@@ -45,7 +47,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
         />
       ) : (
         <div className="space-y-6 animate-in zoom-in-95 duration-300">
-          <PaymentSuccess onComplete={onComplete} onReset={onReset} />
+          <PaymentSuccess onComplete={onComplete} onReset={onReset} onNotifyLine={onNotifyLine} />
           <PaymentHistory amount={paymentAmount} date={typedDate} method={paymentMethod} />
         </div>
       )}

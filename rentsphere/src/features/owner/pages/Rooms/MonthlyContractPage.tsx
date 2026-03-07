@@ -33,8 +33,8 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
                 active
                   ? "bg-blue-600 text-white shadow-[0_12px_22px_rgba(37,99,235,0.25)]"
                   : done
-                  ? "bg-blue-100 text-blue-700 border border-blue-200"
-                  : "bg-white text-gray-500 border border-gray-200",
+                    ? "bg-blue-100 text-blue-700 border border-blue-200"
+                    : "bg-white text-gray-500 border border-gray-200",
               ].join(" ")}
             >
               {it.n}
@@ -143,13 +143,30 @@ export default function MonthlyContractPage() {
     return true;
   }, [tenantName, startDate, rentPerMonth, deposit]);
 
+  const [saving, setSaving] = useState(false);
+
   const goNext = async () => {
     if (!roomId) return nav("/owner/rooms", { replace: true });
 
-    // TODO: ถ้ามี endpoint สัญญาจริง ให้ยิง API ตรงนี้
-    // await api(`/owner/rooms/${roomId}/contracts`, { method:"POST", body: JSON.stringify({...}) })
-
-    nav(`/owner/rooms/${roomId}/advance-payment`, { replace: true });
+    try {
+      setSaving(true);
+      await api(`/owner/rooms/${encodeURIComponent(roomId)}/contracts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantName: tenantName.trim(),
+          startDate,
+          endDate: endDate || undefined,
+          rentPerMonth,
+          deposit,
+        }),
+      });
+      nav(`/owner/rooms/${roomId}/advance-payment`, { replace: true });
+    } catch (e: any) {
+      alert(e?.message ?? "บันทึกสัญญาไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -255,7 +272,7 @@ export default function MonthlyContractPage() {
               <div className="flex items-stretch">
                 <input
                   value={rentPerMonth}
-                  onChange={(e) => setRentPerMonth(Number(e.target.value || 0))}
+                  onChange={(e) => { const v = parseFloat(e.target.value); setRentPerMonth(Number.isFinite(v) ? v : 0); }}
                   inputMode="numeric"
                   className="w-full rounded-l-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
                 />
@@ -273,7 +290,7 @@ export default function MonthlyContractPage() {
               <div className="flex items-stretch">
                 <input
                   value={deposit}
-                  onChange={(e) => setDeposit(Number(e.target.value || 0))}
+                  onChange={(e) => { const v = parseFloat(e.target.value); setDeposit(Number.isFinite(v) ? v : 0); }}
                   inputMode="numeric"
                   className="w-full rounded-l-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
                 />
@@ -315,9 +332,9 @@ export default function MonthlyContractPage() {
                   ? "!bg-blue-600 text-white shadow-[0_12px_22px_rgba(37,99,235,0.22)] hover:!bg-blue-700"
                   : "bg-blue-200 text-white/70 cursor-not-allowed",
               ].join(" ")}
-              disabled={!canNext}
+              disabled={!canNext || saving}
             >
-              ต่อไป
+              {saving ? "กำลังบันทึก..." : "ต่อไป"}
             </button>
           </div>
         </div>
