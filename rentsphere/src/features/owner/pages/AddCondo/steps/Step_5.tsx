@@ -1,8 +1,9 @@
 import { api } from "@/shared/api/http";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
+const STEP_ROOM_NAMES_KEY_PREFIX = "add_condo_room_name_drafts_";
 
 
 type OccupancyStatus = "VACANT" | "OCCUPIED";
@@ -29,6 +30,35 @@ function sortByFloorAndRoomNo(a: Room, b: Room) {
   return a.roomNo.localeCompare(b.roomNo);
 }
 
+function buildRoomsPerFloorFromRooms(rooms: Room[], floorCount: number): number[] {
+  const counts = Array.from({ length: floorCount }, () => 0);
+  for (const room of rooms) {
+    const idx = Number(room.floor) - 1;
+    if (idx >= 0 && idx < counts.length) counts[idx] += 1;
+  }
+  return counts;
+}
+
+function roomNamesKey(condoId: string) {
+  return `${STEP_ROOM_NAMES_KEY_PREFIX}${condoId}`;
+}
+
+function readRoomNameDrafts(condoId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(roomNamesKey(condoId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, String(v ?? "")]));
+  } catch {
+    return {};
+  }
+}
+
+function writeRoomNameDrafts(condoId: string, drafts: Record<string, string>) {
+  localStorage.setItem(roomNamesKey(condoId), JSON.stringify(drafts));
+}
+
 export default function Step_5() {
   const nav = useNavigate();
   const location = useLocation();
@@ -52,6 +82,18 @@ export default function Step_5() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const syncFloorConfigFromRooms = useCallback(async (nextRooms: Room[], nextFloorCount: number) => {
+    if (!condoId || nextFloorCount <= 0) return;
+    await api(`/owner/condos/${condoId}/floor-config`, {
+      method: "PUT",
+      body: JSON.stringify({
+        floorCount: nextFloorCount,
+        roomsPerFloor: buildRoomsPerFloorFromRooms(nextRooms, nextFloorCount),
+        totalRooms: nextRooms.length,
+      }),
+    });
+  }, [condoId]);
 
   useEffect(() => {
     if (!condoId) return;
@@ -85,7 +127,19 @@ export default function Step_5() {
           if (!alive) return;
         }
 
-        setRooms((list ?? []).slice().sort(sortByFloorAndRoomNo));
+        const drafts = readRoomNameDrafts(condoId);
+        const seededDrafts = { ...drafts };
+        for (const room of list ?? []) {
+          if (!(room.id in seededDrafts)) seededDrafts[room.id] = "";
+        }
+        writeRoomNameDrafts(condoId, seededDrafts);
+
+        const sortedRooms = (list ?? [])
+          .map((room) => ({ ...room, roomNo: seededDrafts[room.id] ?? "" }))
+          .slice()
+          .sort(sortByFloorAndRoomNo);
+        setRooms(sortedRooms);
+        await syncFloorConfigFromRooms(sortedRooms, cfg.floorCount);
       } catch (e: any) {
         if (!alive) return;
         setApiError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
@@ -97,7 +151,7 @@ export default function Step_5() {
     return () => {
       alive = false;
     };
-  }, [condoId]);
+  }, [condoId, syncFloorConfigFromRooms]);
 
 
   const roomsByFloor = useMemo(() => {
@@ -146,11 +200,19 @@ export default function Step_5() {
   };
 
   const changeRoomNoLocal = (roomId: string, value: string) => {
+    if (condoId) {
+      const drafts = readRoomNameDrafts(condoId);
+      drafts[roomId] = value;
+      writeRoomNameDrafts(condoId, drafts);
+    }
     setRooms((prev) => prev.map((r) => (r.id === roomId ? { ...r, roomNo: value } : r)));
   };
 
-  const saveRoomNo = async (room: Room) => {
+  const saveRoomNo = async (roomId: string) => {
     if (!condoId || saving) return;
+
+    const room = rooms.find((r) => r.id === roomId);
+    if (!room) return;
 
     const roomNo = room.roomNo.trim();
     if (!roomNo) return;
@@ -170,7 +232,7 @@ export default function Step_5() {
           .sort(sortByFloorAndRoomNo)
       );
     } catch (e: any) {
-      setApiError(e?.message ?? "บันทึกเลขห้องไม่สำเร็จ");
+      setApiError(e?.message ?? "๚ันทึกเลขห้องไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -187,8 +249,17 @@ export default function Step_5() {
         method: "POST",
         body: JSON.stringify({ floor }),
       });
+      const createdNoDefault = { ...created, roomNo: "" };
+      const drafts = readRoomNameDrafts(condoId);
+      drafts[created.id] = "";
+      writeRoomNameDrafts(condoId, drafts);
 
-      setRooms((prev) => [...prev, created].slice().sort(sortByFloorAndRoomNo));
+      let nextRooms: Room[] = [];
+      setRooms((prev) => {
+        nextRooms = [...prev, createdNoDefault].slice().sort(sortByFloorAndRoomNo);
+        return nextRooms;
+      });
+      await syncFloorConfigFromRooms(nextRooms, floorCount);
     } catch (e: any) {
       setApiError(e?.message ?? "เพิ่มห้องไม่สำเร็จ");
     } finally {
@@ -206,7 +277,15 @@ export default function Step_5() {
 
     
       const list = await api<Room[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
-      setRooms((list ?? []).slice().sort(sortByFloorAndRoomNo));
+      const drafts = readRoomNameDrafts(condoId);
+      delete drafts[room.id];
+      writeRoomNameDrafts(condoId, drafts);
+      const nextRooms = (list ?? [])
+        .map((r) => ({ ...r, roomNo: drafts[r.id] ?? "" }))
+        .slice()
+        .sort(sortByFloorAndRoomNo);
+      setRooms(nextRooms);
+      await syncFloorConfigFromRooms(nextRooms, floorCount);
     } catch (e: any) {
       setApiError(e?.message ?? "ลบห้องไม่สำเร็จ");
     } finally {
@@ -267,8 +346,8 @@ export default function Step_5() {
                       type="button"
                       disabled={disabledAll}
                       onClick={() => addRoomOnFloor(floor)}
-                      className="h-[44px] px-5 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                                 bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                      className="h-[44px] px-5 rounded-xl border-0 text-white font-black text-sm shadow-[0_10px_10px_rgba(0,0,0,0.10)] transition
+                                 bg-[#4B91FB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                                  focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
                     >
                       {saving ? "กำลังบันทึก..." : "เพิ่มห้อง"}
@@ -286,7 +365,7 @@ export default function Step_5() {
                           ].join(" ")}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-base font-extrabold text-gray-900">เลขห้อง</div>
+                            <div className="text-base font-extrabold text-gray-900">เลขห้อง <span className="text-rose-600">*</span></div>
 
                             <div className="flex items-center gap-2">
                               <button
@@ -320,8 +399,8 @@ export default function Step_5() {
                             value={room.roomNo}
                             disabled={disabledAll}
                             onChange={(e) => changeRoomNoLocal(room.id, e.target.value)}
-                            onBlur={() => saveRoomNo(room)}
-                            aria-label="เลขห้อง"
+                            onBlur={() => saveRoomNo(room.id)}
+                            aria-label="Room number"
                             placeholder="เลขห้อง"
                             className="mt-4 w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
                                        focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300 disabled:opacity-60"
@@ -360,7 +439,7 @@ export default function Step_5() {
 
         <button
           type="button"
-          disabled={disabledAll}
+          disabled={loading}
           onClick={() => nav("../step-4", { state: { condoId } })}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
                      focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
@@ -370,10 +449,10 @@ export default function Step_5() {
 
         <button
           type="button"
-          disabled={disabledAll}
+          disabled={loading}
           onClick={() => nav("../step-6", { state: { condoId } })}
           className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                     bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                     bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                      focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
         >
           ต่อไป
@@ -382,3 +461,8 @@ export default function Step_5() {
     </div>
   );
 }
+
+
+
+
+

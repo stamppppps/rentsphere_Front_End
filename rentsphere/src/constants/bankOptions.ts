@@ -1,5 +1,4 @@
 export const BANK_OPTIONS = [
-  { code: "PROMPTPAY", label: "พร้อมเพย์ (PromptPay)" },
 
   { code: "BBL", label: "ธนาคารกรุงเทพ (Bangkok Bank)" },
   { code: "KBANK", label: "ธนาคารกสิกรไทย (Kasikorn Bank)" },

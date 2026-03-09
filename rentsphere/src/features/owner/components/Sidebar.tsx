@@ -71,7 +71,11 @@ export default function Sidebar({
         <div className="flex flex-col h-screen overflow-hidden">
             {/* ===== Logo + Brand (fixed) ===== */}
             <div className="shrink-0 px-8 pt-7 pb-5">
-                <div className="flex items-start gap-4">
+                <button
+                    type="button"
+                    onClick={() => nav("/owner/condo")}
+                    className="flex items-start gap-4 rounded-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/40"
+                >
                     <div className="h-24 w-24 shrink-0 overflow-hidden -mt-2">
                         <img
                             src={RentSphereLogo}
@@ -84,7 +88,7 @@ export default function Sidebar({
                     <span className="text-3xl font-extrabold tracking-tight text-gray-900 leading-none pt-[6px]">
                         RentSphere
                     </span>
-                </div>
+                </button>
 
                 <div className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 text-center">
                     {title}

@@ -212,7 +212,7 @@ const Step_1: React.FC = () => {
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">ค่าบริการเพิ่มเติม</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">ค่าบริการเพิ่มเติม (ถ้ามี)</div>
             <div className="mt-1 text-sm font-bold text-gray-600">ค่าอินเตอร์เน็ต, ค่าฟิตเนส และค่าบริการอื่น ๆ ที่เรียกเก็บเพิ่ม</div>
           </div>
         </div>
@@ -221,7 +221,7 @@ const Step_1: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div className="lg:col-span-6">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ชื่อค่าบริการ <span className="text-rose-600">*</span>
+                ชื่อค่าบริการ <span className="text-rose-600"></span>
               </label>
               <input
                 value={serviceName}
@@ -234,7 +234,7 @@ const Step_1: React.FC = () => {
 
             <div className="lg:col-span-5">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ราคา <span className="text-rose-600">*</span>
+                ราคา <span className="text-rose-600"></span>
               </label>
               <div className="flex items-center">
                 <input
@@ -403,7 +403,7 @@ const Step_1: React.FC = () => {
           disabled={!condoId}
           className={[
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
-            "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+            "!bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
             "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
           ].join(" ")}
@@ -416,3 +416,4 @@ const Step_1: React.FC = () => {
 };
 
 export default Step_1;
+

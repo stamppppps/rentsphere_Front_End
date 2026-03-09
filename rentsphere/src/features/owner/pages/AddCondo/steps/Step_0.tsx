@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CondoInfoSection from "../components/CondoInfoSection";
 import OtherDetailsSection from "../components/OtherDetailsSection";
@@ -7,11 +7,18 @@ import { api } from "@/shared/api/http";
 
 const STEP0_DRAFT_KEY = "add_condo_step0_draft";
 
-interface FormData {
-  logoFile: File | null;
+interface Step0FormData {
   nameTh: string;
+  subdistrict: string;
+  district: string;
+  province: string;
+  postalCode: string;
   addressTh: string;
   nameEn: string;
+  subdistrictEn: string;
+  districtEn: string;
+  provinceEn: string;
+  postalCodeEn: string;
   addressEn: string;
   phoneNumber: string;
   taxId: string;
@@ -50,9 +57,9 @@ function toDueDay(dueDay: string): number | null {
   return day >= 1 && day <= 28 ? day : null;
 }
 
-function buildCreateCondoJson(form: FormData): CreateCondoPayload {
+function buildCreateCondoJson(form: Step0FormData): CreateCondoPayload {
   const dueDay = toDueDay(form.dueDay);
-  if (!dueDay) throw new Error("กรุณาเลือกวันครบกำหนดชำระ (1–28)");
+  if (!dueDay) throw new Error("กรุณาเลือกวันครบกำหนดชำระ (1-28)");
 
   const acceptFine = Boolean(form.acceptFine);
   const fine = normalizeMoney(form.finePerDay);
@@ -76,7 +83,7 @@ function buildCreateCondoJson(form: FormData): CreateCondoPayload {
   };
 }
 
-async function createCondo(form: FormData): Promise<{ condoId: string }> {
+async function createCondo(form: Step0FormData): Promise<{ condoId: string }> {
   const payload = buildCreateCondoJson(form);
 
   const data = await api<any>("/owner/condos", {
@@ -87,16 +94,6 @@ async function createCondo(form: FormData): Promise<{ condoId: string }> {
   const condoId = String(data?.id ?? data?.condoId ?? "");
   if (!condoId) throw new Error("สร้างคอนโดไม่สำเร็จ (ไม่ได้รับ condoId)");
   return { condoId };
-}
-
-async function uploadCondoLogo(condoId: string, file: File) {
-  const fd = new FormData();
-  fd.append("logo", file);
-
-  return await api<any>(`/owner/condos/${condoId}/logo`, {
-    method: "POST",
-    body: fd,
-  });
 }
 
 function CardShell({
@@ -127,15 +124,22 @@ function CardShell({
 export default function Step_0() {
   const nav = useNavigate();
 
-  const [formData, setFormData] = useState<FormData>(() => {
+  const [formData, setFormData] = useState<Step0FormData>(() => {
     try {
       const raw = sessionStorage.getItem(STEP0_DRAFT_KEY);
       if (!raw) {
         return {
-          logoFile: null,
           nameTh: "",
+          subdistrict: "",
+          district: "",
+          province: "",
+          postalCode: "",
           addressTh: "",
           nameEn: "",
+          subdistrictEn: "",
+          districtEn: "",
+          provinceEn: "",
+          postalCodeEn: "",
           addressEn: "",
           phoneNumber: "",
           taxId: "",
@@ -146,10 +150,17 @@ export default function Step_0() {
       }
       const parsed = JSON.parse(raw);
       return {
-        logoFile: null, 
         nameTh: String(parsed?.nameTh ?? ""),
+        subdistrict: String(parsed?.subdistrict ?? ""),
+        district: String(parsed?.district ?? ""),
+        province: String(parsed?.province ?? ""),
+        postalCode: String(parsed?.postalCode ?? ""),
         addressTh: String(parsed?.addressTh ?? ""),
         nameEn: String(parsed?.nameEn ?? ""),
+        subdistrictEn: String(parsed?.subdistrictEn ?? ""),
+        districtEn: String(parsed?.districtEn ?? ""),
+        provinceEn: String(parsed?.provinceEn ?? ""),
+        postalCodeEn: String(parsed?.postalCodeEn ?? ""),
         addressEn: String(parsed?.addressEn ?? ""),
         phoneNumber: String(parsed?.phoneNumber ?? ""),
         taxId: String(parsed?.taxId ?? ""),
@@ -159,10 +170,17 @@ export default function Step_0() {
       };
     } catch {
       return {
-        logoFile: null,
         nameTh: "",
+        subdistrict: "",
+        district: "",
+        province: "",
+        postalCode: "",
         addressTh: "",
         nameEn: "",
+        subdistrictEn: "",
+        districtEn: "",
+        provinceEn: "",
+        postalCodeEn: "",
         addressEn: "",
         phoneNumber: "",
         taxId: "",
@@ -173,10 +191,8 @@ export default function Step_0() {
     }
   });
 
-  
   useEffect(() => {
-    const { logoFile, ...rest } = formData;
-    sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(rest));
+    sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(formData));
   }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -195,12 +211,15 @@ export default function Step_0() {
     }
   };
 
-  const handleFileChange = (file: File | null) => {
-    setFormData((prev) => ({ ...prev, logoFile: file }));
-  };
-
   const canCreate = useMemo(() => {
-    const hasBasic = formData.nameTh.trim() && formData.addressTh.trim();
+    const hasBasic =
+      formData.nameTh.trim() &&
+      formData.addressTh.trim() &&
+      formData.subdistrict.trim() &&
+      formData.district.trim() &&
+      formData.province.trim() &&
+      formData.postalCode.trim() &&
+      formData.phoneNumber.trim();
     if (!hasBasic) return false;
 
     const dueDay = toDueDay(formData.dueDay);
@@ -223,13 +242,7 @@ export default function Step_0() {
     try {
       const { condoId } = await createCondo(formData);
 
-      if (formData.logoFile) {
-        await uploadCondoLogo(condoId, formData.logoFile);
-      }
-
- 
-
-      nav("/owner/add-condo/step-1",{
+      nav("/owner/add-condo/step-1", {
         state: { condoId, condoName: formData.nameTh.trim() },
       });
     } catch (e: any) {
@@ -265,7 +278,7 @@ export default function Step_0() {
       </div>
 
       <CardShell title="ข้อมูลคอนโด" hint="ชื่อ, ที่อยู่, โลโก้ และข้อมูลติดต่อ">
-        <CondoInfoSection formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} />
+        <CondoInfoSection formData={formData as React.ComponentProps<typeof CondoInfoSection>["formData"]} handleChange={handleChange} />
       </CardShell>
 
       <CardShell title="รายละเอียดอื่น ๆ" hint="ข้อมูลเพิ่มเติมสำหรับเอกสาร/การติดต่อ">
@@ -289,7 +302,7 @@ export default function Step_0() {
           disabled={!canCreate || submitting}
           className={[
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
-            "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+            "!bg-[#6FAFF9] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
             "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
           ].join(" ")}
@@ -300,3 +313,8 @@ export default function Step_0() {
     </div>
   );
 }
+
+
+
+
+
