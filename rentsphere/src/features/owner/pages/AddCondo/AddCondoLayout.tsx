@@ -129,7 +129,7 @@ export default function AddCondoLayout() {
         return () => {
             cancelled = true;
         };
-    }, [pathname, isStep0, isStep9]);
+    }, [pathname, isStep0, isStep9, me]);
 
     if (isStep0) {
         return (

@@ -10,6 +10,19 @@ type FloorConfigDto = {
   totalRooms: number;
 };
 
+type RoomLite = {
+  floor: number;
+};
+
+function buildRoomsPerFloorFromRooms(rooms: RoomLite[], floorCount: number): number[] {
+  const counts = Array.from({ length: floorCount }, () => 0);
+  for (const room of rooms) {
+    const idx = Number(room.floor) - 1;
+    if (idx >= 0 && idx < counts.length) counts[idx] += 1;
+  }
+  return counts;
+}
+
 export default function Step_4() {
   const nav = useNavigate();
   const location = useLocation();
@@ -47,14 +60,20 @@ export default function Step_4() {
       setLoading(true);
       setApiError(null);
       try {
-        const cfg = await api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, {
-          method: "GET",
-        });
+        const [cfg, roomList] = await Promise.all([
+          api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, { method: "GET" }),
+          api<RoomLite[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" }),
+        ]);
         if (!alive) return;
 
         if (cfg?.floorCount && cfg.floorCount > 0) {
+          const latestRoomsPerFloor =
+            (roomList ?? []).length > 0
+              ? buildRoomsPerFloorFromRooms(roomList ?? [], cfg.floorCount)
+              : Array.from({ length: cfg.floorCount }, (_, i) => Number(cfg.roomsPerFloor?.[i] ?? 1));
+
           setFloorCount(cfg.floorCount);
-          setRoomsPerFloorText((cfg.roomsPerFloor ?? []).map((n) => String(n)));
+          setRoomsPerFloorText(latestRoomsPerFloor.map((n) => String(Math.max(1, n))));
         }
       } catch (e: any) {
         if (!alive) return;
@@ -307,7 +326,7 @@ export default function Step_4() {
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
             canGoNext
-              ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] cursor-pointer"
+              ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
               : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
           ].join(" ")}
         >
@@ -317,3 +336,6 @@ export default function Step_4() {
     </div>
   );
 }
+
+
+

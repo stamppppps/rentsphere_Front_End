@@ -377,7 +377,7 @@ export default function Step_3() {
 
         <div className="px-8 py-7 space-y-3">
           <label className="block text-sm font-extrabold text-gray-800">
-            ข้อความแจ้งผู้เช่า <span className="text-rose-600">*</span>
+            ข้อความแจ้งผู้เช่า <span className="text-rose-600"></span>
           </label>
 
           <textarea
@@ -400,7 +400,7 @@ export default function Step_3() {
               onClick={handleSaveMessage}
               disabled={saving}
               className="h-12 px-7 rounded-xl font-black text-sm transition shadow-[0_12px_22px_rgba(0,0,0,0.14)]
-                         bg-[#93C5FD] hover:bg-[#7fb4fb] text-white active:scale-[0.98]
+                         bg-[#6FAFF9] hover:bg-[#6FAFF9] text-white active:scale-[0.98]
                          focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
             >
               {saving ? "กำลังบันทึก..." : "บันทึก"}
@@ -424,7 +424,7 @@ export default function Step_3() {
           disabled={loading}
           onClick={() => nav("../step-4", { state: { condoId } })}
           className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                         !bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                         !bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                          focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
         >
           ต่อไป
@@ -433,3 +433,4 @@ export default function Step_3() {
     </div>
   );
 }
+

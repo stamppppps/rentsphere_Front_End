@@ -5,6 +5,7 @@ import type { Room, RoomStatus } from "../types/addCondo.types";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
 const STEP6_SELECTED_KEY = "add_condo_step6_selectedRoomIds";
+const STEP_ROOM_NAMES_KEY_PREFIX = "add_condo_room_name_drafts_";
 
 type NavState = {
   condoId?: string;
@@ -35,6 +36,30 @@ function normalizeRoom(r: any): Room {
   };
 }
 
+type RoomNameDrafts = Record<string, string>;
+
+function roomNamesKey(condoId: string) {
+  return `${STEP_ROOM_NAMES_KEY_PREFIX}${condoId}`;
+}
+
+function readRoomNameDrafts(condoId: string): RoomNameDrafts {
+  try {
+    const raw = localStorage.getItem(roomNamesKey(condoId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, String(v ?? "")]));
+  } catch {
+    return {};
+  }
+}
+
+function applyRoomNameDrafts(rooms: Room[], drafts: RoomNameDrafts): Room[] {
+  return rooms.map((room) => ({
+    ...room,
+    roomNo: drafts[room.id] ?? room.roomNo,
+  }));
+}
 export default function Step7_Review() {
   const nav = useNavigate();
   const location = useLocation();
@@ -92,7 +117,8 @@ export default function Step7_Review() {
 
         const list = await api<any[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
         if (!alive) return;
-        setRooms((list ?? []).map(normalizeRoom));
+        const drafts = readRoomNameDrafts(condoId);
+        setRooms(applyRoomNameDrafts((list ?? []).map(normalizeRoom), drafts));
       } catch (e: any) {
         if (!alive) return;
         setApiError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
@@ -332,7 +358,7 @@ export default function Step7_Review() {
                     type="button"
                     onClick={() => nav("../step-6", { state: { condoId } })}
                     className="mt-4 h-[44px] px-5 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-                    bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                    bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                     focus:outline-none focus:ring-2 focus:ring-blue-300"
                   >
                     กลับไป Step 6
@@ -414,8 +440,8 @@ export default function Step7_Review() {
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
             canGoNext
-              ? "bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer"
-              : "bg-[#93C5FD]/40 cursor-not-allowed text-white/70",
+              ? "bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer"
+              : "bg-[#1F80DB]/40 cursor-not-allowed text-white/70",
           ].join(" ")}
         >
           ต่อไป
@@ -424,3 +450,5 @@ export default function Step7_Review() {
     </div>
   );
 }
+
+

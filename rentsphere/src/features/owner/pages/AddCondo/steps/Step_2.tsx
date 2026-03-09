@@ -464,7 +464,7 @@ const Step_2: React.FC = () => {
             "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
             canNext
-              ? "!bg-[#93C5FD] hover:!bg-[#7fb4fb] cursor-pointer"
+              ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
               : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
           ].join(" ")}
         >
@@ -485,3 +485,4 @@ const Step_2: React.FC = () => {
 };
 
 export default Step_2;
+
