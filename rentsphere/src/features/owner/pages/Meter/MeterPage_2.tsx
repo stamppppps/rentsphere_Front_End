@@ -3,190 +3,454 @@ import { useNavigate } from "react-router-dom";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
-/* ================================================================
-   Types
-   ================================================================ */
 type MeterType = "water" | "electric";
 
-interface RoomMeter {
+type RoomMeterRow = {
     id: string;
     roomNo: string;
     floor: number;
     status: "active" | "inactive";
-    oldReading: number;
-    newReading: number | null;
-    usage: number;
-    cost: number;
-}
+    waterMeterNo: string | null;
+    electricMeterNo: string | null;
+    cycleId: string | null;
+    prevWater: number;
+    prevElectric: number;
+    currWater: number | null;
+    currElectric: number | null;
+    waterUnits: number;
+    electricUnits: number;
+    waterCharge: number;
+    electricCharge: number;
+    note: string;
+};
+
+type UtilityConfig = {
+    utility_type?: string;
+    utilityType?: string;
+    rate?: number | string;
+    pricePerUnit?: number | string;
+};
+
+type RoomItem = {
+    id: string;
+    roomNo?: string;
+    floor?: number;
+    occupancyStatus?: string;
+    meter?: {
+        waterMeterNo?: string | null;
+        electricMeterNo?: string | null;
+    } | null;
+};
+
+type MeterReadingResponse = {
+    prevWater?: number;
+    prevElectric?: number;
+    cycleId?: string;
+    reading?: {
+        currWater?: number;
+        currElectric?: number;
+        waterUnits?: number;
+        electricUnits?: number;
+        waterCharge?: number;
+        electricCharge?: number;
+        note?: string | null;
+    } | null;
+};
+
+type CondoOverviewReading = {
+    roomId: string;
+    prevWater?: number;
+    prevElectric?: number;
+    currWater?: number;
+    currElectric?: number;
+    waterUnits?: number;
+    electricUnits?: number;
+    waterCharge?: number;
+    electricCharge?: number;
+    note?: string | null;
+};
+
+type CondoMeterOverviewResponse = {
+    cycleId?: string;
+    cycleMonth?: string;
+    status?: string;
+    rooms?: RoomItem[];
+    readings?: CondoOverviewReading[];
+};
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function getAuthToken(): string {
-    try { const raw = localStorage.getItem("rentsphere_auth"); if (!raw) return ""; return JSON.parse(raw)?.state?.token || ""; } catch { return ""; }
-}
-function authHeaders() {
-    const t = getAuthToken();
-    return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+    try {
+        const raw = localStorage.getItem("rentsphere_auth");
+        if (!raw) return "";
+        return JSON.parse(raw)?.state?.token || "";
+    } catch {
+        return "";
+    }
 }
 
-/* ================================================================
-   MeterPage_2  –  Record View (จดมิเตอร์)
-   ================================================================ */
+function authHeaders() {
+    const t = getAuthToken();
+    return {
+        "Content-Type": "application/json",
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    };
+}
+
+function formatMonthParam(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+}
+
+function normalizeUtilityType(value: unknown) {
+    return String(value ?? "").trim().toUpperCase();
+}
+
+function formatMoney(value: number) {
+    return `฿${Number(value || 0).toLocaleString()}`;
+}
+
+function monthInputToThaiLabel(value: string) {
+    const [y, m] = value.split("-").map(Number);
+    const monthNames = [
+        "มกราคม",
+        "กุมภาพันธ์",
+        "มีนาคม",
+        "เมษายน",
+        "พฤษภาคม",
+        "มิถุนายน",
+        "กรกฎาคม",
+        "สิงหาคม",
+        "กันยายน",
+        "ตุลาคม",
+        "พฤศจิกายน",
+        "ธันวาคม",
+    ];
+
+    if (!y || !m) return value;
+    return `${monthNames[m - 1]} ${y + 543}`;
+}
+
 export default function MeterPage2() {
     const navigate = useNavigate();
+
     const [meterType, setMeterType] = useState<MeterType>("water");
+    const [selectedMonth, setSelectedMonth] = useState(formatMonthParam(new Date()));
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [saving, setSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [reloadKey, setReloadKey] = useState(0);
     const [msg, setMsg] = useState("");
-    const PER_PAGE = 4;
 
     const [waterRate, setWaterRate] = useState(18);
     const [electricRate, setElectricRate] = useState(8);
-    const rate = meterType === "water" ? waterRate : electricRate;
 
-    const [waterData, setWaterData] = useState<RoomMeter[]>([]);
-    const [electricData, setElectricData] = useState<RoomMeter[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [rows, setRows] = useState<RoomMeterRow[]>([]);
 
-    const data = meterType === "water" ? waterData : electricData;
-    const setData = meterType === "water" ? setWaterData : setElectricData;
+    const PER_PAGE = 6;
 
-    // ========== Fetch rooms + meter readings on mount ==========
     useEffect(() => {
         let cancelled = false;
+
         (async () => {
             try {
                 setLoading(true);
-                const condoId = getSelectedCondoId();
-                if (!condoId) { setLoading(false); return; }
+                setMsg("");
 
-                // Fetch rooms + utility rates in parallel
-                const [roomRes, utilRes] = await Promise.all([
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/rooms`, { headers: authHeaders() }),
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/utilities`, { headers: authHeaders() }).catch(() => null),
+                const condoId = getSelectedCondoId();
+                if (!condoId) {
+                    if (!cancelled) {
+                        setRows([]);
+                        setLoading(false);
+                    }
+                    return;
+                }
+
+                const [overviewRes, utilRes] = await Promise.all([
+                    fetch(`${API}/api/v1/owner/condos/${condoId}/meters?month=${selectedMonth}`, {
+                        headers: authHeaders(),
+                    }),
+                    fetch(`${API}/api/v1/owner/condos/${condoId}/utilities`, {
+                        headers: authHeaders(),
+                    }).catch(() => null),
                 ]);
 
                 if (cancelled) return;
 
-                const roomsRaw = await roomRes.json();
-                const rooms: any[] = Array.isArray(roomsRaw) ? roomsRaw : (roomsRaw?.rooms || []);
+                if (!overviewRes.ok) {
+                    throw new Error("โหลดข้อมูลมิเตอร์ไม่สำเร็จ");
+                }
 
-                // Utility rates
+                const overviewRaw: CondoMeterOverviewResponse = await overviewRes.json();
+                const rooms: RoomItem[] = Array.isArray(overviewRaw?.rooms) ? overviewRaw.rooms : [];
+                const readings: CondoOverviewReading[] = Array.isArray(overviewRaw?.readings)
+                    ? overviewRaw.readings
+                    : [];
+
+                const readingMap = new Map<string, CondoOverviewReading>();
+                for (const reading of readings) {
+                    readingMap.set(reading.roomId, reading);
+                }
+
+                let nextWaterRate = 18;
+                let nextElectricRate = 8;
+
                 if (utilRes?.ok) {
                     const utilsRaw = await utilRes.json();
-                    const configs: any[] = utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
+                    const configs: UtilityConfig[] = Array.isArray(utilsRaw)
+                        ? utilsRaw
+                        : Array.isArray(utilsRaw?.configs)
+                            ? utilsRaw.configs
+                            : Array.isArray(utilsRaw?.items)
+                                ? utilsRaw.items
+                                : [];
+
                     for (const c of configs) {
-                        if (c.utility_type === "water" || c.utilityType === "water") setWaterRate(Number(c.rate || c.pricePerUnit || 18));
-                        if (c.utility_type === "electricity" || c.utilityType === "electricity") setElectricRate(Number(c.rate || c.pricePerUnit || 8));
+                        const utilityType = normalizeUtilityType(c.utility_type ?? c.utilityType);
+                        const parsedRate = Number(c.rate ?? c.pricePerUnit ?? 0);
+
+                        if (utilityType === "WATER" && parsedRate > 0) {
+                            nextWaterRate = parsedRate;
+                        }
+
+                        if (utilityType === "ELECTRIC" || utilityType === "ELECTRICITY") {
+                            if (parsedRate > 0) nextElectricRate = parsedRate;
+                        }
                     }
                 }
 
-                // Fetch meter readings for each room
-                const meterPromises = rooms.map((r: any) =>
-                    fetch(`${API}/api/v1/owner/rooms/${r.id}/meters`, { headers: authHeaders() })
-                        .then(res => res.ok ? res.json() : null)
+                if (!cancelled) {
+                    setWaterRate(nextWaterRate);
+                    setElectricRate(nextElectricRate);
+                }
+
+                const meterPromises = rooms.map((room) =>
+                    fetch(
+                        `${API}/api/v1/owner/rooms/${room.id}/meters?month=${selectedMonth}`,
+                        { headers: authHeaders() }
+                    )
+                        .then(async (res) => (res.ok ? ((await res.json()) as MeterReadingResponse) : null))
                         .catch(() => null)
                 );
+
                 const meterResults = await Promise.all(meterPromises);
+
                 if (cancelled) return;
 
-                const waterItems: RoomMeter[] = [];
-                const electricItems: RoomMeter[] = [];
+                const mapped: RoomMeterRow[] = rooms.map((room, index) => {
+                    const meterState = meterResults[index];
+                    const monthReading = readingMap.get(room.id);
+                    const reading = meterState?.reading ?? monthReading ?? null;
 
-                rooms.forEach((r: any, i: number) => {
-                    const meter = meterResults[i];
-                    const isOccupied = r.occupancyStatus === "OCCUPIED";
+                    const prevWater = Number(meterState?.prevWater ?? monthReading?.prevWater ?? 0);
+                    const prevElectric = Number(meterState?.prevElectric ?? monthReading?.prevElectric ?? 0);
 
-                    waterItems.push({
-                        id: r.id,
-                        roomNo: r.roomNo || "—",
-                        floor: r.floor || 0,
-                        status: isOccupied ? "active" : "inactive",
-                        oldReading: meter?.prevWater ?? 0,
-                        newReading: meter?.currWater ?? null,
-                        usage: meter?.waterUnits ?? 0,
-                        cost: (meter?.waterUnits ?? 0) * waterRate,
-                    });
+                    const currWater =
+                        reading?.currWater !== undefined && reading?.currWater !== null
+                            ? Number(reading.currWater)
+                            : null;
 
-                    electricItems.push({
-                        id: r.id,
-                        roomNo: r.roomNo || "—",
-                        floor: r.floor || 0,
-                        status: isOccupied ? "active" : "inactive",
-                        oldReading: meter?.prevElectric ?? 0,
-                        newReading: meter?.currElectric ?? null,
-                        usage: meter?.electricUnits ?? 0,
-                        cost: (meter?.electricUnits ?? 0) * electricRate,
-                    });
+                    const currElectric =
+                        reading?.currElectric !== undefined && reading?.currElectric !== null
+                            ? Number(reading.currElectric)
+                            : null;
+
+                    const waterUnits =
+                        reading?.waterUnits !== undefined && reading?.waterUnits !== null
+                            ? Number(reading.waterUnits)
+                            : currWater !== null
+                                ? Math.max(0, currWater - prevWater)
+                                : 0;
+
+                    const electricUnits =
+                        reading?.electricUnits !== undefined && reading?.electricUnits !== null
+                            ? Number(reading.electricUnits)
+                            : currElectric !== null
+                                ? Math.max(0, currElectric - prevElectric)
+                                : 0;
+
+                    const waterCharge =
+                        reading?.waterCharge !== undefined && reading?.waterCharge !== null
+                            ? Number(reading.waterCharge)
+                            : waterUnits * nextWaterRate;
+
+                    const electricCharge =
+                        reading?.electricCharge !== undefined && reading?.electricCharge !== null
+                            ? Number(reading.electricCharge)
+                            : electricUnits * nextElectricRate;
+
+                    return {
+                        id: room.id,
+                        roomNo: room.roomNo || "—",
+                        floor: Number(room.floor ?? 0),
+                        status: room.occupancyStatus === "OCCUPIED" ? "active" : "inactive",
+                        waterMeterNo: room.meter?.waterMeterNo ?? null,
+                        electricMeterNo: room.meter?.electricMeterNo ?? null,
+                        cycleId: meterState?.cycleId ?? overviewRaw?.cycleId ?? null,
+                        prevWater,
+                        prevElectric,
+                        currWater,
+                        currElectric,
+                        waterUnits,
+                        electricUnits,
+                        waterCharge,
+                        electricCharge,
+                        note: reading?.note ?? "",
+                    };
                 });
 
-                setWaterData(waterItems);
-                setElectricData(electricItems);
+                mapped.sort((a, b) => a.roomNo.localeCompare(b.roomNo, "th"));
+                setRows(mapped);
             } catch (e) {
                 console.error("MeterPage2 load error:", e);
+                setMsg("เกิดข้อผิดพลาดในการโหลดข้อมูล");
             } finally {
                 if (!cancelled) setLoading(false);
             }
         })();
-        return () => { cancelled = true; };
-    }, []);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedMonth, reloadKey]);
 
     const filtered = useMemo(() => {
-        if (!search.trim()) return data;
-        return data.filter((r) => r.roomNo.includes(search.trim()));
-    }, [data, search]);
+        const keyword = search.trim().toLowerCase();
+        if (!keyword) return rows;
+
+        return rows.filter((r) => {
+            return (
+                r.roomNo.toLowerCase().includes(keyword) ||
+                (r.waterMeterNo || "").toLowerCase().includes(keyword) ||
+                (r.electricMeterNo || "").toLowerCase().includes(keyword)
+            );
+        });
+    }, [rows, search]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-    const pageData = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+    const currentPage = Math.min(page, totalPages);
+    const pageData = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
-    const handleNewReading = (id: string, val: string) => {
-        const num = val === "" ? null : Number(val);
-        setData((prev) =>
-            prev.map((r) => {
-                if (r.id !== id) return r;
-                const newReading = num;
-                const usage = newReading !== null && newReading >= r.oldReading ? newReading - r.oldReading : 0;
-                return { ...r, newReading, usage, cost: usage * rate };
+    const summary = useMemo(() => {
+        const waterEntered = rows.filter((r) => r.currWater !== null).length;
+        const electricEntered = rows.filter((r) => r.currElectric !== null).length;
+        const totalWaterUnits = rows.reduce((sum, r) => sum + Number(r.waterUnits || 0), 0);
+        const totalElectricUnits = rows.reduce((sum, r) => sum + Number(r.electricUnits || 0), 0);
+        const totalWaterCharge = rows.reduce((sum, r) => sum + Number(r.waterCharge || 0), 0);
+        const totalElectricCharge = rows.reduce((sum, r) => sum + Number(r.electricCharge || 0), 0);
+
+        return {
+            waterEntered,
+            electricEntered,
+            totalWaterUnits,
+            totalElectricUnits,
+            totalWaterCharge,
+            totalElectricCharge,
+        };
+    }, [rows]);
+
+    const handleFieldChange = (
+        id: string,
+        field: "currWater" | "currElectric" | "note",
+        value: string
+    ) => {
+        setRows((prev) =>
+            prev.map((row) => {
+                if (row.id !== id) return row;
+
+                const next = { ...row };
+
+                if (field === "note") {
+                    next.note = value;
+                    return next;
+                }
+
+                const num = value === "" ? null : Number(value);
+
+                if (field === "currWater") {
+                    next.currWater = num;
+                    next.waterUnits =
+                        num !== null && num >= next.prevWater ? num - next.prevWater : 0;
+                    next.waterCharge = next.waterUnits * waterRate;
+                }
+
+                if (field === "currElectric") {
+                    next.currElectric = num;
+                    next.electricUnits =
+                        num !== null && num >= next.prevElectric ? num - next.prevElectric : 0;
+                    next.electricCharge = next.electricUnits * electricRate;
+                }
+
+                return next;
             })
         );
     };
 
-    // ========== Save all meter readings ==========
+    const handleClear = () => {
+        setRows((prev) =>
+            prev.map((row) => ({
+                ...row,
+                currWater: null,
+                currElectric: null,
+                waterUnits: 0,
+                electricUnits: 0,
+                waterCharge: 0,
+                electricCharge: 0,
+                note: "",
+            }))
+        );
+        setMsg("");
+    };
+
     const handleSave = async () => {
         setSaving(true);
         setMsg("");
+
         try {
-            // Collect all rooms that have newReading entered
-            const waterToSave = waterData.filter(r => r.newReading !== null);
-            const electricToSave = electricData.filter(r => r.newReading !== null);
-
-            // For each room, we need both water and electric readings
-            const roomIds = new Set([
-                ...waterToSave.map(r => r.id),
-                ...electricToSave.map(r => r.id),
-            ]);
-
-            const waterMap = Object.fromEntries(waterData.map(r => [r.id, r]));
-            const electricMap = Object.fromEntries(electricData.map(r => [r.id, r]));
-
             let saved = 0;
-            for (const roomId of roomIds) {
-                const w = waterMap[roomId];
-                const e = electricMap[roomId];
-                const currWater = w?.newReading ?? w?.oldReading ?? 0;
-                const currElectric = e?.newReading ?? e?.oldReading ?? 0;
+            let failed = 0;
 
-                const res = await fetch(`${API}/api/v1/owner/rooms/${roomId}/meters`, {
+            for (const row of rows) {
+                if (row.currWater === null && row.currElectric === null && !row.note.trim()) {
+                    continue;
+                }
+
+                const payload: Record<string, unknown> = {
+                    month: selectedMonth,
+                    currWater: Number(row.currWater ?? row.prevWater ?? 0),
+                    currElectric: Number(row.currElectric ?? row.prevElectric ?? 0),
+                    note: row.note.trim() || null,
+                };
+
+                if (row.cycleId) {
+                    payload.cycleId = row.cycleId;
+                }
+
+                const res = await fetch(`${API}/api/v1/owner/rooms/${row.id}/meters`, {
                     method: "POST",
                     headers: authHeaders(),
-                    body: JSON.stringify({ currWater, currElectric }),
+                    body: JSON.stringify(payload),
                 });
 
-                if (res.ok) saved++;
+                if (res.ok) {
+                    saved++;
+                } else {
+                    failed++;
+                    const errText = await res.text().catch(() => "");
+                    console.error(`Save meter failed for room ${row.roomNo}:`, errText);
+                }
             }
 
-            setMsg(`บันทึกสำเร็จ ${saved} ห้อง`);
+            if (failed > 0) {
+                setMsg(`บันทึกสำเร็จ ${saved} ห้อง, ไม่สำเร็จ ${failed} ห้อง`);
+            } else {
+                setMsg(`บันทึกสำเร็จ ${saved} ห้อง`);
+            }
+
+            setReloadKey((prev) => prev + 1);
         } catch (e: any) {
             setMsg(`เกิดข้อผิดพลาด: ${e.message}`);
         } finally {
@@ -194,18 +458,9 @@ export default function MeterPage2() {
         }
     };
 
-    const handleClear = () => {
-        setWaterData(prev => prev.map(r => ({ ...r, newReading: null, usage: 0, cost: 0 })));
-        setElectricData(prev => prev.map(r => ({ ...r, newReading: null, usage: 0, cost: 0 })));
-        setMsg("");
-    };
-
-    const totalRecords = filtered.length;
-
     return (
         <OwnerShell activeKey="meter">
             <div className="w-full mx-auto animate-in fade-in duration-300 pt-6 px-8 pb-10">
-                {/* Page title + back button */}
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <button
@@ -220,8 +475,61 @@ export default function MeterPage2() {
                         </button>
                         <div>
                             <h1 className="text-xl font-extrabold text-gray-900">จดมิเตอร์</h1>
-                            {msg && <p className={`text-sm font-bold mt-1 ${msg.includes("สำเร็จ") ? "text-emerald-600" : "text-rose-600"}`}>{msg}</p>}
+                            <p className="text-sm font-bold text-gray-400 mt-1">
+                                เดือน {monthInputToThaiLabel(selectedMonth)}
+                            </p>
+                            {msg && (
+                                <p
+                                    className={`text-sm font-bold mt-2 ${
+                                        msg.includes("สำเร็จ") && !msg.includes("ไม่สำเร็จ")
+                                            ? "text-emerald-600"
+                                            : msg.includes("สำเร็จ")
+                                                ? "text-amber-600"
+                                                : "text-rose-600"
+                                    }`}
+                                >
+                                    {msg}
+                                </p>
+                            )}
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => {
+                                setSelectedMonth(e.target.value);
+                                setPage(1);
+                            }}
+                            className="h-[42px] rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                    <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-5 py-4">
+                        <div className="text-xs font-bold text-gray-400">กรอกค่าน้ำแล้ว</div>
+                        <div className="text-2xl font-extrabold text-gray-900 mt-2">{summary.waterEntered}</div>
+                        <div className="text-xs font-bold text-gray-400 mt-2">เรท {waterRate} บ./หน่วย</div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-5 py-4">
+                        <div className="text-xs font-bold text-gray-400">กรอกค่าไฟแล้ว</div>
+                        <div className="text-2xl font-extrabold text-gray-900 mt-2">{summary.electricEntered}</div>
+                        <div className="text-xs font-bold text-gray-400 mt-2">เรท {electricRate} บ./หน่วย</div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-5 py-4">
+                        <div className="text-xs font-bold text-gray-400">หน่วยน้ำรวม</div>
+                        <div className="text-2xl font-extrabold text-gray-900 mt-2">{summary.totalWaterUnits.toLocaleString()}</div>
+                        <div className="text-xs font-bold text-gray-400 mt-2">{formatMoney(summary.totalWaterCharge)}</div>
+                    </div>
+
+                    <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-5 py-4">
+                        <div className="text-xs font-bold text-gray-400">หน่วยไฟรวม</div>
+                        <div className="text-2xl font-extrabold text-gray-900 mt-2">{summary.totalElectricUnits.toLocaleString()}</div>
+                        <div className="text-xs font-bold text-gray-400 mt-2">{formatMoney(summary.totalElectricCharge)}</div>
                     </div>
                 </div>
 
@@ -230,15 +538,12 @@ export default function MeterPage2() {
                         <div className="text-sm font-extrabold text-gray-500">กำลังโหลดข้อมูลห้อง...</div>
                     </div>
                 ) : (
-                    /* Card container */
                     <div className="rounded-3xl bg-white border border-blue-100 shadow-[0_4px_24px_rgba(147,197,253,0.15)] overflow-hidden">
-                        {/* Tabs + Search row */}
                         <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-4 flex-wrap">
                             <div className="flex items-center gap-3">
-                                {/* Water tab */}
                                 <button
                                     type="button"
-                                    onClick={() => { setMeterType("water"); setPage(1); }}
+                                    onClick={() => setMeterType("water")}
                                     className={[
                                         "h-[42px] px-5 rounded-full font-extrabold text-sm transition flex items-center gap-2",
                                         meterType === "water"
@@ -246,15 +551,12 @@ export default function MeterPage2() {
                                             : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50",
                                     ].join(" ")}
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3c-4 4.5-7 8-7 11a7 7 0 1014 0c0-3-3-6.5-7-11z" />
-                                    </svg>
                                     ค่าน้ำ ({waterRate} บ./หน่วย)
                                 </button>
-                                {/* Electric tab */}
+
                                 <button
                                     type="button"
-                                    onClick={() => { setMeterType("electric"); setPage(1); }}
+                                    onClick={() => setMeterType("electric")}
                                     className={[
                                         "h-[42px] px-5 rounded-full font-extrabold text-sm transition flex items-center gap-2",
                                         meterType === "electric"
@@ -262,123 +564,172 @@ export default function MeterPage2() {
                                             : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50",
                                     ].join(" ")}
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
                                     ค่าไฟ ({electricRate} บ./หน่วย)
                                 </button>
                             </div>
 
-                            {/* Search */}
-                            <div className="flex items-center gap-2">
-                                <div className="relative w-56">
-                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหาห้อง..."
-                                        value={search}
-                                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                                        className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm font-bold text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
-                                    />
+                            <div className="relative w-64">
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
                                 </div>
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหาห้อง / เลขมิเตอร์"
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm font-bold text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
+                                />
                             </div>
                         </div>
 
-                        {/* Table */}
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-t border-b border-gray-100">
-                                    <th className="py-4 px-6 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">ห้อง</th>
-                                    <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">สถานะห้อง</th>
-                                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ยอดครั้งก่อน</th>
-                                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ยอดปัจจุบัน</th>
-                                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">หน่วยที่ใช้</th>
-                                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ค่าใช้จ่าย</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pageData.map((r) => (
-                                    <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition">
-                                        <td className="py-5 px-6 font-extrabold text-gray-900 text-base">{r.roomNo}</td>
-                                        <td className="py-5 px-4">
-                                            <span className={[
-                                                "inline-flex items-center px-4 py-1.5 rounded-full text-xs font-extrabold border",
-                                                r.status === "active"
-                                                    ? "bg-red-50 border-red-200 text-red-500"
-                                                    : "bg-green-50 border-green-200 text-green-500",
-                                            ].join(" ")}>
-                                                {r.status === "active" ? "ไม่ว่าง" : "ว่าง"}
-                                            </span>
-                                        </td>
-                                        <td className="py-5 px-4 text-center font-bold text-gray-700">
-                                            {r.oldReading.toLocaleString()}
-                                        </td>
-                                        <td className="py-5 px-4 text-center">
-                                            <input
-                                                type="number"
-                                                value={r.newReading ?? ""}
-                                                onChange={(e) => handleNewReading(r.id, e.target.value)}
-                                                placeholder="0"
-                                                className="w-24 text-center rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 focus:bg-white"
-                                            />
-                                        </td>
-                                        <td className="py-5 px-4 text-center font-bold text-[#93C5FD]">
-                                            {r.usage > 0 ? r.usage.toLocaleString() : "0"}
-                                        </td>
-                                        <td className="py-5 px-4 text-center font-bold text-gray-700">
-                                            {r.cost > 0 ? `฿${r.cost.toLocaleString()}` : "฿0"}
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[1250px] text-sm">
+                                <thead>
+                                    <tr className="border-t border-b border-gray-100">
+                                        <th className="py-4 px-6 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">ห้อง</th>
+                                        <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">เลขมิเตอร์</th>
+                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ยอดก่อนหน้า</th>
+                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ยอดปัจจุบัน</th>
+                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">หน่วยที่ใช้</th>
+                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">ค่าใช้จ่าย</th>
+                                        <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">หมายเหตุ</th>
                                     </tr>
-                                ))}
+                                </thead>
+                                <tbody>
+                                    {pageData.map((r) => {
+                                        const prevReading = meterType === "water" ? r.prevWater : r.prevElectric;
+                                        const currReading = meterType === "water" ? r.currWater : r.currElectric;
+                                        const units = meterType === "water" ? r.waterUnits : r.electricUnits;
+                                        const cost = meterType === "water" ? r.waterCharge : r.electricCharge;
+                                        const meterNo = meterType === "water" ? r.waterMeterNo : r.electricMeterNo;
 
-                                {pageData.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="py-16 text-center text-gray-400 font-bold">
-                                            ไม่พบข้อมูลห้อง
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                        return (
+                                            <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition align-top">
+                                                <td className="py-5 px-6">
+                                                    <div className="font-extrabold text-gray-900 text-base">{r.roomNo}</div>
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        <span
+                                                            className={[
+                                                                "inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold border",
+                                                                r.status === "active"
+                                                                    ? "bg-red-50 border-red-200 text-red-500"
+                                                                    : "bg-green-50 border-green-200 text-green-500",
+                                                            ].join(" ")}
+                                                        >
+                                                            {r.status === "active" ? "ไม่ว่าง" : "ว่าง"}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-gray-400">ชั้น {r.floor || "-"}</span>
+                                                    </div>
+                                                </td>
 
-                        {/* Footer: info + buttons */}
+                                                <td className="py-5 px-4 font-bold text-gray-700">
+                                                    {meterNo || "ยังไม่ตั้งเลขมิเตอร์"}
+                                                </td>
+
+                                                <td className="py-5 px-4 text-center font-bold text-gray-700">
+                                                    {prevReading.toLocaleString()}
+                                                </td>
+
+                                                <td className="py-5 px-4 text-center">
+                                                    {meterType === "water" ? (
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            value={r.currWater ?? ""}
+                                                            onChange={(e) => handleFieldChange(r.id, "currWater", e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-28 text-center rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 focus:bg-white"
+                                                        />
+                                                    ) : (
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            value={r.currElectric ?? ""}
+                                                            onChange={(e) => handleFieldChange(r.id, "currElectric", e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-28 text-center rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 focus:bg-white"
+                                                        />
+                                                    )}
+
+                                                    <div className="text-xs text-gray-400 font-bold mt-2">
+                                                        ปัจจุบัน: {currReading !== null ? currReading.toLocaleString() : "-"}
+                                                    </div>
+                                                </td>
+
+                                                <td className="py-5 px-4 text-center font-bold text-[#93C5FD]">
+                                                    {units.toLocaleString()}
+                                                </td>
+
+                                                <td className="py-5 px-4 text-center font-bold text-gray-700">
+                                                    {formatMoney(cost)}
+                                                </td>
+
+                                                <td className="py-5 px-4">
+                                                    <input
+                                                        type="text"
+                                                        value={r.note}
+                                                        onChange={(e) => handleFieldChange(r.id, "note", e.target.value)}
+                                                        placeholder="หมายเหตุเพิ่มเติม"
+                                                        className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 px-3 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 focus:bg-white"
+                                                    />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+
+                                    {pageData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="py-16 text-center text-gray-400 font-bold">
+                                                ไม่พบข้อมูลห้อง
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
                         <div className="flex items-center justify-between px-6 py-5 border-t border-gray-100 flex-wrap gap-3">
                             <div className="text-sm font-bold text-gray-400">
-                                แสดงทั้งหมด {pageData.length} รายการ จาก {totalRecords} รายการ
+                                แสดงทั้งหมด {pageData.length} รายการ จาก {filtered.length} รายการ
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <button onClick={handleClear} className="h-[44px] px-6 rounded-xl bg-white border border-gray-200 text-gray-600 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.98] transition flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                <button
+                                    onClick={handleClear}
+                                    className="h-[44px] px-6 rounded-xl bg-white border border-gray-200 text-gray-600 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.98] transition flex items-center gap-2"
+                                >
                                     ล้างข้อมูล
                                 </button>
+
                                 <button
                                     onClick={handleSave}
                                     disabled={saving}
                                     className="h-[44px] px-6 rounded-xl bg-[#93C5FD] text-white font-extrabold text-sm shadow-[0_8px_20px_rgba(147,197,253,0.4)] hover:bg-[#7fb4fb] active:scale-[0.98] transition flex items-center gap-2 disabled:opacity-50"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
                                     {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="flex items-center justify-center gap-2 py-5 bg-gradient-to-r from-blue-50/50 via-purple-50/30 to-blue-50/50 border-t border-blue-100/50">
                                 <button
                                     type="button"
-                                    onClick={() => setPage(Math.max(1, page - 1))}
-                                    disabled={page === 1}
+                                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
                                     aria-label="หน้าก่อนหน้า"
                                     className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
                                 </button>
+
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                                     <button
                                         key={p}
@@ -386,7 +737,7 @@ export default function MeterPage2() {
                                         onClick={() => setPage(p)}
                                         className={[
                                             "w-9 h-9 rounded-lg font-extrabold text-sm transition",
-                                            page === p
+                                            currentPage === p
                                                 ? "bg-[#93C5FD] text-white shadow-md"
                                                 : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50",
                                         ].join(" ")}
@@ -394,14 +745,17 @@ export default function MeterPage2() {
                                         {p}
                                     </button>
                                 ))}
+
                                 <button
                                     type="button"
-                                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                    disabled={page === totalPages}
+                                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                                    disabled={currentPage === totalPages}
                                     aria-label="หน้าถัดไป"
                                     className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </button>
                             </div>
                         )}
