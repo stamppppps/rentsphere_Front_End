@@ -1,6 +1,6 @@
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
 
@@ -14,7 +14,10 @@ type RoomLite = {
   floor: number;
 };
 
-function buildRoomsPerFloorFromRooms(rooms: RoomLite[], floorCount: number): number[] {
+function buildRoomsPerFloorFromRooms(
+  rooms: RoomLite[],
+  floorCount: number
+): number[] {
   const counts = Array.from({ length: floorCount }, () => 0);
   for (const room of rooms) {
     const idx = Number(room.floor) - 1;
@@ -26,20 +29,27 @@ function buildRoomsPerFloorFromRooms(rooms: RoomLite[], floorCount: number): num
 export default function Step_4() {
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
+  const isSettingsPath = location.pathname.startsWith("/owner/settings");
+  const mode =
+    searchParams.get("mode") === "edit" || isSettingsPath ? "edit" : "create";
 
   const condoId: string = useMemo(() => {
+    const fromQuery = searchParams.get("condoId");
     const fromState = (location.state as any)?.condoId;
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
-    return String(fromState ?? fromStorage ?? "");
-  }, [location.state]);
+    return String(fromQuery ?? fromState ?? fromStorage ?? "").trim();
+  }, [location.state, searchParams]);
 
   useEffect(() => {
     if (condoId) localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
   }, [condoId]);
 
   useEffect(() => {
-    if (!condoId) nav("/owner/add-condo/step-0");
+    if (!condoId) {
+      nav("/owner/add-condo/step-0");
+    }
   }, [condoId, nav]);
 
   const [floorCount, setFloorCount] = useState<number | "">("");
@@ -49,7 +59,7 @@ export default function Step_4() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!condoId) return;
@@ -59,21 +69,36 @@ export default function Step_4() {
     (async () => {
       setLoading(true);
       setApiError(null);
+      setSuccessMsg(null);
+
       try {
         const [cfg, roomList] = await Promise.all([
-          api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, { method: "GET" }),
-          api<RoomLite[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" }),
+          api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, {
+            method: "GET",
+          }),
+          api<RoomLite[]>(`/owner/condos/${condoId}/rooms`, {
+            method: "GET",
+          }),
         ]);
+
         if (!alive) return;
 
         if (cfg?.floorCount && cfg.floorCount > 0) {
           const latestRoomsPerFloor =
             (roomList ?? []).length > 0
               ? buildRoomsPerFloorFromRooms(roomList ?? [], cfg.floorCount)
-              : Array.from({ length: cfg.floorCount }, (_, i) => Number(cfg.roomsPerFloor?.[i] ?? 1));
+              : Array.from(
+                { length: cfg.floorCount },
+                (_, i) => Number(cfg.roomsPerFloor?.[i] ?? 1)
+              );
 
           setFloorCount(cfg.floorCount);
-          setRoomsPerFloorText(latestRoomsPerFloor.map((n) => String(Math.max(1, n))));
+          setRoomsPerFloorText(
+            latestRoomsPerFloor.map((n) => String(Math.max(1, n)))
+          );
+        } else {
+          setFloorCount("");
+          setRoomsPerFloorText([]);
         }
       } catch (e: any) {
         if (!alive) return;
@@ -89,7 +114,7 @@ export default function Step_4() {
   }, [condoId]);
 
   const hasRoomError = Object.keys(roomErrors).length > 0;
-  const canGoNext = floorCount !== "" && !hasRoomError && !saving;
+  const canSubmit = floorCount !== "" && !hasRoomError && !saving;
 
   const roomsPerFloorNormalized = useMemo(() => {
     if (floorCount === "") return [];
@@ -106,6 +131,7 @@ export default function Step_4() {
   }, [roomsPerFloorNormalized]);
 
   const handleFloorChange = (value: number | "") => {
+    setSuccessMsg(null);
     setFloorCount(value);
 
     if (value === "") {
@@ -114,7 +140,6 @@ export default function Step_4() {
       return;
     }
 
-    // ถ้าเคยมีค่าจาก backend แล้วและจำนวนชั้นเปลี่ยน
     setRoomsPerFloorText((prev) => {
       const next = Array.from({ length: value }, (_, i) => prev[i] ?? "1");
       return next;
@@ -126,7 +151,11 @@ export default function Step_4() {
   const handleRoomTextChange = (index: number, next: string) => {
     if (!/^\d*$/.test(next)) return;
 
-    setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? next : v)));
+    setSuccessMsg(null);
+
+    setRoomsPerFloorText((prev) =>
+      prev.map((v, i) => (i === index ? next : v))
+    );
 
     if (next === "") {
       setRoomErrors((prev) => {
@@ -140,12 +169,18 @@ export default function Step_4() {
     const value = Number(next);
 
     if (value > 50) {
-      setRoomErrors((prev) => ({ ...prev, [index]: "จำนวนห้องต้องไม่เกิน 50 ห้อง" }));
+      setRoomErrors((prev) => ({
+        ...prev,
+        [index]: "จำนวนห้องต้องไม่เกิน 50 ห้อง",
+      }));
       return;
     }
 
     if (value < 1) {
-      setRoomErrors((prev) => ({ ...prev, [index]: "จำนวนห้องต้องมากกว่า 0" }));
+      setRoomErrors((prev) => ({
+        ...prev,
+        [index]: "จำนวนห้องต้องมากกว่า 0",
+      }));
       return;
     }
 
@@ -160,7 +195,9 @@ export default function Step_4() {
     const raw = roomsPerFloorText[index] ?? "";
 
     if (raw.trim() === "") {
-      setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? "1" : v)));
+      setRoomsPerFloorText((prev) =>
+        prev.map((v, i) => (i === index ? "1" : v))
+      );
       return;
     }
 
@@ -168,7 +205,9 @@ export default function Step_4() {
     if (!Number.isFinite(n)) n = 1;
     n = Math.max(1, Math.min(50, n));
 
-    setRoomsPerFloorText((prev) => prev.map((v, i) => (i === index ? String(n) : v)));
+    setRoomsPerFloorText((prev) =>
+      prev.map((v, i) => (i === index ? String(n) : v))
+    );
 
     setRoomErrors((prev) => {
       const copy = { ...prev };
@@ -177,12 +216,14 @@ export default function Step_4() {
     });
   };
 
-  const handleNext = async () => {
+  const handleSubmit = async () => {
     if (!condoId) return;
     if (floorCount === "" || hasRoomError) return;
 
     setSaving(true);
     setApiError(null);
+    setSuccessMsg(null);
+
     try {
       await api(`/owner/condos/${condoId}/floor-config`, {
         method: "PUT",
@@ -193,6 +234,11 @@ export default function Step_4() {
         }),
       });
 
+      if (mode === "edit") {
+        setSuccessMsg("บันทึกจำนวนชั้นและจำนวนห้องเรียบร้อยแล้ว");
+        return;
+      }
+
       nav("../step-5", { state: { condoId } });
     } catch (e: any) {
       setApiError(e?.message ?? "บันทึกไม่สำเร็จ");
@@ -201,10 +247,31 @@ export default function Step_4() {
     }
   };
 
+  const handleBack = () => {
+    if (!condoId) return;
+
+    if (mode === "edit") {
+      nav(`/owner/settings/step-3?condoId=${encodeURIComponent(condoId)}&mode=edit`);
+      return;
+    }
+
+    nav("../step-3", { state: { condoId } });
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
+        <div className="rounded-2xl border border-blue-100/60 bg-white px-8 py-10 text-center text-lg font-extrabold text-gray-700 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+          กำลังโหลดข้อมูลจำนวนชั้นและห้อง...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
       <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
-        ตั้งค่าคอนโดมิเนียม
+        {mode === "edit" ? "แก้ไขจำนวนชั้นและจำนวนห้อง" : "ตั้งค่าคอนโดมิเนียม"}
       </h1>
 
       {apiError && (
@@ -213,11 +280,19 @@ export default function Step_4() {
         </div>
       )}
 
+      {successMsg && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700 font-extrabold">
+          {successMsg}
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">จำนวนชั้นและจำนวนห้อง</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              จำนวนชั้นและจำนวนห้อง
+            </div>
             <div className="mt-1 text-sm font-bold text-gray-600">
               เลือกจำนวนชั้น และกำหนดจำนวนห้องต่อชั้น (สูงสุด 50 ห้อง) — ระบบคำนวณรวมให้อัตโนมัติ
             </div>
@@ -233,7 +308,11 @@ export default function Step_4() {
             <select
               value={floorCount}
               disabled={loading || saving}
-              onChange={(e) => handleFloorChange(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) =>
+                handleFloorChange(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
+              }
               className="w-full h-14 rounded-2xl border border-gray-200 bg-[#fffdf2] px-5 text-xl font-extrabold text-gray-900 shadow-sm
                          focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300 disabled:opacity-60"
             >
@@ -250,7 +329,10 @@ export default function Step_4() {
             <div className="space-y-4">
               <div className="flex items-end justify-between gap-3 flex-wrap">
                 <div className="text-xl font-extrabold text-gray-900 tracking-tight">
-                  จำนวนห้องต่อชั้น <span className="text-sm font-extrabold text-gray-500">(1 - 50)</span>
+                  จำนวนห้องต่อชั้น{" "}
+                  <span className="text-sm font-extrabold text-gray-500">
+                    (1 - 50)
+                  </span>
                 </div>
 
                 <div className="h-[46px] min-w-[260px] px-6 rounded-xl bg-[#161A2D] text-white flex items-center justify-center shadow-[0_12px_22px_rgba(0,0,0,0.18)] font-extrabold text-sm">
@@ -266,7 +348,9 @@ export default function Step_4() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-1.5 rounded-full bg-[#5b86ff]" />
-                      <div className="text-lg font-extrabold text-gray-900">ชั้นที่ {i + 1}</div>
+                      <div className="text-lg font-extrabold text-gray-900">
+                        ชั้นที่ {i + 1}
+                      </div>
                     </div>
 
                     <div className="flex items-end gap-3">
@@ -279,7 +363,9 @@ export default function Step_4() {
                           disabled={saving}
                           onFocus={(e) => e.currentTarget.select()}
                           onClick={(e) => e.currentTarget.select()}
-                          onChange={(e) => handleRoomTextChange(i, e.target.value)}
+                          onChange={(e) =>
+                            handleRoomTextChange(i, e.target.value)
+                          }
                           onBlur={() => normalizeRoomOnBlur(i)}
                           className={[
                             "w-28 h-12 rounded-2xl border text-center text-xl font-extrabold outline-none transition bg-[#fffdf2] shadow-sm disabled:opacity-60",
@@ -289,18 +375,24 @@ export default function Step_4() {
                           ].join(" ")}
                         />
                         {roomErrors[i] && (
-                          <div className="mt-1 text-xs font-extrabold text-rose-600">{roomErrors[i]}</div>
+                          <div className="mt-1 text-xs font-extrabold text-rose-600">
+                            {roomErrors[i]}
+                          </div>
                         )}
                       </div>
 
-                      <div className="text-base font-extrabold text-gray-700 pb-2">ห้อง</div>
+                      <div className="text-base font-extrabold text-gray-700 pb-2">
+                        ห้อง
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="text-xs font-bold text-gray-500">
-                * เมื่อกด “ต่อไป” ระบบจะบันทึก floor-config ลง DB และ Step5 จะสร้าง/โหลดรายการห้องให้
+                {mode === "edit"
+                  ? "* เมื่อกด “บันทึก” ระบบจะอัปเดต floor-config ของคอนโดนี้"
+                  : "* เมื่อกด “ต่อไป” ระบบจะบันทึก floor-config ลง DB และ Step5 จะสร้าง/โหลดรายการห้องให้"}
               </div>
             </div>
           )}
@@ -311,7 +403,7 @@ export default function Step_4() {
         <button
           type="button"
           disabled={saving}
-          onClick={() => nav("../step-3", { state: { condoId } })}
+          onClick={handleBack}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
                          focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-60"
         >
@@ -320,22 +412,19 @@ export default function Step_4() {
 
         <button
           type="button"
-          onClick={handleNext}
-          disabled={!canGoNext}
+          onClick={handleSubmit}
+          disabled={!canSubmit}
           className={[
-            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+            "h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
-            canGoNext
+            canSubmit
               ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
               : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
           ].join(" ")}
         >
-          {saving ? "กำลังบันทึก..." : "ต่อไป"}
+          {saving ? "กำลังบันทึก..." : mode === "edit" ? "บันทึก" : "ต่อไป"}
         </button>
       </div>
     </div>
   );
 }
-
-
-

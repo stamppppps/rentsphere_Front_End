@@ -1,8 +1,8 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
 type CondoPick = { id: string; name: string };
 
@@ -76,11 +76,14 @@ export default function RoomsPage() {
   const nav = useNavigate();
   const location = useLocation();
   const state = (location.state ?? null) as LocationState;
+  const params = new URLSearchParams(location.search);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [condoId, setCondoId] = useState<string | null>(state?.condoId ?? getSelectedCondoId() ?? null);
+  const [condoId, setCondoId] = useState<string | null>(
+    params.get("condoId") ?? state?.condoId ?? getSelectedCondoId() ?? null
+  );
   const [condoName, setCondoName] = useState<string>("—");
 
   const [rooms, setRooms] = useState<RoomRow[]>([]);
@@ -201,7 +204,13 @@ export default function RoomsPage() {
   };
 
   return (
-    <OwnerShell title="ห้อง" activeKey="rooms" showSidebar>
+    <OwnerShell
+      title="ห้อง"
+      activeKey="rooms"
+      showSidebar
+      condoId={condoId ?? undefined}
+      condoName={condoName}
+    >
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-500">
           คอนโดมิเนียม : <span className="text-gray-800">{condoName}</span>

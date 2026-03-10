@@ -1,9 +1,9 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import { api } from "@/shared/api/http";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import CondoInfoSection from "../components/CondoInfoSection";
 import OtherDetailsSection from "../components/OtherDetailsSection";
 import PaymentSection from "../components/PaymentSection";
-import { api } from "@/shared/api/http";
 
 const STEP0_DRAFT_KEY = "add_condo_step0_draft";
 
@@ -39,6 +39,46 @@ type CreateCondoPayload = {
     acceptFine: boolean;
     finePerDay?: number | null;
   };
+};
+
+type CondoDetailResponse = {
+  id: string;
+  nameTh?: string | null;
+  addressTh?: string | null;
+  nameEn?: string | null;
+  addressEn?: string | null;
+  phoneNumber?: string | null;
+  taxId?: string | null;
+  billingSetting?: {
+    dueDay?: number | null;
+    acceptFine?: boolean | null;
+    finePerDay?: number | null;
+  } | null;
+};
+
+type LocationState = {
+  condoId?: string;
+  condoName?: string;
+} | null;
+
+const emptyForm: Step0FormData = {
+  nameTh: "",
+  subdistrict: "",
+  district: "",
+  province: "",
+  postalCode: "",
+  addressTh: "",
+  nameEn: "",
+  subdistrictEn: "",
+  districtEn: "",
+  provinceEn: "",
+  postalCodeEn: "",
+  addressEn: "",
+  phoneNumber: "",
+  taxId: "",
+  dueDay: "",
+  finePerDay: "",
+  acceptFine: false,
 };
 
 const normalizeMoney = (v: string) => {
@@ -96,6 +136,46 @@ async function createCondo(form: Step0FormData): Promise<{ condoId: string }> {
   return { condoId };
 }
 
+async function fetchCondoById(condoId: string): Promise<CondoDetailResponse> {
+  return await api<CondoDetailResponse>(
+    `/owner/condos/${encodeURIComponent(condoId)}`
+  );
+}
+
+async function updateCondo(condoId: string, form: Step0FormData): Promise<void> {
+  const payload = buildCreateCondoJson(form);
+
+  await api(`/owner/condos/${encodeURIComponent(condoId)}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+function mapCondoToForm(data: CondoDetailResponse): Step0FormData {
+  const billing = data?.billingSetting;
+
+  return {
+    nameTh: String(data?.nameTh ?? ""),
+    subdistrict: "",
+    district: "",
+    province: "",
+    postalCode: "",
+    addressTh: String(data?.addressTh ?? ""),
+    nameEn: String(data?.nameEn ?? ""),
+    subdistrictEn: "",
+    districtEn: "",
+    provinceEn: "",
+    postalCodeEn: "",
+    addressEn: String(data?.addressEn ?? ""),
+    phoneNumber: String(data?.phoneNumber ?? ""),
+    taxId: String(data?.taxId ?? ""),
+    dueDay: billing?.dueDay != null ? String(billing.dueDay) : "",
+    finePerDay:
+      billing?.finePerDay != null ? String(Number(billing.finePerDay)) : "",
+    acceptFine: Boolean(billing?.acceptFine ?? false),
+  };
+}
+
 function CardShell({
   title,
   hint,
@@ -112,7 +192,9 @@ function CardShell({
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
             <div className="text-xl font-extrabold text-gray-900">{title}</div>
-            {hint && <div className="mt-1 text-sm font-bold text-gray-600">{hint}</div>}
+            {hint && (
+              <div className="mt-1 text-sm font-bold text-gray-600">{hint}</div>
+            )}
           </div>
         </div>
       </div>
@@ -123,31 +205,24 @@ function CardShell({
 
 export default function Step_0() {
   const nav = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const state = (location.state ?? null) as LocationState;
+
+  const isSettingsPath = location.pathname.startsWith("/owner/settings");
+  const mode =
+    searchParams.get("mode") === "edit" || isSettingsPath ? "edit" : "create";
+
+  const condoId = searchParams.get("condoId") ?? state?.condoId ?? "";
 
   const [formData, setFormData] = useState<Step0FormData>(() => {
     try {
+      if (mode === "edit") return emptyForm;
+
       const raw = sessionStorage.getItem(STEP0_DRAFT_KEY);
-      if (!raw) {
-        return {
-          nameTh: "",
-          subdistrict: "",
-          district: "",
-          province: "",
-          postalCode: "",
-          addressTh: "",
-          nameEn: "",
-          subdistrictEn: "",
-          districtEn: "",
-          provinceEn: "",
-          postalCodeEn: "",
-          addressEn: "",
-          phoneNumber: "",
-          taxId: "",
-          dueDay: "",
-          finePerDay: "",
-          acceptFine: false,
-        };
-      }
+      if (!raw) return emptyForm;
+
       const parsed = JSON.parse(raw);
       return {
         nameTh: String(parsed?.nameTh ?? ""),
@@ -169,35 +244,59 @@ export default function Step_0() {
         acceptFine: Boolean(parsed?.acceptFine ?? false),
       };
     } catch {
-      return {
-        nameTh: "",
-        subdistrict: "",
-        district: "",
-        province: "",
-        postalCode: "",
-        addressTh: "",
-        nameEn: "",
-        subdistrictEn: "",
-        districtEn: "",
-        provinceEn: "",
-        postalCodeEn: "",
-        addressEn: "",
-        phoneNumber: "",
-        taxId: "",
-        dueDay: "",
-        finePerDay: "",
-        acceptFine: false,
-      };
+      return emptyForm;
     }
   });
 
-  useEffect(() => {
-    sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(formData));
-  }, [formData]);
+  const [loadingInitial, setLoadingInitial] = useState(mode === "edit");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  useEffect(() => {
+    if (mode !== "create") return;
+    sessionStorage.setItem(STEP0_DRAFT_KEY, JSON.stringify(formData));
+  }, [formData, mode]);
+
+  useEffect(() => {
+    if (mode !== "edit" || !condoId) {
+      setLoadingInitial(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCondo = async () => {
+      try {
+        setLoadingInitial(true);
+        setSubmitError(null);
+
+        const data = await fetchCondoById(condoId);
+        if (cancelled) return;
+
+        setFormData(mapCondoToForm(data));
+      } catch (e: any) {
+        if (cancelled) return;
+        setSubmitError(e?.message ?? "โหลดข้อมูลคอนโดไม่สำเร็จ");
+      } finally {
+        if (!cancelled) setLoadingInitial(false);
+      }
+    };
+
+    loadCondo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, condoId]);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target;
     if (!name) return;
+
+    setSuccessMsg(null);
 
     if (type === "checkbox") {
       const { checked } = e.target as HTMLInputElement;
@@ -211,15 +310,12 @@ export default function Step_0() {
     }
   };
 
-  const canCreate = useMemo(() => {
+  const canSubmit = useMemo(() => {
     const hasBasic =
       formData.nameTh.trim() &&
       formData.addressTh.trim() &&
-      formData.subdistrict.trim() &&
-      formData.district.trim() &&
-      formData.province.trim() &&
-      formData.postalCode.trim() &&
       formData.phoneNumber.trim();
+
     if (!hasBasic) return false;
 
     const dueDay = toDueDay(formData.dueDay);
@@ -229,21 +325,33 @@ export default function Step_0() {
       const fine = normalizeMoney(formData.finePerDay);
       if (fine == null) return false;
     }
+
     return true;
   }, [formData]);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setSubmitting(true);
     setSubmitError(null);
+    setSuccessMsg(null);
 
     try {
-      const { condoId } = await createCondo(formData);
+      if (mode === "edit") {
+        if (!condoId) {
+          throw new Error("ไม่พบ condoId สำหรับการแก้ไข");
+        }
+
+        await updateCondo(condoId, formData);
+        setSuccessMsg("บันทึกข้อมูลคอนโดเรียบร้อยแล้ว");
+        return;
+      }
+
+      const { condoId: createdCondoId } = await createCondo(formData);
 
       nav("/owner/add-condo/step-1", {
-        state: { condoId, condoName: formData.nameTh.trim() },
+        state: {
+          condoId: createdCondoId,
+          condoName: formData.nameTh.trim(),
+        },
       });
     } catch (e: any) {
       setSubmitError(e?.message ?? "เกิดข้อผิดพลาด");
@@ -252,17 +360,29 @@ export default function Step_0() {
     }
   };
 
+  if (loadingInitial) {
+    return (
+      <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
+        <div className="rounded-2xl border border-blue-100/60 bg-white px-8 py-10 text-center text-lg font-extrabold text-gray-700 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+          กำลังโหลดข้อมูลคอนโด...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
       <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
-        ตั้งค่าคอนโดมิเนียม
+        {mode === "edit" ? "แก้ไขข้อมูลคอนโดมิเนียม" : "ตั้งค่าคอนโดมิเนียม"}
       </h1>
 
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">ข้อมูลพื้นฐาน</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              ข้อมูลพื้นฐาน
+            </div>
             <div className="mt-1 text-sm font-bold text-gray-600">
               กรอกชื่อ/ที่อยู่คอนโด (TH/EN), ข้อมูลติดต่อ และกำหนดการชำระเงิน
             </div>
@@ -278,7 +398,12 @@ export default function Step_0() {
       </div>
 
       <CardShell title="ข้อมูลคอนโด" hint="ชื่อ, ที่อยู่, โลโก้ และข้อมูลติดต่อ">
-        <CondoInfoSection formData={formData as React.ComponentProps<typeof CondoInfoSection>["formData"]} handleChange={handleChange} />
+        <CondoInfoSection
+          formData={
+            formData as React.ComponentProps<typeof CondoInfoSection>["formData"]
+          }
+          handleChange={handleChange}
+        />
       </CardShell>
 
       <CardShell title="รายละเอียดอื่น ๆ" hint="ข้อมูลเพิ่มเติมสำหรับเอกสาร/การติดต่อ">
@@ -295,26 +420,33 @@ export default function Step_0() {
         </div>
       )}
 
+      {successMsg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700 font-extrabold">
+          {successMsg}
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!canCreate || submitting}
+          disabled={!canSubmit || submitting}
           className={[
-            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+            "h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "!bg-[#6FAFF9] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
             "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
           ].join(" ")}
         >
-          {submitting ? "กำลังสร้าง..." : "สร้าง"}
+          {submitting
+            ? mode === "edit"
+              ? "กำลังบันทึก..."
+              : "กำลังสร้าง..."
+            : mode === "edit"
+              ? "บันทึก"
+              : "สร้าง"}
         </button>
       </div>
     </div>
   );
 }
-
-
-
-
-

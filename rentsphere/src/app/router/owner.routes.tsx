@@ -1,6 +1,6 @@
+import OwnerLayout from "@/app/layouts/OwnerLayout";
 import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
-import OwnerLayout from "@/app/layouts/OwnerLayout";
 
 // AddCondo flow
 import AddCondoLayout from "@/features/owner/pages/AddCondo/AddCondoLayout";
@@ -19,9 +19,10 @@ import Step_5 from "@/features/owner/pages/AddCondo/steps/Step_5";
 import BillingPage from "@/features/owner/pages/Billing/BillingPage";
 import CondoHomePage from "@/features/owner/pages/Condo/CondoHomePage";
 import DashboardPage from "@/features/owner/pages/Dashboard/DashboardPage";
-import AdminRepairs from "@/features/owner/pages/Maintenance/AdminRepairs";
+import { default as AdminRepairs, default as MaintenancePage } from "@/features/owner/pages/Maintenance/AdminRepairs";
 import MeterPage from "@/features/owner/pages/Meter/MeterPage";
 import MeterPage2 from "@/features/owner/pages/Meter/MeterPage_2";
+import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
 import ParcelPage from "@/features/owner/pages/Parcel/ParcelPage";
 import PaymentsPage from "@/features/owner/pages/Payments/PaymentsPage";
 import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
@@ -32,20 +33,27 @@ import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
 import TenantAccessCodePage from "@/features/owner/pages/Rooms/TenantAccessCodePage";
 import SettingsPage from "@/features/owner/pages/Settings/SettingsPage";
-import MaintenancePage from "@/features/owner/pages/Maintenance/AdminRepairs";
-import AdminParcel from "@/features/owner/pages/Parcel/AdminParcel";
+import SettingStep0Page from "@/features/owner/pages/Settings/SettingStep0Page";
+import SettingStep1Page from "@/features/owner/pages/Settings/SettingStep1Page";
+import SettingStep2Page from "@/features/owner/pages/Settings/SettingStep2Page";
+import SettingStep3Page from "@/features/owner/pages/Settings/SettingStep3Page";
+import SettingStep4Page from "@/features/owner/pages/Settings/SettingStep4Page";
+import SettingStep5Page from "@/features/owner/pages/Settings/SettingStep5Page";
+import SettingStep6Page from "@/features/owner/pages/Settings/SettingStep6Page";
+import SettingStep7Page from "@/features/owner/pages/Settings/SettingStep7Page";
+import SettingStep8Page from "@/features/owner/pages/Settings/SettingStep8Page";
 // ===== Facility Booking pages =====
-import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
-import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
 import BookingDetailPage from "@/features/owner/pages/facility-booking/pages/BookingDetailPage";
 import BookingHistoryPage from "@/features/owner/pages/facility-booking/pages/BookingHistoryPage";
+import FacilityDetailPage from "@/features/owner/pages/facility-booking/pages/FacilityDetailPage";
+import FacilityListPage from "@/features/owner/pages/facility-booking/pages/FacilityListPage";
 
 // ===== Tenant / LINE Login pages =====
-import RepairCreate from "@/features/owner/pages/tenant/repairs/RepairCreate";
+import DormLink from "@/features/owner/pages/tenant/Linesetup/DormLink";
+import DormRegister from "@/features/owner/pages/tenant/Linesetup/DormRegister";
 import LineLogin from "@/features/owner/pages/tenant/Linesetup/LineLogin";
 import LineLoginSuccess from "@/features/owner/pages/tenant/Linesetup/LineLoginSuccess";
-import DormRegister from "@/features/owner/pages/tenant/Linesetup/DormRegister";
-import DormLink from "@/features/owner/pages/tenant/Linesetup/DormLink";
+import RepairCreate from "@/features/owner/pages/tenant/repairs/RepairCreate";
 
 
 const ownerRoutes: RouteObject[] = [
@@ -73,6 +81,16 @@ const ownerRoutes: RouteObject[] = [
       { path: "payments", element: <PaymentsPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "settings", element: <SettingsPage /> },
+      //setting (edit)
+      { path: "settings/step-0", element: <SettingStep0Page /> },
+      { path: "settings/step-1", element: <SettingStep1Page /> },
+      { path: "settings/step-2", element: <SettingStep2Page /> },
+      { path: "settings/step-3", element: <SettingStep3Page /> },
+      { path: "settings/step-4", element: <SettingStep4Page /> },
+      { path: "settings/step-5", element: <SettingStep5Page /> },
+      { path: "settings/step-6", element: <SettingStep6Page /> },
+      { path: "settings/step-7", element: <SettingStep7Page /> },
+      { path: "settings/step-8", element: <SettingStep8Page /> },
 
       // Step 0 - standalone page (ไม่อยู่ใน AddCondoLayout)
       { path: "add-condo/step-0", element: <Step_0 /> },
