@@ -16,9 +16,58 @@ type RoomDetail = {
   occupancyStatus: OccupancyStatus;
 };
 
+type ContractDetail = {
+  hasContract: boolean;
+  contract?: {
+    id: string;
+    moveInDate: string;
+    moveOutDate: string | null;
+    monthlyRent: number;
+    securityDeposit: number;
+    depositPaidBy: string;
+    bookingFeeApplied: number;
+  };
+  tenant?: {
+    name: string;
+    phone: string;
+    idNumber: string;
+    address: string;
+  };
+  emergencyContacts?: {
+    name: string;
+    relationship: string;
+    phone: string;
+  }[];
+};
+
 function moneyTHB(n?: number | null) {
   if (n == null || !Number.isFinite(n)) return "-";
   return new Intl.NumberFormat("th-TH").format(n) + " บาท";
+}
+
+function formatDate(d?: string | null) {
+  if (!d) return "-";
+  try {
+    const date = new Date(d);
+    return date.toLocaleDateString("th-TH", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return d;
+  }
+}
+
+function depositPaidByLabel(v?: string) {
+  if (!v) return "-";
+  const map: Record<string, string> = {
+    CASH: "เงินสด",
+    TRANSFER: "โอนเงิน",
+    TENANT: "ผู้เช่า",
+    OWNER: "เจ้าของ",
+  };
+  return map[v.toUpperCase()] ?? v;
 }
 
 function StatusPill({ status }: { status?: string }) {
@@ -69,6 +118,11 @@ async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
   return normalizeRoom(roomId, data);
 }
 
+async function fetchContractDetail(roomId: string): Promise<ContractDetail> {
+  const data = await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}/contract-detail`);
+  return data as ContractDetail;
+}
+
 export default function RoomDetailPage() {
   const nav = useNavigate();
   const { roomId } = useParams();
@@ -76,6 +130,8 @@ export default function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomDetail | null>(null);
+  const [contractDetail, setContractDetail] = useState<ContractDetail | null>(null);
+  const [terminating, setTerminating] = useState(false);
 
   const btnPrimary =
     "inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(37,99,235,0.18)] hover:bg-blue-700 active:scale-[0.99] transition";
@@ -99,6 +155,17 @@ export default function RoomDetailPage() {
         if (cancelled) return;
 
         setRoom(data);
+
+        // If occupied, fetch contract detail
+        if (data.occupancyStatus === "OCCUPIED") {
+          try {
+            const cd = await fetchContractDetail(roomId);
+            if (!cancelled) setContractDetail(cd);
+          } catch {
+            // Contract detail fetch failed — show action cards instead
+          }
+        }
+
         setLoading(false);
       } catch (e: any) {
         if (cancelled) return;
@@ -113,6 +180,24 @@ export default function RoomDetailPage() {
       cancelled = true;
     };
   }, [roomId]);
+
+  const handleTerminate = async () => {
+    if (!roomId) return;
+    if (!confirm("ยืนยันยุติสัญญาห้องนี้?")) return;
+
+    try {
+      setTerminating(true);
+      await api(`/owner/rooms/${encodeURIComponent(roomId)}/terminate-contract`, {
+        method: "POST",
+      });
+      alert("ยุติสัญญาสำเร็จ");
+      window.location.reload();
+    } catch (e: any) {
+      alert(e?.message ?? "ไม่สามารถยุติสัญญาได้");
+    } finally {
+      setTerminating(false);
+    }
+  };
 
   const condoName = room?.condoName ?? "คอนโดมิเนียม";
   const roomNo = room?.roomNo ?? "-";
@@ -155,6 +240,10 @@ export default function RoomDetailPage() {
     );
   }
 
+  const isOccupied = roomStatus === "OCCUPIED";
+  const cd = contractDetail;
+  const hasContract = isOccupied && cd?.hasContract;
+
   return (
     <OwnerShell activeKey="rooms" showSidebar>
       {/* breadcrumb */}
@@ -190,83 +279,186 @@ export default function RoomDetailPage() {
         </div>
       </div>
 
-      {/* actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Contract flow */}
+      {/* ========== OCCUPIED = Contract Details ========== */}
+      {hasContract ? (
         <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
-            <div className="text-lg font-extrabold text-gray-900 text-center">ทำสัญญา (รายเดือน)</div>
+          {/* Header */}
+          <div className="px-6 py-4 flex items-center justify-between border-b border-blue-100/70">
+            <div className="text-xl font-extrabold text-gray-900">รายละเอียดสัญญา</div>
+            <StatusPill status="OCCUPIED" />
           </div>
 
-          <div className="p-6">
-            <div className="text-sm font-bold text-gray-500 mb-5">
-              ไปตั้งค่าสัญญา + ค่าเช่าล่วงหน้า + มิเตอร์น้ำไฟ
+          <div className="p-6 space-y-6">
+            {/* ข้อมูลสัญญา */}
+            <div className="rounded-xl border border-gray-100 p-5">
+              <div className="text-lg font-extrabold text-gray-900 mb-4">ข้อมูลสัญญา</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">วันที่เข้าพัก</div>
+                  <div className="text-base font-extrabold text-gray-900">{formatDate(cd!.contract?.moveInDate)}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">วันที่ออก</div>
+                  <div className="text-base font-extrabold text-gray-900">{formatDate(cd!.contract?.moveOutDate)}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">ค่าเช่าต่อเดือน</div>
+                  <div className="text-base font-extrabold text-blue-700">{moneyTHB(cd!.contract?.monthlyRent)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">เงินประกัน</div>
+                  <div className="text-base font-extrabold text-gray-900">{moneyTHB(cd!.contract?.securityDeposit)}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">ชำระประกันโดย</div>
+                  <div className="text-base font-extrabold text-gray-900">{depositPaidByLabel(cd!.contract?.depositPaidBy)}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">เงินจอง</div>
+                  <div className="text-base font-extrabold text-gray-900">{moneyTHB(cd!.contract?.bookingFeeApplied)}</div>
+                </div>
+              </div>
             </div>
 
-          
-            <button
-              type="button"
-              className={btnPrimary + " w-full"}
-              onClick={() => nav(`/owner/rooms/${roomId}/monthly`)}
-            >
-              เปิดขั้นตอนทำสัญญา
-            </button>
-
-     
-            <button
-              type="button"
-              className={btnPrimary + " w-full mt-3 !bg-blue-100 !text-blue-700 hover:!bg-blue-200 shadow-none"}
-              onClick={() => nav(`/owner/rooms/${roomId}/advance-payment`)}
-            >
-              ไปขั้นตอนค่าเช่าล่วงหน้า
-            </button>
-          </div>
-        </div>
-
-        {/* Meter */}
-        <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
-            <div className="text-lg font-extrabold text-gray-900 text-center">มิเตอร์น้ำ-ไฟ</div>
-          </div>
-
-          <div className="p-6">
-            <div className="text-sm font-bold text-gray-500 mb-5">
-              ตั้งเลขมิเตอร์ + บันทึกหน่วยเดือนปัจจุบัน (เชื่อม backend จริง)
+            {/* ข้อมูลผู้เช่า */}
+            <div className="rounded-xl border border-gray-100 p-5">
+              <div className="text-lg font-extrabold text-gray-900 mb-4">ข้อมูลผู้เช่า</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">ชื่อ-สกุล</div>
+                  <div className="text-base font-extrabold text-gray-900">{cd!.tenant?.name || "-"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">เบอร์ติดต่อ</div>
+                  <div className="text-base font-extrabold text-gray-900">{cd!.tenant?.phone || "-"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 mb-1">เลขบัตรประชาชน</div>
+                  <div className="text-base font-extrabold text-gray-900">{cd!.tenant?.idNumber || "-"}</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="text-xs font-bold text-gray-500 mb-1">ที่อยู่</div>
+                <div className="text-base font-extrabold text-gray-900">{cd!.tenant?.address || "-"}</div>
+              </div>
             </div>
 
-        
-            <button
-              type="button"
-              className={btnPrimary + " w-full"}
-              onClick={() => nav(`/owner/rooms/${roomId}/meter`)}
-            >
-              ไปหน้ามิเตอร์
-            </button>
+            {/* บุคคลติดต่อฉุกเฉิน */}
+            {(cd!.emergencyContacts?.length ?? 0) > 0 && (
+              <div className="rounded-xl border border-gray-100 p-5">
+                <div className="text-lg font-extrabold text-gray-900 mb-4">บุคคลติดต่อฉุกเฉิน</div>
+                {cd!.emergencyContacts!.map((ec, idx) => (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 mb-1">ชื่อ</div>
+                      <div className="text-base font-extrabold text-gray-900">{ec.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 mb-1">ความสัมพันธ์</div>
+                      <div className="text-base font-extrabold text-gray-900">{ec.relationship}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 mb-1">เบอร์ติดต่อ</div>
+                      <div className="text-base font-extrabold text-rose-700">{ec.phone}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ยุติสัญญา button */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleTerminate}
+                disabled={terminating}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 px-6 py-3 text-sm font-extrabold text-rose-700 hover:bg-rose-100 active:scale-[0.98] transition"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                {terminating ? "กำลังยุติ..." : "ยุติสัญญา"}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Access code */}
-        <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
-          <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
-            <div className="text-lg font-extrabold text-gray-900 text-center">รหัสเข้าสู่ระบบ</div>
-          </div>
-
-          <div className="p-6">
-            <div className="text-sm font-bold text-gray-500 mb-5">
-              สร้าง/ปิด/ลบรหัสให้ผู้เช่าเข้าระบบ (เชื่อม backend จริง)
+      ) : (
+        /* ========== VACANT = Action Cards ========== */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Contract flow */}
+          <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
+              <div className="text-lg font-extrabold text-gray-900 text-center">ทำสัญญา (รายเดือน)</div>
             </div>
 
-            
-            <button
-              type="button"
-              className={btnPrimary + " w-full"}
-              onClick={() => nav(`/owner/rooms/${roomId}/access-code`)}
-            >
-              ไปหน้ารหัส
-            </button>
+            <div className="p-6">
+              <div className="text-sm font-bold text-gray-500 mb-5">
+                ไปตั้งค่าสัญญา + ค่าเช่าล่วงหน้า + มิเตอร์น้ำไฟ
+              </div>
+
+              <button
+                type="button"
+                className={btnPrimary + " w-full"}
+                onClick={() => nav(`/owner/rooms/${roomId}/monthly`)}
+              >
+                เปิดขั้นตอนทำสัญญา
+              </button>
+
+              <button
+                type="button"
+                className={btnPrimary + " w-full mt-3 !bg-blue-100 !text-blue-700 hover:!bg-blue-200 shadow-none"}
+                onClick={() => nav(`/owner/rooms/${roomId}/advance-payment`)}
+              >
+                ไปขั้นตอนค่าเช่าล่วงหน้า
+              </button>
+            </div>
+          </div>
+
+          {/* Meter */}
+          <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
+              <div className="text-lg font-extrabold text-gray-900 text-center">มิเตอร์น้ำ-ไฟ</div>
+            </div>
+
+            <div className="p-6">
+              <div className="text-sm font-bold text-gray-500 mb-5">
+                ตั้งเลขมิเตอร์ + บันทึกหน่วยเดือนปัจจุบัน (เชื่อม backend จริง)
+              </div>
+
+              <button
+                type="button"
+                className={btnPrimary + " w-full"}
+                onClick={() => nav(`/owner/rooms/${roomId}/meter`)}
+              >
+                ไปหน้ามิเตอร์
+              </button>
+            </div>
+          </div>
+
+          {/* Access code */}
+          <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
+              <div className="text-lg font-extrabold text-gray-900 text-center">รหัสเข้าสู่ระบบ</div>
+            </div>
+
+            <div className="p-6">
+              <div className="text-sm font-bold text-gray-500 mb-5">
+                สร้าง/ปิด/ลบรหัสให้ผู้เช่าเข้าระบบ (เชื่อม backend จริง)
+              </div>
+
+              <button
+                type="button"
+                className={btnPrimary + " w-full"}
+                onClick={() => nav(`/owner/rooms/${roomId}/access-code`)}
+              >
+                ไปหน้ารหัส
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </OwnerShell>
   );
 }

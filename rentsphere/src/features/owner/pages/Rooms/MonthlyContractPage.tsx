@@ -79,6 +79,12 @@ async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
   return normalizeRoom(roomId, data);
 }
 
+const inputCls =
+  "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60";
+
+const labelCls = "text-sm font-extrabold text-gray-800 mb-2";
+const requiredStar = <span className="text-rose-600"> *</span>;
+
 export default function MonthlyContractPage() {
   const nav = useNavigate();
   const { roomId } = useParams();
@@ -87,12 +93,28 @@ export default function MonthlyContractPage() {
   const [error, setError] = useState<string | null>(null);
   const [room, setRoom] = useState<RoomDetail | null>(null);
 
-  // form state
-  const [tenantName, setTenantName] = useState("");
+  // Contract fields
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [rentPerMonth, setRentPerMonth] = useState<number>(0);
   const [deposit, setDeposit] = useState<number>(0);
+  const [depositPaidBy, setDepositPaidBy] = useState("CASH");
+  const [bookingFee, setBookingFee] = useState<number>(0);
+  const [bookingRef, setBookingRef] = useState("");
+
+  // Tenant profile fields
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [tenantPhone, setTenantPhone] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [address, setAddress] = useState("");
+
+  // Emergency contact
+  const [ecName, setEcName] = useState("");
+  const [ecRelationship, setEcRelationship] = useState("");
+  const [ecPhone, setEcPhone] = useState("");
+
+  // Note
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -135,13 +157,14 @@ export default function MonthlyContractPage() {
   const roomNo = room?.roomNo ?? "-";
 
   const canNext = useMemo(() => {
-    if (!tenantName.trim()) return false;
+    if (!firstName.trim()) return false;
+    if (!lastName.trim()) return false;
+    if (!tenantPhone.trim()) return false;
+    if (!idNumber.trim()) return false;
     if (!startDate) return false;
-    // endDate optional (บางที่สัญญาไม่กำหนด)
     if (!Number.isFinite(rentPerMonth) || rentPerMonth < 0) return false;
-    if (!Number.isFinite(deposit) || deposit < 0) return false;
     return true;
-  }, [tenantName, startDate, rentPerMonth, deposit]);
+  }, [firstName, lastName, tenantPhone, idNumber, startDate, rentPerMonth]);
 
   const [saving, setSaving] = useState(false);
 
@@ -154,11 +177,21 @@ export default function MonthlyContractPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenantName: tenantName.trim(),
+          tenantName: `${firstName.trim()} ${lastName.trim()}`,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          tenantPhone: tenantPhone.trim(),
+          idNumber: idNumber.trim(),
+          address: address.trim(),
           startDate,
           endDate: endDate || undefined,
           rentPerMonth,
           deposit,
+          depositPaidBy,
+          bookingFee: bookingFee || undefined,
+          emergencyName: ecName.trim() || undefined,
+          emergencyRelationship: ecRelationship.trim() || undefined,
+          emergencyPhone: ecPhone.trim() || undefined,
         }),
       });
       nav(`/owner/rooms/${roomId}/advance-payment`, { replace: true });
@@ -216,7 +249,7 @@ export default function MonthlyContractPage() {
           คอนโดมิเนียม : <span className="text-gray-900">{condoName}</span>
         </div>
         <div className="text-sm font-extrabold text-gray-700">
-          ห้อง {roomNo} • ค่าเช่าเดิม: <span className="text-gray-900">{moneyTHB(room.price ?? null)}</span>
+          ห้อง {roomNo} • ค่าห้องต่อเดือน <span className="text-gray-900">{moneyTHB(room.price ?? null)}</span>
         </div>
       </div>
 
@@ -226,91 +259,172 @@ export default function MonthlyContractPage() {
         </div>
 
         <div className="p-6">
-          <div className="mb-4">
-            <div className="text-xl font-extrabold text-gray-900">ทำสัญญารายเดือน</div>
-            <div className="text-sm font-bold text-gray-500 mt-1">กรอกข้อมูลพื้นฐานของสัญญา แล้วไปขั้นตอนค่าเช่าล่วงหน้า</div>
+          {/* ========== Section: รายชื่อคนจองรอเข้าพัก ========== */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xl font-extrabold text-gray-900">รายชื่อคนจองรอเข้าพัก</div>
+            <div className="text-sm font-bold text-gray-600">
+              ค่าห้องต่อเดือน <span className="text-blue-700 font-extrabold">{moneyTHB(room.price ?? null)}</span>
+            </div>
           </div>
-          <div className="h-px bg-gray-200 mb-6" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="lg:col-span-2">
-              <div className="text-sm font-extrabold text-gray-800 mb-2">
-                ชื่อผู้เช่า <span className="text-rose-600">*</span>
-              </div>
-              <input
-                value={tenantName}
-                onChange={(e) => setTenantName(e.target.value)}
-                placeholder="เช่น นายสมชาย ใจดี"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-              />
-            </div>
-
+          {/* Contract dates & pricing */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
             <div>
-              <div className="text-sm font-extrabold text-gray-800 mb-2">
-                วันเริ่มสัญญา <span className="text-rose-600">*</span>
-              </div>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-              />
+              <div className={labelCls}>วันที่เข้าพัก{requiredStar}</div>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
             </div>
-
             <div>
-              <div className="text-sm font-extrabold text-gray-800 mb-2">วันสิ้นสุดสัญญา (ถ้ามี)</div>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-              />
+              <div className={labelCls}>วันที่ออก</div>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
             </div>
-
             <div>
-              <div className="text-sm font-extrabold text-gray-800 mb-2">ค่าเช่าต่อเดือน</div>
+              <div className={labelCls}>ค่าเช่าต่อเดือน{requiredStar}</div>
               <div className="flex items-stretch">
                 <input
                   value={rentPerMonth}
                   onChange={(e) => { const v = parseFloat(e.target.value); setRentPerMonth(Number.isFinite(v) ? v : 0); }}
                   inputMode="numeric"
-                  className="w-full rounded-l-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                  className={inputCls + " rounded-r-none"}
                 />
-                <div className="rounded-r-xl border border-l-0 border-gray-200 bg-gray-100 px-4 py-3 font-extrabold text-gray-700">
-                  บาท
+                <div className="rounded-r-xl border border-l-0 border-gray-200 bg-gray-100 px-4 py-3 font-extrabold text-gray-700 whitespace-nowrap">
+                  บาท / เดือน
                 </div>
               </div>
-              <div className="mt-2 text-xs font-bold text-gray-500">
-                (ค่าเริ่มต้นดึงจากห้อง) • {moneyTHB(room.price ?? 0)}
-              </div>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
             <div>
-              <div className="text-sm font-extrabold text-gray-800 mb-2">เงินประกัน (Deposit)</div>
+              <div className={labelCls}>เงินประกัน{requiredStar}</div>
               <div className="flex items-stretch">
                 <input
                   value={deposit}
                   onChange={(e) => { const v = parseFloat(e.target.value); setDeposit(Number.isFinite(v) ? v : 0); }}
                   inputMode="numeric"
-                  className="w-full rounded-l-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                  className={inputCls + " rounded-r-none"}
                 />
                 <div className="rounded-r-xl border border-l-0 border-gray-200 bg-gray-100 px-4 py-3 font-extrabold text-gray-700">
                   บาท
                 </div>
               </div>
             </div>
-
-            <div className="lg:col-span-2">
-              <div className="text-sm font-bold text-gray-700 mb-2">Note</div>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-              />
+            <div>
+              <div className={labelCls}>ชำระประกันโดย{requiredStar}</div>
+              <select
+                value={depositPaidBy}
+                onChange={(e) => setDepositPaidBy(e.target.value)}
+                className={inputCls}
+              >
+                <option value="CASH">เงินสด</option>
+                <option value="TRANSFER">โอนเงิน</option>
+              </select>
+            </div>
+            <div>
+              <div className={labelCls}>เงินจอง</div>
+              <div className="flex items-stretch">
+                <input
+                  value={bookingFee}
+                  onChange={(e) => { const v = parseFloat(e.target.value); setBookingFee(Number.isFinite(v) ? v : 0); }}
+                  inputMode="numeric"
+                  className={inputCls + " rounded-r-none"}
+                />
+                <div className="rounded-r-xl border border-l-0 border-gray-200 bg-gray-100 px-4 py-3 font-extrabold text-gray-700">
+                  บาท
+                </div>
+              </div>
             </div>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+            <div>
+              <div className={labelCls}>เลขที่ใบจอง</div>
+              <input value={bookingRef} onChange={(e) => setBookingRef(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          {/* Summary box */}
+          <div className="rounded-xl bg-gray-50 border border-gray-200 p-5 mb-8">
+            <div className="text-lg font-extrabold text-gray-900 mb-3">สรุป</div>
+            <div className="flex items-center justify-between py-1">
+              <span className="font-bold text-gray-600">เงินประกัน</span>
+              <span className="font-extrabold text-gray-900">{moneyTHB(deposit)}</span>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="font-bold text-gray-600">เงินจอง</span>
+              <span className="font-extrabold text-gray-900">-{moneyTHB(bookingFee)}</span>
+            </div>
+            <div className="h-px bg-gray-200 my-2" />
+            <div className="flex items-center justify-between py-1">
+              <span className="font-extrabold text-gray-900">รวม (เก็บเพิ่มเติม)</span>
+              <span className="font-extrabold text-gray-900">{moneyTHB(Math.max(0, deposit - bookingFee))}</span>
+            </div>
+          </div>
+
+          {/* ========== Section: ข้อมูลผู้เช่า ========== */}
+          <div className="h-px bg-gray-200 mb-6" />
+          <div className="text-xl font-extrabold text-gray-900 mb-4">ข้อมูลผู้เช่า</div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+            <div>
+              <div className={labelCls}>ชื่อจริง{requiredStar}</div>
+              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <div className={labelCls}>นามสกุล{requiredStar}</div>
+              <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+            <div>
+              <div className={labelCls}>เบอร์ติดต่อ{requiredStar}</div>
+              <input value={tenantPhone} onChange={(e) => setTenantPhone(e.target.value)} inputMode="tel" className={inputCls} />
+            </div>
+            <div>
+              <div className={labelCls}>เลขบัตรประชาชน / พาสปอร์ต{requiredStar}</div>
+              <input value={idNumber} onChange={(e) => setIdNumber(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className={labelCls}>ที่อยู่ (สำหรับแสดงในใบแจ้งหนี้/ใบเสร็จ)</div>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
+          </div>
+
+          {/* ========== Section: บุคคลติดต่อฉุกเฉิน ========== */}
+          <div className="h-px bg-gray-200 mb-6" />
+          <div className="text-xl font-extrabold text-gray-900 mb-4">บุคคลติดต่อฉุกเฉิน</div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+            <div>
+              <div className={labelCls}>ชื่อบุคคลติดต่อฉุกเฉิน</div>
+              <input value={ecName} onChange={(e) => setEcName(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <div className={labelCls}>ความสัมพันธ์</div>
+              <input value={ecRelationship} onChange={(e) => setEcRelationship(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <div className={labelCls}>เบอร์ติดต่อ</div>
+              <input value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} inputMode="tel" className={inputCls} />
+            </div>
+          </div>
+
+          {/* ========== Section: อื่นๆ ========== */}
+          <div className="h-px bg-gray-200 mb-6" />
+          <div className="text-xl font-extrabold text-gray-900 mb-4">อื่นๆ</div>
+
+          <div className="mb-6">
+            <div className={labelCls}>Note</div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className={inputCls}
+            />
+          </div>
+
+          {/* ========== Buttons ========== */}
           <div className="mt-8 flex items-center justify-end gap-3">
             <button
               type="button"
@@ -323,7 +437,7 @@ export default function MonthlyContractPage() {
             <button
               type="button"
               onClick={() => {
-                if (!canNext) return alert("กรุณากรอกข้อมูลให้ครบ (อย่างน้อย: ชื่อผู้เช่า + วันเริ่มสัญญา)");
+                if (!canNext) return alert("กรุณากรอกข้อมูลให้ครบ (ชื่อจริง, นามสกุล, เบอร์ติดต่อ, เลขบัตร, วันเริ่ม)");
                 goNext();
               }}
               className={[
