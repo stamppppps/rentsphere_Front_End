@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/shared/api/http";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
+const STEP_ROOM_NAMES_KEY_PREFIX = "add_condo_room_name_drafts_";
 
 type NavState = {
   condoId?: string;
@@ -12,7 +13,7 @@ type NavState = {
 type CondoService = {
   id: string;
   name: string;
-  price: number;
+  price: number | null;
   isVariable: boolean;
   variableType: string;
 };
@@ -24,6 +25,20 @@ type FloorConfigRes = {
 };
 
 
+type UtilityRow = {
+  utilityType?: string;
+  billingType?: string | null;
+  rate?: number | string | null;
+};
+
+type BankAccountRow = {
+  id: string;
+  bankCode?: string;
+  accountName?: string;
+  accountNo?: string;
+  accountNumber?: string;
+};
+
 type RoomRes = {
   id: string;
   floor: number;
@@ -34,6 +49,24 @@ type RoomRes = {
   roomStatus: string;
   serviceIds: string[]; 
 };
+
+type RoomNameDrafts = Record<string, string>;
+
+function roomNamesKey(condoId: string) {
+  return `${STEP_ROOM_NAMES_KEY_PREFIX}${condoId}`;
+}
+
+function readRoomNameDrafts(condoId: string): RoomNameDrafts {
+  try {
+    const raw = localStorage.getItem(roomNamesKey(condoId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, String(v ?? "")]));
+  } catch {
+    return {};
+  }
+}
 
 export default function Step8_RoomService() {
   const nav = useNavigate();
@@ -57,6 +90,7 @@ export default function Step8_RoomService() {
   const [rooms, setRooms] = useState<RoomRes[]>([]);
   const [services, setServices] = useState<CondoService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingNext, setCheckingNext] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
 
@@ -231,7 +265,7 @@ export default function Step8_RoomService() {
       setOpenModal(false);
       setSelectedIds([]);
     } catch (e: any) {
-      alert(e?.message ?? "บันทึกไม่สำเร็จ");
+      alert(e?.message ?? "ตรวจสอบข้อมูลไม่สำเร็จ");
     }
   };
 
@@ -246,6 +280,82 @@ export default function Step8_RoomService() {
     }
   };
 
+
+
+  const validateRequiredBeforeNext = async () => {
+    if (!condoId) return ["ไม่พบ condoId"];
+
+    const [cfg, roomList, utilityList, bankList] = await Promise.all([
+      api<FloorConfigRes>(`/owner/condos/${condoId}/floor-config`),
+      api<RoomRes[]>(`/owner/condos/${condoId}/rooms`),
+      api<UtilityRow[]>(`/owner/condos/${condoId}/utilities`),
+      api<BankAccountRow[]>(`/owner/condos/${condoId}/bank-accounts`),
+    ]);
+
+    const drafts = readRoomNameDrafts(condoId);
+    const normalizedRooms = (roomList ?? []).map((r: any) => ({
+      ...r,
+      roomNo: drafts[String(r?.id ?? "")] ?? String(r?.roomNo ?? ""),
+      price: r?.price === null || r?.price === undefined ? null : Number(r.price),
+      serviceIds: Array.isArray(r.serviceIds) ? r.serviceIds : [],
+    }));
+
+    const missing: string[] = [];
+
+    const utilities = new Map<string, UtilityRow>((utilityList ?? []).map((u) => [String(u?.utilityType ?? "").toUpperCase(), u]));
+    const water = utilities.get("WATER");
+    const electric = utilities.get("ELECTRIC");
+    const hasValidUtility = (u?: UtilityRow) => {
+      if (!u) return false;
+      const hasBillingType = String(u.billingType ?? "").trim().length > 0;
+      const rateNum = Number(u.rate);
+      return hasBillingType && Number.isFinite(rateNum);
+    };
+    if (!hasValidUtility(water) || !hasValidUtility(electric)) missing.push("Step2: ข้อมูลไม่ครบ");
+
+    const accounts = bankList ?? [];
+    if (accounts.length === 0) {
+      missing.push("Step3: ข้อมูลไม่ครบ");
+    } else {
+      const invalidBank = accounts.some((acc) => {
+        const accountNo = String(acc?.accountNo ?? acc?.accountNumber ?? "").trim();
+        return (
+          String(acc?.bankCode ?? "").trim().length === 0 ||
+          String(acc?.accountName ?? "").trim().length === 0 ||
+          accountNo.length === 0
+        );
+      });
+      if (invalidBank) missing.push("Step3: ข้อมูลไม่ครบ");
+    }
+
+    if (!cfg?.floorCount || Number(cfg.floorCount) <= 0) missing.push("Step4: ข้อมูลไม่ครบ");
+
+    const missingRoomNoCount = normalizedRooms.filter((r) => String(r?.roomNo ?? "").trim().length === 0).length;
+    if (missingRoomNoCount > 0) missing.push(`Step5: ข้อมูลไม่ครบ `);
+
+    const missingPriceCount = normalizedRooms.filter((r) => r?.price === null || r?.price === undefined || !Number.isFinite(Number(r.price)) || Number(r.price) <= 0).length;
+    if (missingPriceCount > 0) missing.push(`Step6: ข้อมูลไม่ครบ `);
+
+    return missing;
+  };
+
+  const handleNext = async () => {
+    if (!condoId || checkingNext) return;
+
+    try {
+      setCheckingNext(true);
+      const missing = await validateRequiredBeforeNext();
+      if (missing.length > 0) {
+        alert(["ข้อมูลไม่ครบ กรุณาแก้ไขก่อน:", ...missing].join("\n"));
+        return;
+      }
+      nav(`../step-9?condoId=${encodeURIComponent(condoId)}`, { state: { condoId } });
+    } catch (e: any) {
+      alert(e?.message ?? "ตรวจสอบข้อมูลไม่สำเร็จ");
+    } finally {
+      setCheckingNext(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
@@ -384,7 +494,7 @@ export default function Step8_RoomService() {
           className={[
             "h-[46px] px-5 rounded-xl border-0 font-extrabold text-sm transition shadow-[0_12px_22px_rgba(0,0,0,0.18)]",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
-            selectedCount === 0 ? "bg-[#93C5FD]/40 cursor-not-allowed text-white/70" : "bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer text-white",
+            selectedCount === 0 ? "bg-[#1F80DB]/40 cursor-not-allowed text-white/70" : "bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer text-white",
           ].join(" ")}
         >
           ระบุค่าบริการ
@@ -392,13 +502,10 @@ export default function Step8_RoomService() {
 
         <button
           type="button"
-          onClick={() =>
-            nav(`../step-9?condoId=${encodeURIComponent(condoId)}`, {
-              state: { condoId },
-            })
-          }
+          onClick={handleNext}
+          disabled={checkingNext || loading}
           className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
-          bg-[#93C5FD] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+          bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] disabled:bg-[#1F80DB]/40 disabled:cursor-not-allowed
           focus:outline-none focus:ring-2 focus:ring-blue-300"
         >
           ต่อไป
