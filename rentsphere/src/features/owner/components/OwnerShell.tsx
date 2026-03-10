@@ -7,9 +7,9 @@ type OwnerShellProps = {
   activeKey?: string;
   showSidebar?: boolean;
 
-
   ownerName?: string;
   condoName?: string;
+  condoId?: string;
 
   children: ReactNode;
   footer?: ReactNode;
@@ -19,17 +19,14 @@ export default function OwnerShell({
   title,
   activeKey,
   showSidebar = true,
-
-
   ownerName,
   condoName,
-
+  condoId,
   children,
   footer,
 }: OwnerShellProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sarabun">
-      {/* Sidebar */}
       {showSidebar && (
         <aside
           className={[
@@ -40,25 +37,28 @@ export default function OwnerShell({
           ].join(" ")}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
-            <Sidebar activeKey={activeKey} />
+            <Sidebar
+              activeKey={activeKey}
+              title={condoName || "คอนโดมิเนียม"}
+              condoId={condoId}
+            />
           </div>
         </aside>
       )}
 
-      {/* Main */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
         <header className="h-20 shrink-0 bg-[#D6E6FF] border-b border-blue-100/80 flex items-center px-10 shadow-sm">
-      
           <OwnerMenu ownerName={ownerName} condoName={condoName} />
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 pb-28">
           <div className="mx-auto w-full max-w-6xl">
             {title ? (
               <div className="mb-6 rounded-2xl border border-blue-200/60 bg-white/70 backdrop-blur-md shadow-[0_16px_40px_rgba(15,23,42,0.12)] overflow-hidden">
                 <div className="px-6 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
-                  <div className="text-center text-2xl font-extrabold text-gray-900">{title}</div>
+                  <div className="text-center text-2xl font-extrabold text-gray-900">
+                    {title}
+                  </div>
                 </div>
                 <div className="p-6">{children}</div>
               </div>
@@ -68,7 +68,6 @@ export default function OwnerShell({
           </div>
         </div>
 
-        {/* Sticky footer (optional) */}
         {footer ? (
           <div className="sticky bottom-0 w-full bg-[#EEF4FF]/90 backdrop-blur border-t border-blue-100/70">
             <div className="mx-auto w-full max-w-6xl px-8 py-5 flex items-center justify-end gap-4">

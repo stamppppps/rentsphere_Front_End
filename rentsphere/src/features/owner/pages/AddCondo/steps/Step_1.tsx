@@ -1,9 +1,9 @@
+import { api } from "@/shared/api/http";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { api } from "@/shared/api/http";
 
 const STEP0_DRAFT_KEY = "add_condo_step0_draft";
-const STEP_CONDO_ID_KEY = "add_condo_condoId"; 
+const STEP_CONDO_ID_KEY = "add_condo_condoId";
 
 type VariableType = "NONE" | "WATER" | "ELECTRIC" | "BOTH";
 
@@ -11,7 +11,7 @@ type CondoService = {
   id: string;
   condoId?: string;
   name: string;
-  price: number; 
+  price: number;
   isVariable: boolean;
   variableType: VariableType | string;
 };
@@ -40,7 +40,7 @@ function normalizeService(s: any): CondoService {
     name: String(s?.name ?? "").trim(),
     price: Number(s?.price ?? 0),
     isVariable: Boolean(s?.isVariable ?? false),
-    variableType: String(s?.variableType ?? "NONE") as any,
+    variableType: String(s?.variableType ?? "NONE") as VariableType,
   };
 }
 
@@ -51,13 +51,19 @@ const Step_1: React.FC = () => {
 
   const st = (location.state ?? {}) as Step1NavState;
 
-  
+  const mode = params.get("mode") ?? "create";
+  const isEditMode = mode === "edit";
+
   const condoId = useMemo(() => {
     const fromQuery = params.get("condoId");
     const fromState = st.condoId;
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
     const id = String(fromQuery ?? fromState ?? fromStorage ?? "").trim();
-    if (id) localStorage.setItem(STEP_CONDO_ID_KEY, id);
+
+    if (id) {
+      localStorage.setItem(STEP_CONDO_ID_KEY, id);
+    }
+
     return id;
   }, [params, st.condoId]);
 
@@ -66,11 +72,9 @@ const Step_1: React.FC = () => {
     readCondoNameFromDraft() ||
     (condoId ? `คอนโด #${condoId.slice(0, 8)}` : "ตั้งค่าคอนโดมิเนียม");
 
-
   const [services, setServices] = useState<CondoService[]>([]);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
 
   const [serviceName, setServiceName] = useState("");
   const [priceText, setPriceText] = useState("");
@@ -85,7 +89,10 @@ const Step_1: React.FC = () => {
     return Number.isFinite(v) ? v : NaN;
   }, [priceText]);
 
-  const canAdd = serviceName.trim().length > 0 && !Number.isNaN(priceNumber) && priceNumber >= 0;
+  const canAdd =
+    serviceName.trim().length > 0 &&
+    !Number.isNaN(priceNumber) &&
+    priceNumber >= 0;
 
   const variableType: VariableType =
     !isVariable
@@ -98,16 +105,21 @@ const Step_1: React.FC = () => {
             ? "ELECTRIC"
             : "NONE";
 
-
   useEffect(() => {
     if (!condoId) return;
 
     let alive = true;
+
     (async () => {
       setLoading(true);
       setApiError(null);
+
       try {
-        const list = await api<any[]>(`/owner/condos/${condoId}/services`, { method: "GET" });
+        const list = await api<any[]>(
+          `/owner/condos/${condoId}/services`,
+          { method: "GET" }
+        );
+
         if (!alive) return;
         setServices((list ?? []).map(normalizeService));
       } catch (e: any) {
@@ -125,16 +137,25 @@ const Step_1: React.FC = () => {
 
   const refreshServices = async () => {
     if (!condoId) return;
-    const list = await api<any[]>(`/owner/condos/${condoId}/services`, { method: "GET" });
+
+    const list = await api<any[]>(
+      `/owner/condos/${condoId}/services`,
+      { method: "GET" }
+    );
+
     setServices((list ?? []).map(normalizeService));
   };
 
   const handleAdd = async () => {
     if (!condoId) return;
+
     const cleanName = serviceName.trim();
     if (!cleanName) return;
 
-    const dup = services.some((s) => s.name.trim().toLowerCase() === cleanName.toLowerCase());
+    const dup = services.some(
+      (s) => s.name.trim().toLowerCase() === cleanName.toLowerCase()
+    );
+
     if (dup) {
       setApiError("มีชื่อค่าบริการนี้แล้ว");
       return;
@@ -142,6 +163,7 @@ const Step_1: React.FC = () => {
 
     setLoading(true);
     setApiError(null);
+
     try {
       await api(`/owner/condos/${condoId}/services`, {
         method: "POST",
@@ -153,7 +175,6 @@ const Step_1: React.FC = () => {
         }),
       });
 
- 
       setServiceName("");
       setPriceText("");
       setIsVariable(false);
@@ -168,14 +189,17 @@ const Step_1: React.FC = () => {
     }
   };
 
- 
   const handleRemove = async (serviceId: string) => {
     if (!condoId) return;
 
     setLoading(true);
     setApiError(null);
+
     try {
-      await api(`/owner/condos/${condoId}/services/${serviceId}`, { method: "DELETE" });
+      await api(`/owner/condos/${condoId}/services/${serviceId}`, {
+        method: "DELETE",
+      });
+
       await refreshServices();
     } catch (e: any) {
       setApiError(e?.message ?? "ลบค่าบริการไม่สำเร็จ");
@@ -185,18 +209,41 @@ const Step_1: React.FC = () => {
   };
 
   const goBack = () => {
+    if (!condoId) return;
+
+    if (isEditMode) {
+      nav(
+        `/owner/settings/step-0?condoId=${encodeURIComponent(condoId)}&mode=edit`,
+        { state: { condoId, condoName } }
+      );
+      return;
+    }
+
     nav("../step-0", { state: { condoId, condoName } });
   };
 
-
   const goNext = () => {
-    nav(`../step-2?condoId=${encodeURIComponent(condoId)}`, { state: { condoId, condoName } });
+    if (!condoId) return;
+
+    if (isEditMode) {
+      nav(
+        `/owner/settings/step-2?condoId=${encodeURIComponent(condoId)}&mode=edit`,
+        { state: { condoId, condoName } }
+      );
+      return;
+    }
+
+    nav(`../step-2?condoId=${encodeURIComponent(condoId)}`, {
+      state: { condoId, condoName },
+    });
   };
 
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
       <div className="text-center mb-[6px] mt-[6px]">
-        <h1 className="text-[34px] font-extrabold text-black/85 tracking-[0.2px]">ตั้งค่าคอนโดมิเนียม</h1>
+        <h1 className="text-[34px] font-extrabold text-black/85 tracking-[0.2px]">
+          ค่าบริการเพิ่มเติม
+        </h1>
         <div className="mt-2 inline-flex items-center px-4 py-2 rounded-full bg-white shadow-sm border border-blue-100/60 text-sm font-extrabold text-gray-800">
           {condoName}
         </div>
@@ -212,8 +259,12 @@ const Step_1: React.FC = () => {
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">ค่าบริการเพิ่มเติม (ถ้ามี)</div>
-            <div className="mt-1 text-sm font-bold text-gray-600">ค่าอินเตอร์เน็ต, ค่าฟิตเนส และค่าบริการอื่น ๆ ที่เรียกเก็บเพิ่ม</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              ค่าบริการเพิ่มเติม (ถ้ามี)
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-600">
+              ค่าอินเตอร์เน็ต, ค่าฟิตเนส และค่าบริการอื่น ๆ ที่เรียกเก็บเพิ่ม
+            </div>
           </div>
         </div>
 
@@ -221,20 +272,19 @@ const Step_1: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div className="lg:col-span-6">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ชื่อค่าบริการ <span className="text-rose-600"></span>
+                ชื่อค่าบริการ
               </label>
               <input
                 value={serviceName}
                 onChange={(e) => setServiceName(e.target.value)}
                 placeholder="เช่น ค่าอินเตอร์เน็ต / ค่าฟิตเนส"
-                className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
-                           focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+                className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
               />
             </div>
 
             <div className="lg:col-span-5">
               <label className="block text-sm font-extrabold text-gray-800 mb-2">
-                ราคา <span className="text-rose-600"></span>
+                ราคา
               </label>
               <div className="flex items-center">
                 <input
@@ -246,8 +296,7 @@ const Step_1: React.FC = () => {
                   }}
                   inputMode="numeric"
                   placeholder="0"
-                  className="w-full h-12 rounded-l-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
-                             focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+                  className="w-full h-12 rounded-l-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
                 />
                 <div className="h-12 px-4 rounded-r-xl border border-l-0 border-gray-200 bg-slate-50 text-sm font-extrabold text-gray-600 flex items-center">
                   บาท
@@ -288,15 +337,22 @@ const Step_1: React.FC = () => {
                 }}
                 className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-sm font-extrabold text-black-900">ประเภทแปรผันตามมิเตอร์</span>
+              <span className="text-sm font-extrabold text-black-900">
+                ประเภทแปรผันตามมิเตอร์
+              </span>
             </label>
 
             <div
               className="overflow-hidden transition-all duration-300 ease-in-out"
-              style={{ maxHeight: isVariable ? "200px" : "0px", opacity: isVariable ? 1 : 0 }}
+              style={{
+                maxHeight: isVariable ? "200px" : "0px",
+                opacity: isVariable ? 1 : 0,
+              }}
             >
               <div className="px-6 pb-5 space-y-2">
-                <div className="text-sm font-extrabold text-black-800 mb-3">คำนวณตามการใช้งาน</div>
+                <div className="text-sm font-extrabold text-black-800 mb-3">
+                  คำนวณตามการใช้งาน
+                </div>
 
                 <label className="flex items-center gap-3 cursor-pointer select-none">
                   <input
@@ -306,7 +362,8 @@ const Step_1: React.FC = () => {
                     className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
                   />
                   <span className="text-sm font-bold text-gray-700">
-                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าน้ำ</span>
+                    จำนวนหน่วยการใช้ -{" "}
+                    <span className="font-extrabold text-black-900">ค่าน้ำ</span>
                   </span>
                 </label>
 
@@ -318,7 +375,8 @@ const Step_1: React.FC = () => {
                     className="h-5 w-5 rounded border-black-300 text-black-600 focus:ring-black-500"
                   />
                   <span className="text-sm font-bold text-gray-700">
-                    จำนวนหน่วยการใช้ - <span className="font-extrabold text-black-900">ค่าไฟ</span>
+                    จำนวนหน่วยการใช้ -{" "}
+                    <span className="font-extrabold text-black-900">ค่าไฟ</span>
                   </span>
                 </label>
               </div>
@@ -339,9 +397,13 @@ const Step_1: React.FC = () => {
                 ⚠️ ไม่พบ condoId แนะนำกลับไป Step0 แล้วสร้างคอนโดก่อน
               </div>
             ) : loading && services.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">กำลังโหลด...</div>
+              <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">
+                กำลังโหลด...
+              </div>
             ) : services.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">ยังไม่มีรายการค่าบริการ</div>
+              <div className="px-6 py-10 text-center text-sm font-bold text-gray-500 bg-white">
+                ยังไม่มีรายการค่าบริการ
+              </div>
             ) : (
               <div className="bg-white">
                 {services.map((s) => (
@@ -349,7 +411,10 @@ const Step_1: React.FC = () => {
                     key={s.id}
                     className="grid grid-cols-12 px-6 py-4 text-sm border-t border-blue-100/40 items-center"
                   >
-                    <div className="col-span-7 font-extrabold text-gray-900">{s.name}</div>
+                    <div className="col-span-7 font-extrabold text-gray-900">
+                      {s.name}
+                    </div>
+
                     <div className="col-span-3 font-bold text-gray-600">
                       {s.isVariable
                         ? s.variableType === "BOTH"
@@ -363,7 +428,9 @@ const Step_1: React.FC = () => {
                     </div>
 
                     <div className="col-span-2 text-right flex items-center justify-end gap-3">
-                      <div className="font-extrabold text-gray-900">{Number(s.price).toLocaleString()} บาท</div>
+                      <div className="font-extrabold text-gray-900">
+                        {Number(s.price).toLocaleString()} บาท
+                      </div>
                       <button
                         type="button"
                         disabled={loading}
@@ -388,32 +455,47 @@ const Step_1: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
-        <button
-          type="button"
-          onClick={goBack}
-          className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                         focus:outline-none focus:ring-2 focus:ring-gray-200"
-        >
-          ย้อนกลับ
-        </button>
+        {!isEditMode && (
+          <button
+            type="button"
+            onClick={goBack}
+            className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition focus:outline-none focus:ring-2 focus:ring-gray-200"
+          >
+            ย้อนกลับ
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={!condoId}
-          className={[
-            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
-            "!bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
-            "focus:outline-none focus:ring-2 focus:ring-blue-300",
-            "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
-          ].join(" ")}
-        >
-          ต่อไป
-        </button>
+        {isEditMode ? (
+          <button
+            type="button"
+            disabled={!condoId}
+            className={[
+              "h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+              "!bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300",
+              "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
+            ].join(" ")}
+          >
+            บันทึก
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!condoId}
+            className={[
+              "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+              "!bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300",
+              "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100",
+            ].join(" ")}
+          >
+            ต่อไป
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
 export default Step_1;
-

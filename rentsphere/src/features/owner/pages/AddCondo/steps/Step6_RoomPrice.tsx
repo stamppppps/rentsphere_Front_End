@@ -1,6 +1,6 @@
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import FloorSection from "../components/FloorSection";
 import SetRoomPriceModal from "../components/SetRoomPriceModal";
@@ -16,16 +16,25 @@ type FloorConfigDto = {
   totalRooms: number;
 };
 
+type RoomNameDrafts = Record<string, string>;
+
 function normalizeRoom(r: any): Room {
   const occupancy = (r?.occupancyStatus ?? r?.status ?? "VACANT") as any;
   const status = occupancy === "OCCUPIED" ? "OCCUPIED" : "VACANT";
+  const parsedPrice = Number(r?.price);
 
   return {
     id: String(r.id),
     condoId: r.condoId ? String(r.condoId) : undefined,
     floor: Number(r.floor),
     roomNo: String(r.roomNo ?? ""),
-    price: r.price === null || r.price === undefined ? null : Number(r.price),
+    price:
+      r?.price === null ||
+        r?.price === undefined ||
+        Number.isNaN(parsedPrice) ||
+        parsedPrice <= 0
+        ? null
+        : parsedPrice,
     isActive: r.isActive !== false,
     status,
     occupancyStatus: occupancy,
@@ -33,8 +42,6 @@ function normalizeRoom(r: any): Room {
     serviceId: r.serviceId ?? null,
   };
 }
-
-type RoomNameDrafts = Record<string, string>;
 
 function roomNamesKey(condoId: string) {
   return `${STEP_ROOM_NAMES_KEY_PREFIX}${condoId}`;
@@ -46,31 +53,60 @@ function readRoomNameDrafts(condoId: string): RoomNameDrafts {
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
-    return Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, String(v ?? "")]));
+    return Object.fromEntries(
+      Object.entries(parsed).map(([k, v]) => [k, String(v ?? "")])
+    );
   } catch {
     return {};
   }
 }
 
+function writeRoomNameDrafts(condoId: string, drafts: RoomNameDrafts) {
+  localStorage.setItem(roomNamesKey(condoId), JSON.stringify(drafts));
+}
+
+function getDisplayRoomNo(room: Room, drafts: RoomNameDrafts) {
+  const draft = drafts[room.id];
+  if (typeof draft === "string" && draft.trim() !== "") {
+    return draft;
+  }
+  return room.roomNo ?? "";
+}
+
 function applyRoomNameDrafts(rooms: Room[], drafts: RoomNameDrafts): Room[] {
   return rooms.map((room) => ({
     ...room,
-    roomNo: drafts[room.id] ?? room.roomNo,
+    roomNo: getDisplayRoomNo(room, drafts),
   }));
 }
+
+function sortRooms(a: Room, b: Room) {
+  if (a.floor !== b.floor) return a.floor - b.floor;
+  return a.roomNo.localeCompare(b.roomNo, undefined, { numeric: true });
+}
+
 export default function Step6RoomPrice() {
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const isSettingsPath = location.pathname.startsWith("/owner/settings");
+  const mode =
+    searchParams.get("mode") === "edit" || isSettingsPath ? "edit" : "create";
 
   const condoId: string = useMemo(() => {
+    const fromQuery = searchParams.get("condoId");
     const fromState = (location.state as any)?.condoId;
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
-    return String(fromState ?? fromStorage ?? "");
-  }, [location.state]);
+    return String(fromQuery ?? fromState ?? fromStorage ?? "").trim();
+  }, [location.state, searchParams]);
 
   useEffect(() => {
-    if (condoId) localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
-    else nav("/owner/add-condo/step-0");
+    if (condoId) {
+      localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
+    } else {
+      nav("/owner/add-condo/step-0");
+    }
   }, [condoId, nav]);
 
   const [floorCount, setFloorCount] = useState<number>(0);
@@ -81,21 +117,20 @@ export default function Step6RoomPrice() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
- 
   useEffect(() => {
     const raw = localStorage.getItem(STEP6_SELECTED_KEY);
     if (!raw) return;
     try {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) setSelectedRoomIds(arr.map(String));
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
     localStorage.setItem(STEP6_SELECTED_KEY, JSON.stringify(selectedRoomIds));
   }, [selectedRoomIds]);
-
 
   useEffect(() => {
     if (!condoId) return;
@@ -104,9 +139,13 @@ export default function Step6RoomPrice() {
     (async () => {
       setLoading(true);
       setApiError(null);
+      setSuccessMsg(null);
 
       try {
-        const cfg = await api<FloorConfigDto>(`/owner/condos/${condoId}/floor-config`, { method: "GET" });
+        const cfg = await api<FloorConfigDto>(
+          `/owner/condos/${condoId}/floor-config`,
+          { method: "GET" }
+        );
         if (!alive) return;
 
         if (!cfg?.floorCount || cfg.floorCount <= 0) {
@@ -117,17 +156,39 @@ export default function Step6RoomPrice() {
 
         setFloorCount(cfg.floorCount);
 
-        let list = await api<any[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
+        let list = await api<any[]>(`/owner/condos/${condoId}/rooms`, {
+          method: "GET",
+        });
         if (!alive) return;
 
-        if ((list ?? []).length === 0) {
-          await api(`/owner/condos/${condoId}/rooms/generate`, { method: "POST" });
-          list = await api<any[]>(`/owner/condos/${condoId}/rooms`, { method: "GET" });
+        if ((list ?? []).length === 0 && mode === "create") {
+          await api(`/owner/condos/${condoId}/rooms/generate`, {
+            method: "POST",
+          });
+
+          list = await api<any[]>(`/owner/condos/${condoId}/rooms`, {
+            method: "GET",
+          });
           if (!alive) return;
         }
 
+        const normalizedRooms = (list ?? []).map(normalizeRoom);
         const drafts = readRoomNameDrafts(condoId);
-        setRooms(applyRoomNameDrafts((list ?? []).map(normalizeRoom), drafts));
+        const seededDrafts = { ...drafts };
+
+        for (const room of normalizedRooms) {
+          if (!(room.id in seededDrafts)) {
+            seededDrafts[room.id] = room.roomNo ?? "";
+          }
+        }
+
+        writeRoomNameDrafts(condoId, seededDrafts);
+
+        const finalRooms = applyRoomNameDrafts(normalizedRooms, seededDrafts)
+          .slice()
+          .sort(sortRooms);
+
+        setRooms(finalRooms);
       } catch (e: any) {
         if (!alive) return;
         setApiError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
@@ -139,8 +200,7 @@ export default function Step6RoomPrice() {
     return () => {
       alive = false;
     };
-  }, [condoId]);
-
+  }, [condoId, mode]);
 
   const roomsByFloor = useMemo(() => {
     const map = new Map<number, Room[]>();
@@ -152,16 +212,18 @@ export default function Step6RoomPrice() {
       map.get(floor)?.push(r);
     }
 
-
-    map.forEach((arr) => arr.sort((a, b) => a.roomNo.localeCompare(b.roomNo)));
+    map.forEach((arr) => arr.sort(sortRooms));
     return map;
   }, [rooms, floorCount]);
 
-
   const toggleRoom = (roomId: string) => {
-    setSelectedRoomIds((prev) => (prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId]));
+    setSuccessMsg(null);
+    setSelectedRoomIds((prev) =>
+      prev.includes(roomId)
+        ? prev.filter((id) => id !== roomId)
+        : [...prev, roomId]
+    );
   };
-
 
   const selectAllOnFloor = (floor: number) => {
     const ids = rooms
@@ -172,44 +234,141 @@ export default function Step6RoomPrice() {
   };
 
   const unselectAllOnFloor = (floor: number) => {
-    const idsOnFloor = new Set(rooms.filter((r) => Number(r.floor) === floor).map((r) => r.id));
+    const idsOnFloor = new Set(
+      rooms.filter((r) => Number(r.floor) === floor).map((r) => r.id)
+    );
     setSelectedRoomIds((prev) => prev.filter((id) => !idsOnFloor.has(id)));
   };
 
- 
   const setPriceForRooms = async (roomIds: string[], price: number | null) => {
     if (!condoId) return;
+
     const ids = new Set(roomIds);
+    const normalizedPrice =
+      price === null || price === undefined || Number(price) <= 0
+        ? null
+        : Number(price);
 
-
-    setRooms((prev) => prev.map((r) => (ids.has(r.id) ? { ...r, price } : r)));
+    setRooms((prev) =>
+      prev.map((r) => (ids.has(r.id) ? { ...r, price: normalizedPrice } : r))
+    );
 
     setSaving(true);
     setApiError(null);
+    setSuccessMsg(null);
+
     try {
       await api(`/owner/condos/${condoId}/rooms/bulk-price`, {
         method: "PATCH",
-        body: JSON.stringify({ roomIds, price }),
+        body: JSON.stringify({ roomIds, price: normalizedPrice }),
       });
+
+      setSelectedRoomIds([]);
+      localStorage.setItem(STEP6_SELECTED_KEY, JSON.stringify([]));
+
+      if (mode === "edit") {
+        setSuccessMsg("บันทึกราคาห้องเรียบร้อยแล้ว");
+      }
     } catch (e: any) {
       setApiError(e?.message ?? "ตั้งค่าห้องไม่สำเร็จ");
-
     } finally {
       setSaving(false);
     }
   };
 
+  const fallbackRoomIds = useMemo(() => {
+    return rooms
+      .filter((room) => room.isActive !== false)
+      .map((room) => room.id);
+  }, [rooms]);
+
+  const roomIdsToProceed = useMemo(() => {
+    return selectedRoomIds.length > 0 ? selectedRoomIds : fallbackRoomIds;
+  }, [selectedRoomIds, fallbackRoomIds]);
+
+  const roomsToProceed = useMemo(() => {
+    const idSet = new Set(roomIdsToProceed);
+    return rooms.filter((room) => idSet.has(room.id));
+  }, [rooms, roomIdsToProceed]);
+
+  const roomsMissingPrice = useMemo(() => {
+    return roomsToProceed.filter((room) => {
+      const price = Number(room.price);
+      return (
+        room.price === null ||
+        room.price === undefined ||
+        Number.isNaN(price) ||
+        price <= 0
+      );
+    });
+  }, [roomsToProceed]);
+
+  const hasMissingPrice = roomsMissingPrice.length > 0;
   const disableSetPrice = selectedRoomIds.length === 0;
+
+  const handleBack = () => {
+    if (!condoId) return;
+
+    if (mode === "edit") {
+      nav(
+        `/owner/settings/step-5?condoId=${encodeURIComponent(condoId)}&mode=edit`
+      );
+      return;
+    }
+
+    nav("../step-5", { state: { condoId } });
+  };
+
+  const handleNextOrSave = () => {
+    if (!condoId || saving) return;
+
+    if (mode === "edit") {
+      setSuccessMsg("บันทึกราคาห้องเรียบร้อยแล้ว");
+      return;
+    }
+
+    if (roomIdsToProceed.length === 0) {
+      setApiError("ไม่พบห้องสำหรับไปขั้นตอนถัดไป");
+      return;
+    }
+
+    if (hasMissingPrice) {
+      setApiError("ยังกรอกราคาห้องไม่ครบ กรุณาระบุค่าห้องให้ครบก่อน");
+      return;
+    }
+
+    nav("../step-7", {
+      state: {
+        condoId,
+        selectedRoomIds: roomIdsToProceed,
+      },
+    });
+  };
 
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
       <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
-        ตั้งค่าคอนโดมิเนียม
+        {mode === "edit" ? "แก้ไขค่าห้อง" : "ตั้งค่าคอนโดมิเนียม"}
       </h1>
 
       {apiError && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-700 font-extrabold">
           {apiError}
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-emerald-700 font-extrabold">
+          {successMsg}
+        </div>
+      )}
+
+      {hasMissingPrice && mode === "create" && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-amber-800 font-extrabold">
+          ยังกรอกราคาห้องไม่ครบ:
+          <span className="ml-2">
+            {roomsMissingPrice.map((room) => room.roomNo).join(", ")}
+          </span>
         </div>
       )}
 
@@ -263,7 +422,7 @@ export default function Step6RoomPrice() {
 
         <button
           type="button"
-          onClick={() => nav("../step-5", { state: { condoId } })}
+          onClick={handleBack}
           className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
           focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
@@ -272,17 +431,17 @@ export default function Step6RoomPrice() {
 
         <button
           type="button"
-          onClick={() => nav("../step-7", { state: { condoId, selectedRoomIds } })}
-          disabled={selectedRoomIds.length === 0}
+          onClick={handleNextOrSave}
+          disabled={saving || hasMissingPrice || roomIdsToProceed.length === 0}
           className={[
-            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+            "h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
             "focus:outline-none focus:ring-2 focus:ring-blue-300",
-            selectedRoomIds.length === 0
+            saving || hasMissingPrice || roomIdsToProceed.length === 0
               ? "bg-[#1F80DB]/40 cursor-not-allowed text-white/70"
               : "bg-[#1F80DB] hover:bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
           ].join(" ")}
         >
-          ต่อไป
+          {saving ? "กำลังบันทึก..." : mode === "edit" ? "บันทึก" : "ต่อไป"}
         </button>
       </div>
 
@@ -298,6 +457,3 @@ export default function Step6RoomPrice() {
     </div>
   );
 }
-
-
-
