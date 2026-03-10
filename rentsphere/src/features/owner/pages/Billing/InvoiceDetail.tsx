@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import type { BillingItem } from './types';
+import React, { useEffect, useState } from 'react';
 import InvoiceHeader from './componentsinvoice/InvoiceHeader';
 import InvoiceInfo from './componentsinvoice/InvoiceInfo';
 import InvoiceTable from './componentsinvoice/InvoiceTable';
 import InvoiceTotal from './componentsinvoice/InvoiceTotal';
 import PaymentPanel from './componentsinvoice/PaymentPanel';
+import type { BillingItem } from './types';
 
 interface InvoiceDetailProps {
   item: BillingItem;
@@ -47,36 +47,78 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
     paymentMethod !== '' &&
     typedDate.length >= 10;
 
-  const handlePayment = async () => {
-    if (!isFormValid) return;
+const handlePayment = async () => {
+  if (!isFormValid) return;
 
-    try {
-      if (item.invoiceId && !item.isPaid) {
-        // Invoice already exists — just set the createdInvoiceId for LINE notify
-        setCreatedInvoiceId(item.invoiceId);
-      } else {
-        // POST new invoice as ISSUED (waiting for payment)
-        const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
-          method: "POST", headers: authHeaders(),
-          body: JSON.stringify({
-            roomId: item.id,
-            totalAmount: parseFloat(paymentAmount),
-            status: "ISSUED",
-            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${((item.waterMeter?.totalUnits || 0) * item.waterRate).toFixed(2)}฿ + ค่าไฟ ${((item.elecMeter?.totalUnits || 0) * item.electricRate).toFixed(2)}฿ (${paymentMethod})`,
-          }),
-        });
-        if (res.ok) {
-          const d = await res.json();
-          const newId = d.invoice?.id ? String(d.invoice.id) : undefined;
-          if (newId) setCreatedInvoiceId(newId);
-        }
+  try {
+    const waterUnits = Number(item.waterMeter?.totalUnits || 0);
+    const elecUnits = Number(item.elecMeter?.totalUnits || 0);
+
+    const rentAmount = Number(item.rentAmount || 0);
+    const waterAmount = Number((waterUnits * item.waterRate).toFixed(2));
+    const elecAmount = Number((elecUnits * item.electricRate).toFixed(2));
+
+    const total = Number(paymentAmount);
+
+    const now = new Date();
+    const billingMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString();
+
+    const items = [
+      {
+        itemType: "RENT",
+        itemName: "ค่าเช่าห้องพัก",
+        amount: rentAmount,
+      },
+      {
+        itemType: "WATER",
+        itemName: `ค่าน้ำ (${waterUnits} หน่วย x ${item.waterRate} บาท)`,
+        amount: waterAmount,
+      },
+      {
+        itemType: "ELECTRIC",
+        itemName: `ค่าไฟ (${elecUnits} หน่วย x ${item.electricRate} บาท)`,
+        amount: elecAmount,
+      },
+    ].filter((x) => x.amount > 0);
+
+    if (item.invoiceId && !item.isPaid) {
+      setCreatedInvoiceId(item.invoiceId);
+    } else {
+      const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          roomId: item.id,
+          billingMonth,
+          totalAmount: total,
+          status: "ISSUED",
+          note: `ชำระผ่าน ${paymentMethod}`,
+          items,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || "สร้างใบแจ้งหนี้ไม่สำเร็จ");
+        return;
       }
-    } catch (e) {
-      console.error("Payment API error:", e);
-    }
 
-    setIsPaid(true);
-  };
+      const d = await res.json();
+      const newId = d.invoice?.id ? String(d.invoice.id) : undefined;
+
+      if (newId) {
+        setCreatedInvoiceId(newId);
+      }
+    }
+  } catch (e) {
+    console.error("Payment API error:", e);
+    alert("เกิดข้อผิดพลาดในการบันทึกใบแจ้งหนี้");
+    return;
+  }
+
+  setIsPaid(true);
+};
 
   const handleReset = () => {
     setIsPaid(false);
