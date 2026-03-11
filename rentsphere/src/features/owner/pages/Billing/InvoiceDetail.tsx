@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import InvoiceHeader from './componentsinvoice/InvoiceHeader';
-import InvoiceInfo from './componentsinvoice/InvoiceInfo';
-import InvoiceTable from './componentsinvoice/InvoiceTable';
-import InvoiceTotal from './componentsinvoice/InvoiceTotal';
-import PaymentPanel from './componentsinvoice/PaymentPanel';
-import type { BillingItem } from './types';
+import React, { useEffect, useState } from "react";
+import InvoiceHeader from "./componentsinvoice/InvoiceHeader";
+import InvoiceInfo from "./componentsinvoice/InvoiceInfo";
+import InvoiceTable from "./componentsinvoice/InvoiceTable";
+import InvoiceTotal from "./componentsinvoice/InvoiceTotal";
+import PaymentPanel from "./componentsinvoice/PaymentPanel";
+import type { BillingItem } from "./types";
 
 interface InvoiceDetailProps {
   item: BillingItem;
@@ -16,118 +16,146 @@ interface InvoiceDetailProps {
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function getAuthToken(): string {
-  try { const raw = localStorage.getItem("rentsphere_auth"); if (!raw) return ""; return JSON.parse(raw)?.state?.token || ""; } catch { return ""; }
+  try {
+    const raw = localStorage.getItem("rentsphere_auth");
+    if (!raw) return "";
+    return JSON.parse(raw)?.state?.token || "";
+  } catch {
+    return "";
+  }
 }
+
 function authHeaders() {
   const t = getAuthToken();
-  return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
+  return {
+    "Content-Type": "application/json",
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+  };
 }
 
-const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete, condoId }) => {
-  const [isPaid, setIsPaid] = useState(false);
-  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | undefined>(item.invoiceId);
+function normalizeMonthForGenerate(value?: string) {
+  if (!value) return new Date().toISOString().slice(0, 7);
+  if (/^\d{4}-\d{2}$/.test(value)) return value;
 
-  // Form States
-  const [paymentAmount, setPaymentAmount] = useState<string>(item.estimatedTotal.toString());
-  const [paymentMethod, setPaymentMethod] = useState<string>('เงินสด');
-  const [typedDate, setTypedDate] = useState<string>('');
+  const dt = new Date(value);
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toISOString().slice(0, 7);
+  }
 
-  // Initialize date to today on mount
+  return new Date().toISOString().slice(0, 7);
+}
+
+const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
+  item,
+  onBack,
+  onComplete,
+  condoId,
+}) => {
+  const [isPaid, setIsPaid] = useState(Boolean(item.isPaid));
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | undefined>(
+    item.invoiceId
+  );
+
+  const [paymentAmount, setPaymentAmount] = useState<string>(
+    String(item.estimatedTotal || 0)
+  );
+  const [paymentMethod, setPaymentMethod] = useState<string>("เงินสด");
+  const [typedDate, setTypedDate] = useState<string>("");
+
   useEffect(() => {
     const today = new Date();
-    const d = String(today.getDate()).padStart(2, '0');
-    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, "0");
+    const m = String(today.getMonth() + 1).padStart(2, "0");
     const y = today.getFullYear();
     setTypedDate(`${d}/${m}/${y}`);
   }, []);
 
   const isFormValid =
-    paymentAmount !== '' &&
-    parseFloat(paymentAmount) > 0 &&
-    paymentMethod !== '' &&
+    paymentAmount !== "" &&
+    Number(paymentAmount) > 0 &&
+    paymentMethod !== "" &&
     typedDate.length >= 10;
 
-const handlePayment = async () => {
-  if (!isFormValid) return;
+  const ensureInvoiceExists = async () => {
+    if (createdInvoiceId) return createdInvoiceId;
 
-  try {
-    const waterUnits = Number(item.waterMeter?.totalUnits || 0);
-    const elecUnits = Number(item.elecMeter?.totalUnits || 0);
+    const month = normalizeMonthForGenerate(item.billingMonth);
 
-    const rentAmount = Number(item.rentAmount || 0);
-    const waterAmount = Number((waterUnits * item.waterRate).toFixed(2));
-    const elecAmount = Number((elecUnits * item.electricRate).toFixed(2));
-
-    const total = Number(paymentAmount);
-
-    const now = new Date();
-    const billingMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString();
-
-    const items = [
+    const res = await fetch(
+      `${API}/api/v1/owner/condos/${condoId}/invoices/generate`,
       {
-        itemType: "RENT",
-        itemName: "ค่าเช่าห้องพัก",
-        amount: rentAmount,
-      },
-      {
-        itemType: "WATER",
-        itemName: `ค่าน้ำ (${waterUnits} หน่วย x ${item.waterRate} บาท)`,
-        amount: waterAmount,
-      },
-      {
-        itemType: "ELECTRIC",
-        itemName: `ค่าไฟ (${elecUnits} หน่วย x ${item.electricRate} บาท)`,
-        amount: elecAmount,
-      },
-    ].filter((x) => x.amount > 0);
-
-    if (item.invoiceId && !item.isPaid) {
-      setCreatedInvoiceId(item.invoiceId);
-    } else {
-      const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          roomId: item.id,
-          billingMonth,
-          totalAmount: total,
+          month,
+          roomIds: [item.id],
+          requireMeter: false,
+          overwriteDraft: true,
           status: "ISSUED",
-          note: `ชำระผ่าน ${paymentMethod}`,
-          items,
         }),
-      });
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error || "สร้างใบแจ้งหนี้ไม่สำเร็จ");
+    }
+
+    const d = await res.json();
+    const created = Array.isArray(d?.invoices) ? d.invoices[0] : null;
+    const invoiceId = created?.invoiceId ? String(created.invoiceId) : undefined;
+
+    if (!invoiceId) {
+      throw new Error("ไม่พบ invoiceId หลังสร้างใบแจ้งหนี้");
+    }
+
+    setCreatedInvoiceId(invoiceId);
+    return invoiceId;
+  };
+
+  const handlePayment = async () => {
+    if (!isFormValid) return;
+
+    try {
+      const invoiceId = await ensureInvoiceExists();
+
+      const res = await fetch(
+        `${API}/api/v1/owner/invoices/${invoiceId}/payments`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            amount: Number(paymentAmount),
+            method: paymentMethod,
+            paidAt: typedDate,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err?.error || "สร้างใบแจ้งหนี้ไม่สำเร็จ");
+        alert(err?.error || "บันทึกการชำระเงินไม่สำเร็จ");
         return;
       }
 
-      const d = await res.json();
-      const newId = d.invoice?.id ? String(d.invoice.id) : undefined;
-
-      if (newId) {
-        setCreatedInvoiceId(newId);
-      }
+      const data = await res.json();
+      const paid = String(data?.invoice?.status || "").toUpperCase() === "PAID";
+      setIsPaid(paid);
+    } catch (e: any) {
+      console.error("Record payment error:", e);
+      alert(e?.message || "เกิดข้อผิดพลาดในการบันทึกการชำระเงิน");
     }
-  } catch (e) {
-    console.error("Payment API error:", e);
-    alert("เกิดข้อผิดพลาดในการบันทึกใบแจ้งหนี้");
-    return;
-  }
-
-  setIsPaid(true);
-};
+  };
 
   const handleReset = () => {
-    setIsPaid(false);
+    setIsPaid(Boolean(item.isPaid));
     setCreatedInvoiceId(item.invoiceId);
-    setPaymentAmount(item.estimatedTotal.toString());
-    setPaymentMethod('เงินสด');
+    setPaymentAmount(String(item.estimatedTotal || 0));
+    setPaymentMethod("เงินสด");
+
     const today = new Date();
-    const d = String(today.getDate()).padStart(2, '0');
-    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, "0");
+    const m = String(today.getMonth() + 1).padStart(2, "0");
     const y = today.getFullYear();
     setTypedDate(`${d}/${m}/${y}`);
   };
@@ -135,32 +163,36 @@ const handlePayment = async () => {
   const handleNotifyLine = async () => {
     const invoiceId = createdInvoiceId;
     if (!invoiceId || !condoId) {
-      alert("ไม่พบ invoiceId — กรุณากดบันทึกก่อนส่ง LINE");
+      alert("ไม่พบ invoiceId — กรุณาบันทึกก่อนส่ง LINE");
       return;
     }
 
-    const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices/${invoiceId}/notify`, {
-      method: "POST", headers: authHeaders(),
-    });
+    const res = await fetch(
+      `${API}/api/v1/owner/condos/${condoId}/invoices/${invoiceId}/notify`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+      }
+    );
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       alert(err?.error || "ส่ง LINE ไม่สำเร็จ");
       return;
     }
+
     alert("ส่ง LINE สำเร็จ! ✅");
   };
 
   return (
     <div className="flex flex-col xl:flex-row gap-8 items-start animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-      {/* Left Panel: Invoice Details Container */}
       <div className="w-full xl:flex-grow bg-white rounded-[40px] shadow-sm border border-gray-100 p-6 sm:p-12 relative overflow-hidden">
         <InvoiceHeader onBack={onBack} />
         <InvoiceInfo item={item} isPaid={isPaid} />
         <InvoiceTable item={item} />
-        <InvoiceTotal total={item.estimatedTotal} />
+        <InvoiceTotal total={Number(paymentAmount || item.estimatedTotal || 0)} />
       </div>
 
-      {/* Right Panel: Payment Panel Container */}
       <div className="w-full xl:w-[420px] flex-shrink-0">
         <PaymentPanel
           isPaid={isPaid}

@@ -45,18 +45,7 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onComplete, onReset, on
         )}
 
         <div className="space-y-4">
-          <button
-            onClick={handleNotify}
-            disabled={sending || sent || !onNotifyLine}
-            className={`payment-success__notify-btn w-full text-white py-4 !rounded-[20px] font-bold text-base flex items-center justify-center gap-3 transition-all shadow-lg shadow-purple-50 ${sent ? 'opacity-60 cursor-not-allowed' : sending ? 'opacity-80' : 'hover:bg-[#7C3AED]'
-              }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            {sent ? "✅ ส่งแล้ว" : sending ? "กำลังส่ง..." : "ส่งใบแจ้งชำระเงินให้ผู้เช่า"}
-          </button>
-
+          
           <button
             onClick={handleNotify}
             disabled={sending || sent || !onNotifyLine}
