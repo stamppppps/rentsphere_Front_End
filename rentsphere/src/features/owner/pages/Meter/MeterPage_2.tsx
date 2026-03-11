@@ -46,6 +46,11 @@ type MeterReadingResponse = {
     prevWater?: number;
     prevElectric?: number;
     cycleId?: string;
+    cycleStatus?: string;
+    meter?: {
+        waterMeterNo?: string | null;
+        electricMeterNo?: string | null;
+    } | null;
     reading?: {
         currWater?: number;
         currElectric?: number;
@@ -287,8 +292,8 @@ export default function MeterPage2() {
                         roomNo: room.roomNo || "—",
                         floor: Number(room.floor ?? 0),
                         status: room.occupancyStatus === "OCCUPIED" ? "active" : "inactive",
-                        waterMeterNo: room.meter?.waterMeterNo ?? null,
-                        electricMeterNo: room.meter?.electricMeterNo ?? null,
+                        waterMeterNo: meterState?.meter?.waterMeterNo ?? room.meter?.waterMeterNo ?? null,
+                        electricMeterNo: meterState?.meter?.electricMeterNo ?? room.meter?.electricMeterNo ?? null,
                         cycleId: meterState?.cycleId ?? overviewRaw?.cycleId ?? null,
                         prevWater,
                         prevElectric,
@@ -298,7 +303,7 @@ export default function MeterPage2() {
                         electricUnits,
                         waterCharge,
                         electricCharge,
-                        note: reading?.note ?? "",
+                        note: typeof reading?.note === "string" ? reading.note : "",
                     };
                 });
 
@@ -372,15 +377,13 @@ export default function MeterPage2() {
 
                 if (field === "currWater") {
                     next.currWater = num;
-                    next.waterUnits =
-                        num !== null && num >= next.prevWater ? num - next.prevWater : 0;
+                    next.waterUnits = num !== null && num >= next.prevWater ? num - next.prevWater : 0;
                     next.waterCharge = next.waterUnits * waterRate;
                 }
 
                 if (field === "currElectric") {
                     next.currElectric = num;
-                    next.electricUnits =
-                        num !== null && num >= next.prevElectric ? num - next.prevElectric : 0;
+                    next.electricUnits = num !== null && num >= next.prevElectric ? num - next.prevElectric : 0;
                     next.electricCharge = next.electricUnits * electricRate;
                 }
 
