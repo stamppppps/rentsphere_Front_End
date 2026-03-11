@@ -1,7 +1,7 @@
-import React from 'react';
-import PaymentForm from './PaymentForm';
-import PaymentSuccess from './PaymentSuccess';
-import PaymentHistory from './PaymentHistory';
+import React from "react";
+import PaymentForm from "./PaymentForm";
+import PaymentSuccess from "./PaymentSuccess";
+import PaymentHistory from "./PaymentHistory";
 
 interface PaymentPanelProps {
   isPaid: boolean;
@@ -21,9 +21,12 @@ interface PaymentPanelProps {
 
 const PaymentPanel: React.FC<PaymentPanelProps> = ({
   isPaid,
-  paymentAmount, setPaymentAmount,
-  paymentMethod, setPaymentMethod,
-  typedDate, setTypedDate,
+  paymentAmount,
+  setPaymentAmount,
+  paymentMethod,
+  setPaymentMethod,
+  typedDate,
+  setTypedDate,
   handlePayment,
   isFormValid,
   estimatedTotal,
@@ -32,7 +35,7 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
   onNotifyLine,
 }) => {
   return (
-    <div className="lg:w-[420px] flex flex-col gap-6">
+    <div className="w-full flex flex-col gap-6">
       {!isPaid ? (
         <PaymentForm
           paymentAmount={paymentAmount}
@@ -47,8 +50,16 @@ const PaymentPanel: React.FC<PaymentPanelProps> = ({
         />
       ) : (
         <div className="space-y-6 animate-in zoom-in-95 duration-300">
-          <PaymentSuccess onComplete={onComplete} onReset={onReset} onNotifyLine={onNotifyLine} />
-          <PaymentHistory amount={paymentAmount} date={typedDate} method={paymentMethod} />
+          <PaymentSuccess
+            onComplete={onComplete}
+            onReset={onReset}
+            onNotifyLine={onNotifyLine}
+          />
+          <PaymentHistory
+            amount={paymentAmount}
+            date={typedDate}
+            method={paymentMethod}
+          />
         </div>
       )}
     </div>
