@@ -12,7 +12,7 @@ interface BillingRowProps {
 /* ==================== component ==================== */
 export default function BillingRow({ item, onSelect }: BillingRowProps) {
   /* ===== derived state ===== */
-  const isOccupied = item.status === "ไม่ว่าง";
+  const isOccupied = item.status === "OCCUPIED";
   const canCreateInvoice = isOccupied;
 
   return (
@@ -113,3 +113,4 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
     </tr>
   );
 }
+

@@ -135,7 +135,7 @@ export default function BillingPage() {
           return {
             id: roomId,
             roomNumber: roomNo,
-            status: "ไม่ว่าง" as const,
+            status: "OCCUPIED",
             waterMeter,
             elecMeter,
             rentAmount,
@@ -301,3 +301,6 @@ export default function BillingPage() {
     </OwnerShell>
   );
 }
+
+
+

@@ -6,15 +6,15 @@ interface BillingStatusProps {
 }
 
 const BillingStatus: React.FC<BillingStatusProps> = ({ status }) => {
-  const isOccupied = status === '‡πÑ‡∏°‡πà‡∏ß‡πà‡∏≤‡∏á';
-  
+  const isOccupied = status === 'OCCUPIED';
+
   return (
-    <span className={`px-4 py-1 rounded-full text-sm font-medium ${
-      isOccupied 
-        ? 'bg-[#FEE2E2] text-[#DC2626]' 
-        : 'bg-[#DCFCE7] text-[#16A34A]'
-    }`}>
-      {status}
+    <span
+      className={`px-4 py-1 rounded-full text-sm font-medium ${
+        isOccupied ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#DCFCE7] text-[#16A34A]'
+      }`}
+    >
+      {isOccupied ? '‰¡Ë«Ë“ß' : '«Ë“ß'}
     </span>
   );
 };

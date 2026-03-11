@@ -1,4 +1,4 @@
-export type RoomStatus = 'ว่าง' | 'ไม่ว่าง';
+export type RoomStatus = 'VACANT' | 'OCCUPIED';
 
 export interface MeterData {
   current: number;
@@ -15,12 +15,27 @@ export interface BillingItem {
   rentAmount: number;
   estimatedTotal: number;
   isPaid?: boolean;
-  /* — added for backend integration — */
   waterRate: number;
   electricRate: number;
-  invoiceId?: string;      // backend invoice id if exists
+  invoiceId?: string; // backend invoice id if exists
+  invoiceNo?: string;
+  invoiceStatus?: string;
   tenantName?: string;
   condoName?: string;
   condoAddress?: string;
-  invoiceDate?: string;     // created_at / recorded_at
+  invoiceDate?: string; // created_at / recorded_at
+  billingMonth?: string;
+  dueDate?: string;
+  items?: PreviewInvoiceItem[];
 }
+
+export interface PreviewInvoiceItem {
+  itemType: string;
+  itemName: string;
+  amount: number;
+  condoChargeId?: string | null;
+  extraChargeTemplateId?: string | null;
+  meterReadingId?: string | null;
+  facilityBookingId?: string | null;
+}
+
