@@ -51,11 +51,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
     if (!isFormValid) return;
 
     try {
-      if (item.invoiceId && !item.isPaid) {
-        // Invoice already exists — just set the createdInvoiceId for LINE notify
-        setCreatedInvoiceId(item.invoiceId);
-      } else {
-        // POST new invoice as ISSUED (waiting for payment)
+      let invoiceId = item.invoiceId ? String(item.invoiceId) : "";
+
+      if (!invoiceId) {
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({
@@ -65,17 +63,25 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
             note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${((item.waterMeter?.totalUnits || 0) * item.waterRate).toFixed(2)}฿ + ค่าไฟ ${((item.elecMeter?.totalUnits || 0) * item.electricRate).toFixed(2)}฿ (${paymentMethod})`,
           }),
         });
-        if (res.ok) {
-          const d = await res.json();
-          const newId = d.invoice?.id ? String(d.invoice.id) : undefined;
-          if (newId) setCreatedInvoiceId(newId);
-        }
+        if (!res.ok) throw new Error("Create invoice failed");
+        const d = await res.json();
+        invoiceId = d.invoice?.id ? String(d.invoice.id) : "";
       }
+
+      if (!invoiceId) throw new Error("Missing invoiceId");
+
+      const payRes = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices/${invoiceId}/pay`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+      if (!payRes.ok) throw new Error("Pay invoice failed");
+
+      setCreatedInvoiceId(invoiceId);
+      setIsPaid(true);
     } catch (e) {
       console.error("Payment API error:", e);
+      alert("Payment save failed");
     }
-
-    setIsPaid(true);
   };
 
   const handleReset = () => {
@@ -141,3 +147,5 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 };
 
 export default InvoiceDetail;
+
+

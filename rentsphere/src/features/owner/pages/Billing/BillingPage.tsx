@@ -61,7 +61,7 @@ export default function BillingPage() {
         const roomsRaw = roomRes?.ok ? await roomRes.json() : [];
         const rooms: any[] = Array.isArray(roomsRaw) ? roomsRaw : (roomsRaw?.rooms || roomsRaw?.items || []);
         const metersRaw = meterRes?.ok ? await meterRes.json() : {};
-        const meters: any[] = metersRaw?.meters || [];
+        const meters: any[] = metersRaw?.readings || [];
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
         const configs: any[] = utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
         const invoicesRaw = invRes?.ok ? await invRes.json() : {};
@@ -135,7 +135,7 @@ export default function BillingPage() {
           return {
             id: roomId,
             roomNumber: roomNo,
-            status: "OCCUPIED",
+            status: "ไม่ว่าง" as const,
             waterMeter,
             elecMeter,
             rentAmount,
@@ -301,6 +301,4 @@ export default function BillingPage() {
     </OwnerShell>
   );
 }
-
-
 
