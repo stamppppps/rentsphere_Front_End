@@ -1,42 +1,16 @@
+/* ==================== component ==================== */
 interface BillingFilterProps {
   waterRate: number;
   electricRate: number;
-  selectedMonth: string;
 }
 
-function monthLabelFromInput(value: string) {
-  const [year, month] = value.split("-").map(Number);
-
-  const months = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
-
-  if (!year || !month) return value;
-  return `${months[month - 1]} ${year + 543}`;
-}
-
-export default function BillingFilter({
-  waterRate,
-  electricRate,
-  selectedMonth,
-}: BillingFilterProps) {
+export default function BillingFilter({ waterRate, electricRate }: BillingFilterProps) {
   return (
     <div
       className="
         bg-white
         rounded-3xl
-        p-6 md:p-8
+        p-8
         shadow-sm
         border
         border-gray-100
@@ -48,18 +22,58 @@ export default function BillingFilter({
         mb-8
       "
     >
+      {/* ===== รอบบิล ===== */}
       <div className="flex items-center gap-4">
-        <span className="text-[#64748B] font-medium whitespace-nowrap">
+        <span className="text-[#64748B] font-medium">
           รอบบิล:
         </span>
 
-        <div className="px-5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[#1E293B] font-semibold">
-          {monthLabelFromInput(selectedMonth)}
+        <div className="relative">
+          <select
+            aria-label="เลือกรอบบิล"
+            className="
+              appearance-none
+              border
+              border-gray-200
+              rounded-xl
+              px-5
+              py-2.5
+              pr-12
+              bg-white
+              min-w-[140px]
+              text-[#1E293B]
+              font-medium
+              transition-all
+              focus:outline-none
+              focus:ring-2
+              focus:ring-purple-100
+            "
+          >
+            <option>{new Date().toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", month: "2-digit", year: "numeric" }).replace("/", "-")}</option>
+          </select>
+
+          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
+      {/* ===== divider ===== */}
       <div className="h-10 w-[1px] bg-gray-100 hidden lg:block" />
 
+      {/* ===== ค่าน้ำ ===== */}
       <div className="flex items-center gap-4">
         <span className="text-[#64748B] font-medium whitespace-nowrap">
           ค่าน้ำ (บาท/หน่วย):
@@ -81,11 +95,15 @@ export default function BillingFilter({
             text-center
             text-[#1E293B]
             font-semibold
+            transition-all
             focus:outline-none
+            focus:ring-2
+            focus:ring-purple-100
           "
         />
       </div>
 
+      {/* ===== ค่าไฟ ===== */}
       <div className="flex items-center gap-4">
         <span className="text-[#64748B] font-medium whitespace-nowrap">
           ค่าไฟ (บาท/หน่วย):
@@ -107,7 +125,10 @@ export default function BillingFilter({
             text-center
             text-[#1E293B]
             font-semibold
+            transition-all
             focus:outline-none
+            focus:ring-2
+            focus:ring-purple-100
           "
         />
       </div>

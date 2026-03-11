@@ -38,7 +38,6 @@ const authRoutes: RouteObject[] = [
       { path: "register", element: <OwnerRegisterPage /> },
       { path: "verify-method", element: <OwnerVerifyMethodPage /> },
       { path: "verify-email", element: <OwnerVerifyEmailPage /> },
-      { path: "verify-phone", element: <OwnerVerifyPhonePage /> },
       { path: "register-success", element: <RegisterSuccessPage /> },
 
       { path: "forgot", element: <ForgotPasswordPage /> },

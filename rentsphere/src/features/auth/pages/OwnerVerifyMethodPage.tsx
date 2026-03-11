@@ -67,14 +67,6 @@ const OwnerVerifyMethodPage: React.FC = () => {
               ยืนยันอีเมล (กรอกรหัส 6 หลักจากอีเมล)
             </button>
 
-            <button
-              type="button"
-              className={`btn-auth w-full ${channel !== "PHONE" ? "opacity-50 cursor-not-allowed" : ""}`}
-              onClick={channel === "PHONE" ? goOtp : undefined}
-            >
-              ยืนยันเบอร์ (กรอก OTP 6 หลัก)
-            </button>
-
             <p className="text-xs text-white/60 leading-relaxed">
               ช่องทางที่คุณเลือกตอนสมัครคือ: <span className="font-semibold text-white/80">{channel}</span>
               <br />
