@@ -28,6 +28,7 @@ import PaymentsPage from "@/features/owner/pages/Payments/PaymentsPage";
 import ReportsPage from "@/features/owner/pages/Reports/ReportsPage";
 import AdvancePaymentPage from "@/features/owner/pages/Rooms/AdvancePaymentPage";
 import MonthlyContractPage from "@/features/owner/pages/Rooms/MonthlyContractPage";
+import EditContractPage from "@/features/owner/pages/Rooms/EditContractPage";
 import RoomDetailPage from "@/features/owner/pages/Rooms/RoomDetailPage";
 import RoomMeterPage from "@/features/owner/pages/Rooms/RoomMeterPage";
 import RoomsPage from "@/features/owner/pages/Rooms/RoomsPage";
@@ -70,6 +71,7 @@ const ownerRoutes: RouteObject[] = [
       { path: "rooms", element: <RoomsPage /> },
       { path: "rooms/:roomId", element: <RoomDetailPage /> },
       { path: "rooms/:roomId/monthly", element: <MonthlyContractPage /> },
+      { path: "rooms/:roomId/edit-contract", element: <EditContractPage /> },
       { path: "rooms/:roomId/advance-payment", element: <AdvancePaymentPage /> },
       { path: "rooms/:roomId/meter", element: <RoomMeterPage /> },
       { path: "rooms/:roomId/access-code", element: <TenantAccessCodePage /> },

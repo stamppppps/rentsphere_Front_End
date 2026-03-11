@@ -309,31 +309,13 @@ export default function RoomsPage() {
                         {r.occupancyStatus === "OCCUPIED" && (
                           <button
                             type="button"
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (!confirm(`ต้องการลบผู้เช่าจากห้อง ${r.roomNo} หรือไม่?\n\n(ลบ LINE, ข้อมูลการเช่า, ใบแจ้งหนี้ และ reset รหัสเข้าระบบ)`)) return;
-                              try {
-                                const token = (() => { try { const raw = localStorage.getItem("rentsphere_auth"); if (!raw) return ""; return JSON.parse(raw)?.state?.token || ""; } catch { return ""; } })();
-                                const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-                                const res = await fetch(`${API_URL}/api/v1/owner/rooms/${r.id}/tenant`, {
-                                  method: "DELETE",
-                                  headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                                });
-                                const data = await res.json();
-                                if (res.ok) {
-                                  alert("ลบผู้เช่าเรียบร้อย ✅");
-                                  setRooms((prev) => prev.map((room) => room.id === r.id ? { ...room, occupancyStatus: "VACANT" as const } : room));
-                                } else {
-                                  alert(data?.error || "ลบผู้เช่าไม่สำเร็จ");
-                                }
-                              } catch (err) {
-                                alert("เกิดข้อผิดพลาด");
-                                console.error(err);
-                              }
+                              nav(`/owner/rooms/${r.id}/edit-contract`);
                             }}
-                            className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 font-extrabold text-red-600 hover:bg-red-100 text-sm"
+                            className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 font-extrabold text-blue-600 hover:bg-blue-100 text-sm"
                           >
-                            ลบผู้เช่า
+                            แก้ไขสัญญา
                           </button>
                         )}
                         <button
