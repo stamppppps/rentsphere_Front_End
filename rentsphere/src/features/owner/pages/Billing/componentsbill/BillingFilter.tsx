@@ -46,7 +46,7 @@ export default function BillingFilter({ waterRate, electricRate }: BillingFilter
               transition-all
               focus:outline-none
               focus:ring-2
-              focus:ring-blue-100
+              focus:ring-purple-100
             "
           >
             <option>{new Date().toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", month: "2-digit", year: "numeric" }).replace("/", "-")}</option>
@@ -98,7 +98,7 @@ export default function BillingFilter({ waterRate, electricRate }: BillingFilter
             transition-all
             focus:outline-none
             focus:ring-2
-            focus:ring-blue-100
+            focus:ring-purple-100
           "
         />
       </div>
@@ -128,7 +128,7 @@ export default function BillingFilter({ waterRate, electricRate }: BillingFilter
             transition-all
             focus:outline-none
             focus:ring-2
-            focus:ring-blue-100
+            focus:ring-purple-100
           "
         />
       </div>

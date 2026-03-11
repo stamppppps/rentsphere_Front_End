@@ -63,7 +63,7 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
       {/* ===== ยอดรวม ===== */}
       <td className="px-6 py-6">
         {isOccupied ? (
-          <div className="flex items-center text-[#2563EB] font-bold text-lg">
+          <div className="flex items-center text-[#8B5CF6] font-bold text-lg">
             <span className="mr-1">฿</span>
             <span>{item.estimatedTotal.toLocaleString()}</span>
           </div>
@@ -87,9 +87,9 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
               font-medium
               !shadow-sm
               !transition-all
-              !hover:bg-[#1D4ED8]
+              !hover:bg-[#7C3AED]
             "
-            style={{ backgroundColor: "#1D4ED8" }}
+            style={{ backgroundColor: "#7C3AED" }}
           >
             {item.isPaid ? "สร้างใบแจ้งหนี้ใหม่" : "สร้างใบแจ้งหนี้"}
           </button>
