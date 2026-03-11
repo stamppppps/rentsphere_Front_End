@@ -48,18 +48,6 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onComplete, onReset, on
           <button
             onClick={handleNotify}
             disabled={sending || sent || !onNotifyLine}
-            className={`payment-success__notify-btn w-full text-white py-4 !rounded-[20px] font-bold text-base flex items-center justify-center gap-3 transition-all shadow-lg shadow-purple-50 ${sent ? 'opacity-60 cursor-not-allowed' : sending ? 'opacity-80' : 'hover:bg-[#7C3AED]'
-              }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            {sent ? "✅ ส่งแล้ว" : sending ? "กำลังส่ง..." : "ส่งใบแจ้งชำระเงินให้ผู้เช่า"}
-          </button>
-
-          <button
-            onClick={handleNotify}
-            disabled={sending || sent || !onNotifyLine}
             className={`payment-success__line-btn w-full text-white py-4 !rounded-[20px] font-bold text-base flex items-center justify-center gap-3 transition-all shadow-lg shadow-green-50 ${sent ? 'opacity-60 cursor-not-allowed' : sending ? 'opacity-80' : 'hover:bg-[#05B04B]'
               }`}
           >
@@ -71,14 +59,14 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onComplete, onReset, on
 
           <button
             onClick={onComplete}
-            className="w-full !border-2 !border-[#8B5CF6] text-[#8B5CF6] py-4 !rounded-[20px] font-bold text-base flex items-center justify-center gap-3 transition-all hover:bg-purple-50"
+            className="w-full !border-2 !border-[#2563EB] text-[#2563EB] py-4 !rounded-[20px] font-bold text-base flex items-center justify-center gap-3 transition-all hover:bg-blue-50"
           >
             เสร็จสิ้น
           </button>
 
           <button
             onClick={onReset}
-            className="text-gray-400 hover:text-[#8B5CF6] font-medium text-sm pt-2 transition-colors underline underline-offset-4"
+            className="text-gray-400 hover:text-[#2563EB] font-medium text-sm pt-2 transition-colors underline underline-offset-4"
           >
             ทำรายการใหม่
           </button>

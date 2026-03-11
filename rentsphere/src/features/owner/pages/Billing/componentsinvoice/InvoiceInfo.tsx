@@ -19,7 +19,7 @@ const InvoiceInfo: React.FC<InvoiceInfoProps> = ({ item, isPaid }) => {
   return (
     <div className="flex flex-col sm:flex-row justify-between gap-6 mb-12">
       <div className="space-y-2">
-        <h2 className="text-[#8B5CF6] text-xl font-bold">{item.condoName || "RentSphere"}</h2>
+        <h2 className="text-[#2563EB] text-xl font-bold">{item.condoName || "RentSphere"}</h2>
         <p className="text-gray-400 text-sm max-w-xs leading-relaxed">
           {item.condoAddress || ""}<br />
           {item.tenantName ? `ผู้เช่า: ${item.tenantName}` : ""}
@@ -29,7 +29,7 @@ const InvoiceInfo: React.FC<InvoiceInfoProps> = ({ item, isPaid }) => {
         <div className="flex items-center sm:justify-end gap-2 mb-2">
           <span className="text-gray-400 text-sm">สถานะ:</span>
           {isPaid || item.isPaid ? (
-            <span className="bg-[#DCFCE7] text-[#22C55E] text-xs px-2 py-0.5 rounded-md font-bold">ชำระแล้ว</span>
+            <span className="bg-yellow-50 text-yellow-500 text-xs px-2 py-0.5 rounded-md font-bold">รอการชำระ</span>
           ) : (
             <span className="bg-red-50 text-red-500 text-xs px-2 py-0.5 rounded-md font-bold">ค้างชำระ</span>
           )}

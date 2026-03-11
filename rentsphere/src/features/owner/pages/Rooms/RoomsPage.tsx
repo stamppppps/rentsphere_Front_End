@@ -215,15 +215,6 @@ export default function RoomsPage() {
         <div className="text-sm font-bold text-gray-500">
           คอนโดมิเนียม : <span className="text-gray-800">{condoName}</span>
         </div>
-
-        <button
-          type="button"
-          onClick={openAccessCodeModal}
-          className="text-sm font-extrabold text-gray-600 underline underline-offset-4 hover:text-gray-900 disabled:opacity-50"
-          disabled={roomsTotal === 0}
-        >
-          สร้างรหัสเข้าสู่ระบบ
-        </button>
       </div>
 
       {/* Stats */}

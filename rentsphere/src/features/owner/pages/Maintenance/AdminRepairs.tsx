@@ -22,7 +22,7 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "new")
     return (
-      <span className={`${base} bg-indigo-50 text-indigo-700 border-indigo-100`}>
+      <span className={`${base} bg-blue-50 text-blue-700 border-blue-100`}>
         ใหม่
       </span>
     );
@@ -68,7 +68,7 @@ const FilterButton = ({
   <button
     onClick={onClick}
     className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
       : "text-slate-600 hover:bg-slate-50"
       }`}
   >
@@ -94,7 +94,7 @@ const ActionButton = ({
 }) => {
   const styles =
     variant === "primary"
-      ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"
       : variant === "emerald"
         ? "bg-white border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 shadow-emerald-50"
         : variant === "rose"
@@ -179,7 +179,7 @@ export default function OwnerAdminRepairsPage() {
     <OwnerShell title="งานแจ้งซ่อม" activeKey="repairs" showSidebar={true}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-200">
+          <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
             <LayoutList size={22} />
           </div>
           <div>
@@ -189,8 +189,8 @@ export default function OwnerAdminRepairsPage() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-indigo-100 shadow-sm">
+      <div className="rounded-3xl border border-blue-100/60 bg-blue-to-b from-[#EAF2FF] to-white/60 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm">
           <div className="flex flex-wrap items-center gap-1">
             <FilterButton active={filter === "new"} onClick={() => setFilter("new")} icon={<Search size={16} />} label="ใหม่" />
             <FilterButton active={filter === "in_progress"} onClick={() => setFilter("in_progress")} icon={<Clock size={16} />} label="กำลังทำ" />
@@ -198,7 +198,7 @@ export default function OwnerAdminRepairsPage() {
             <FilterButton active={filter === "all"} onClick={() => setFilter("all")} icon={<LayoutList size={16} />} label="ทั้งหมด" />
           </div>
 
-          <button onClick={loadRepairs} className="flex items-center justify-center gap-2 px-5 py-2.5 text-indigo-600 hover:bg-indigo-50 font-black rounded-xl transition-all">
+          <button onClick={loadRepairs} className="flex items-center justify-center gap-2 px-5 py-2.5 text-blue-600 hover:bg-blue-50 font-black rounded-xl transition-all">
             <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
             รีเฟรชข้อมูล
           </button>
@@ -212,7 +212,7 @@ export default function OwnerAdminRepairsPage() {
         )}
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
-          <section className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/20 flex flex-col overflow-hidden">
+          <section className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl border border-blue-100 shadow-xl shadow-blue-100/20 flex flex-col overflow-hidden">
             <div className="p-5 border-b border-slate-50 flex items-center justify-between">
               <h2 className="font-extrabold text-slate-800">รายการแจ้งซ่อม</h2>
               <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-black">
@@ -234,8 +234,8 @@ export default function OwnerAdminRepairsPage() {
                     key={r.id}
                     onClick={() => setSelectedRepair(r)}
                     className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedRepair?.id === r.id
-                      ? "border-indigo-400 bg-indigo-50 shadow-md"
-                      : "border-slate-100 hover:border-indigo-200 hover:bg-slate-50"
+                      ? "border-blue-400 bg-blue-50 shadow-md"
+                      : "border-slate-100 hover:border-blue-200 hover:bg-slate-50"
                       }`}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -253,7 +253,7 @@ export default function OwnerAdminRepairsPage() {
             </div>
           </section>
 
-          <section className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/20 flex flex-col">
+          <section className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-blue-100 shadow-xl shadow-blue-100/20 flex flex-col">
             <div className="p-5 border-b border-slate-50">
               <h2 className="font-extrabold text-slate-800">รายละเอียดงานแจ้งซ่อม</h2>
             </div>
@@ -261,7 +261,7 @@ export default function OwnerAdminRepairsPage() {
             <div className="flex-1 overflow-y-auto p-6 lg:p-10">
               {!selectedRepair ? (
                 <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto gap-4 py-20">
-                  <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400">
+                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-400">
                     <LayoutList size={40} />
                   </div>
                   <div className="space-y-1">
@@ -317,7 +317,7 @@ export default function OwnerAdminRepairsPage() {
 
                   <div className="pt-6 border-t border-slate-100 space-y-4">
                     <div className="flex items-center gap-2 text-slate-800 font-black mb-2">
-                      <CheckCircle2 size={18} className="text-indigo-600" />
+                      <CheckCircle2 size={18} className="text-blue-600" />
                       <h4>ดำเนินการจัดการสถานะ</h4>
                     </div>
 
