@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 function toDateInput(val: string | null | undefined): string {
   if (!val) return "";
@@ -23,6 +24,7 @@ export default function EditContractPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [popup, setPopup] = useState<PopupState>(defaultPopup);
 
   // Room info
   const [roomNo, setRoomNo] = useState("");
@@ -131,10 +133,20 @@ export default function EditContractPage() {
         }),
       });
 
-      alert("บันทึกเรียบร้อย ✅");
-      nav(`/owner/rooms/${roomId}`, { replace: true });
+      setPopup({
+        open: true,
+        type: "success",
+        title: "บันทึกเรียบร้อย",
+        message: "อัพเดทสัญญาและมิเตอร์เรียบร้อยแล้ว \u2705",
+        onConfirm: () => nav(`/owner/rooms/${roomId}`, { replace: true }),
+      });
     } catch (e: any) {
-      alert(e?.message ?? "บันทึกไม่สำเร็จ");
+      setPopup({
+        open: true,
+        type: "error",
+        title: "บันทึกไม่สำเร็จ",
+        message: e?.message ?? "เกิดข้อผิดพลาด",
+      });
     } finally {
       setSaving(false);
     }
@@ -190,6 +202,7 @@ export default function EditContractPage() {
 
   /* ---------- Main ---------- */
   return (
+    <>
     <OwnerShell activeKey="rooms" showSidebar condoName={condoName}>
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-600">
@@ -339,5 +352,11 @@ export default function EditContractPage() {
         </div>
       </div>
     </OwnerShell>
+
+    <PopupModal
+      {...popup}
+      onClose={() => setPopup(defaultPopup)}
+    />
+    </>
   );
 }
