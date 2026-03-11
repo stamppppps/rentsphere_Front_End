@@ -46,7 +46,6 @@ const MONTHS_TH = [
 
 type MeterReading = {
     id: string;
-    condoId: string;
     roomId: string;
     cycleId: string;
     prevWater: number;
@@ -57,7 +56,6 @@ type MeterReading = {
     electricUnits: number;
     waterCharge: number;
     electricCharge: number;
-    recordedBy?: string | null;
     recordedAt?: string | null;
 };
 
@@ -67,6 +65,9 @@ type RoomInfo = {
 };
 
 type CondoMeterOverviewResponse = {
+    cycleId?: string;
+    cycleMonth?: string;
+    status?: string;
     rooms?: RoomInfo[];
     readings?: MeterReading[];
 };
@@ -104,7 +105,7 @@ function monthLabelFromInput(value: string) {
     return `${MONTHS_TH[month - 1]} ${year + 543}`;
 }
 
-function StatCard({
+function SummaryCard({
     title,
     value,
     subtext,
@@ -143,9 +144,7 @@ function MonthPickerCard({
             <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                     <div className="text-sm font-extrabold text-gray-900">เลือกรอบบิล</div>
-                    <div className="text-xs font-bold text-gray-400 mt-1">
-                        ดูข้อมูลตามเดือนของมิเตอร์
-                    </div>
+                    <div className="text-xs font-bold text-gray-400 mt-1">ดูข้อมูลตามเดือนของมิเตอร์</div>
                 </div>
                 <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center">
                     <svg className="w-5 h-5 text-[#93C5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,6 +171,17 @@ function MonthPickerCard({
     );
 }
 
+function EmptyState({ monthLabel }: { monthLabel: string }) {
+    return (
+        <div className="px-6 py-16 text-center">
+            <div className="text-lg font-extrabold text-gray-900">ไม่มีข้อมูล</div>
+            <div className="text-sm font-bold text-gray-400 mt-2">
+                ยังไม่มีการบันทึกข้อมูลมิเตอร์ในรอบบิล {monthLabel}
+            </div>
+        </div>
+    );
+}
+
 /* ================================================================
    History View
 =============================================================== */
@@ -181,18 +191,14 @@ function HistoryView() {
     const [rows, setRows] = useState<HistoryRoomRow[]>([]);
     const [summary, setSummary] = useState({
         roomCount: 0,
-        lastWater: null as string | null,
-        lastElectric: null as string | null,
-        totalWaterCharge: 0,
-        totalElectricCharge: 0,
+        lastRecordedAt: null as string | null,
         totalWaterUnits: 0,
         totalElectricUnits: 0,
+        totalWaterCharge: 0,
+        totalElectricCharge: 0,
     });
 
-    const selectedMonthLabel = useMemo(
-        () => monthLabelFromInput(selectedMonth),
-        [selectedMonth]
-    );
+    const selectedMonthLabel = useMemo(() => monthLabelFromInput(selectedMonth), [selectedMonth]);
 
     useEffect(() => {
         let cancelled = false;
@@ -207,14 +213,12 @@ function HistoryView() {
                         setRows([]);
                         setSummary({
                             roomCount: 0,
-                            lastWater: null,
-                            lastElectric: null,
-                            totalWaterCharge: 0,
-                            totalElectricCharge: 0,
+                            lastRecordedAt: null,
                             totalWaterUnits: 0,
                             totalElectricUnits: 0,
+                            totalWaterCharge: 0,
+                            totalElectricCharge: 0,
                         });
-                        setLoading(false);
                     }
                     return;
                 }
@@ -229,69 +233,55 @@ function HistoryView() {
                         setRows([]);
                         setSummary({
                             roomCount: 0,
-                            lastWater: null,
-                            lastElectric: null,
-                            totalWaterCharge: 0,
-                            totalElectricCharge: 0,
+                            lastRecordedAt: null,
                             totalWaterUnits: 0,
                             totalElectricUnits: 0,
+                            totalWaterCharge: 0,
+                            totalElectricCharge: 0,
                         });
                     }
                     return;
                 }
 
                 const data: CondoMeterOverviewResponse = await res.json();
-                const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
-                const readings = Array.isArray(data?.readings) ? data.readings : [];
+                const rooms = Array.isArray(data.rooms) ? data.rooms : [];
+                const readings = Array.isArray(data.readings) ? data.readings : [];
 
                 const roomMap = new Map<string, RoomInfo>();
                 for (const room of rooms) {
                     roomMap.set(room.id, room);
                 }
 
-                let latestWater: string | null = null;
-                let latestElectric: string | null = null;
-                let totalWaterCharge = 0;
-                let totalElectricCharge = 0;
+                let lastRecordedAt: string | null = null;
                 let totalWaterUnits = 0;
                 let totalElectricUnits = 0;
+                let totalWaterCharge = 0;
+                let totalElectricCharge = 0;
 
-                const mergedRows: HistoryRoomRow[] = readings.map((m) => {
-                    const room = roomMap.get(m.roomId);
-
-                    if (m.recordedAt) {
-                        const recordedDate = new Date(m.recordedAt);
-
-                        if (Number(m.waterUnits ?? 0) > 0) {
-                            if (!latestWater || recordedDate > new Date(latestWater)) {
-                                latestWater = m.recordedAt;
-                            }
-                        }
-
-                        if (Number(m.electricUnits ?? 0) > 0) {
-                            if (!latestElectric || recordedDate > new Date(latestElectric)) {
-                                latestElectric = m.recordedAt;
-                            }
+                const mergedRows: HistoryRoomRow[] = readings.map((reading) => {
+                    if (reading.recordedAt) {
+                        if (!lastRecordedAt || new Date(reading.recordedAt) > new Date(lastRecordedAt)) {
+                            lastRecordedAt = reading.recordedAt;
                         }
                     }
 
-                    totalWaterCharge += Number(m.waterCharge ?? 0);
-                    totalElectricCharge += Number(m.electricCharge ?? 0);
-                    totalWaterUnits += Number(m.waterUnits ?? 0);
-                    totalElectricUnits += Number(m.electricUnits ?? 0);
+                    totalWaterUnits += Number(reading.waterUnits ?? 0);
+                    totalElectricUnits += Number(reading.electricUnits ?? 0);
+                    totalWaterCharge += Number(reading.waterCharge ?? 0);
+                    totalElectricCharge += Number(reading.electricCharge ?? 0);
 
                     return {
-                        roomId: m.roomId,
-                        roomNo: room?.roomNo || "—",
-                        prevWater: Number(m.prevWater ?? 0),
-                        currWater: Number(m.currWater ?? 0),
-                        waterUnits: Number(m.waterUnits ?? 0),
-                        waterCharge: Number(m.waterCharge ?? 0),
-                        prevElectric: Number(m.prevElectric ?? 0),
-                        currElectric: Number(m.currElectric ?? 0),
-                        electricUnits: Number(m.electricUnits ?? 0),
-                        electricCharge: Number(m.electricCharge ?? 0),
-                        recordedAt: m.recordedAt ?? null,
+                        roomId: reading.roomId,
+                        roomNo: roomMap.get(reading.roomId)?.roomNo || "—",
+                        prevWater: Number(reading.prevWater ?? 0),
+                        currWater: Number(reading.currWater ?? 0),
+                        waterUnits: Number(reading.waterUnits ?? 0),
+                        waterCharge: Number(reading.waterCharge ?? 0),
+                        prevElectric: Number(reading.prevElectric ?? 0),
+                        currElectric: Number(reading.currElectric ?? 0),
+                        electricUnits: Number(reading.electricUnits ?? 0),
+                        electricCharge: Number(reading.electricCharge ?? 0),
+                        recordedAt: reading.recordedAt ?? null,
                     };
                 });
 
@@ -301,12 +291,11 @@ function HistoryView() {
                     setRows(mergedRows);
                     setSummary({
                         roomCount: mergedRows.length,
-                        lastWater: latestWater,
-                        lastElectric: latestElectric,
-                        totalWaterCharge,
-                        totalElectricCharge,
+                        lastRecordedAt,
                         totalWaterUnits,
                         totalElectricUnits,
+                        totalWaterCharge,
+                        totalElectricCharge,
                     });
                 }
             } catch (e) {
@@ -315,12 +304,11 @@ function HistoryView() {
                     setRows([]);
                     setSummary({
                         roomCount: 0,
-                        lastWater: null,
-                        lastElectric: null,
-                        totalWaterCharge: 0,
-                        totalElectricCharge: 0,
+                        lastRecordedAt: null,
                         totalWaterUnits: 0,
                         totalElectricUnits: 0,
+                        totalWaterCharge: 0,
+                        totalElectricCharge: 0,
                     });
                 }
             } finally {
@@ -338,7 +326,7 @@ function HistoryView() {
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <StatCard
+                        <SummaryCard
                             title="ห้องที่บันทึกแล้ว"
                             value={String(summary.roomCount)}
                             subtext={`รอบบิล ${selectedMonthLabel}`}
@@ -348,7 +336,7 @@ function HistoryView() {
                                 </svg>
                             }
                         />
-                        <StatCard
+                        <SummaryCard
                             title="หน่วยน้ำรวม"
                             value={summary.totalWaterUnits.toLocaleString()}
                             subtext={formatMoney(summary.totalWaterCharge)}
@@ -358,7 +346,7 @@ function HistoryView() {
                                 </svg>
                             }
                         />
-                        <StatCard
+                        <SummaryCard
                             title="หน่วยไฟรวม"
                             value={summary.totalElectricUnits.toLocaleString()}
                             subtext={formatMoney(summary.totalElectricCharge)}
@@ -368,9 +356,9 @@ function HistoryView() {
                                 </svg>
                             }
                         />
-                        <StatCard
+                        <SummaryCard
                             title="บันทึกล่าสุดเมื่อ"
-                            value={formatThaiShortDate(summary.lastElectric || summary.lastWater)}
+                            value={formatThaiShortDate(summary.lastRecordedAt)}
                             subtext="วันที่บันทึกจริง"
                             icon={
                                 <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,15 +369,13 @@ function HistoryView() {
                     </div>
 
                     <div className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
-                            <div>
-                                <h2 className="text-lg font-extrabold text-gray-900">
-                                    รายการจดมิเตอร์รอบบิล {selectedMonthLabel}
-                                </h2>
-                                <p className="text-sm font-bold text-gray-400 mt-1">
-                                    ข้อมูลทั้งหมดอ้างอิงตามเดือนของรอบบิล
-                                </p>
-                            </div>
+                        <div className="px-6 py-5 border-b border-gray-100">
+                            <h2 className="text-lg font-extrabold text-gray-900">
+                                รายการจดมิเตอร์รอบบิล {selectedMonthLabel}
+                            </h2>
+                            <p className="text-sm font-bold text-gray-400 mt-1">
+                                ข้อมูลทั้งหมดอ้างอิงตามเดือนของรอบบิล
+                            </p>
                         </div>
 
                         {loading ? (
@@ -397,12 +383,7 @@ function HistoryView() {
                                 กำลังโหลดข้อมูล...
                             </div>
                         ) : rows.length === 0 ? (
-                            <div className="px-6 py-16 text-center">
-                                <div className="text-lg font-extrabold text-gray-900">ไม่มีข้อมูล</div>
-                                <div className="text-sm font-bold text-gray-400 mt-2">
-                                    ยังไม่มีการบันทึกข้อมูลมิเตอร์ในรอบบิลนี้
-                                </div>
-                            </div>
+                            <EmptyState monthLabel={selectedMonthLabel} />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1000px] text-sm">
@@ -445,10 +426,7 @@ function HistoryView() {
                 </div>
 
                 <div className="shrink-0">
-                    <MonthPickerCard
-                        value={selectedMonth}
-                        onChange={setSelectedMonth}
-                    />
+                    <MonthPickerCard value={selectedMonth} onChange={setSelectedMonth} />
                 </div>
             </div>
         </div>
