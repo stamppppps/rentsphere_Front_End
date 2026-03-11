@@ -481,13 +481,16 @@ type LocationState = {
 
 export default function DashboardPage() {
   const location = useLocation();
+  const params = new URLSearchParams(location.search);
+
   const state = (location.state ?? null) as LocationState;
   const condoIdFromState = state?.condoId;
+  const condoIdFromQuery = params.get("condoId");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [condoId, setCondoId] = useState<string | null>(
-    condoIdFromState ?? null
+    condoIdFromQuery ?? condoIdFromState ?? null
   );
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [ownerName, setOwnerName] = useState<string>("");
@@ -659,6 +662,7 @@ export default function DashboardPage() {
       showSidebar={true}
       ownerName={ownerName}
       condoName={condoName}
+      condoId={condoId ?? undefined}
     >
       <div className="rounded-[32px] border border-slate-200/60 bg-gradient-to-b from-[#EEF4FF] via-[#F8FBFF] to-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
         <div className="mb-6">

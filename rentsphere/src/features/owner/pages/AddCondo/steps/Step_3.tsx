@@ -1,10 +1,10 @@
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
+import { BANK_OPTIONS } from "@/constants/bankOptions";
 import { useBankAccountForm } from "../components/BankAccountForm";
 import BankAccountList from "../components/BankAccountList";
-import { BANK_OPTIONS } from "@/constants/bankOptions";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
 
@@ -35,29 +35,37 @@ type UiAccount = {
 export default function Step_3() {
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const form = useBankAccountForm();
 
+  const isEditMode = searchParams.get("mode") === "edit";
 
   const condoId: string = useMemo(() => {
+    const fromQuery = searchParams.get("condoId");
     const fromState = (location.state as any)?.condoId;
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
-    return String(fromState ?? fromStorage ?? "");
-  }, [location.state]);
+    return String(fromQuery ?? fromState ?? fromStorage ?? "");
+  }, [location.state, searchParams]);
 
   useEffect(() => {
     if (condoId) localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
   }, [condoId]);
 
   useEffect(() => {
-    if (!condoId) nav("/owner/add-condo/step-0");
-  }, [condoId, nav]);
+    if (!condoId) {
+      if (isEditMode) {
+        nav("/owner/settings", { replace: true });
+      } else {
+        nav("/owner/add-condo/step-0", { replace: true });
+      }
+    }
+  }, [condoId, nav, isEditMode]);
 
- 
   const bankLabelByCode = useMemo(() => {
     const m = new Map<string, string>();
     BANK_OPTIONS.forEach((b) => m.set(b.code, b.label));
     return m;
-  }, [BANK_OPTIONS]);
+  }, []);
 
   const isFormValid =
     form.bank.trim() !== "" &&
@@ -76,12 +84,10 @@ export default function Step_3() {
     return "บัญชีธนาคารที่ใช้รับเงิน (แสดงบนใบแจ้งหนี้) — แนะนำไม่เกิน 2 บัญชี";
   }, []);
 
-
   const resetCondoFlow = () => {
     localStorage.removeItem(STEP_CONDO_ID_KEY);
     nav("/owner/add-condo/step-0");
   };
-
 
   useEffect(() => {
     if (!condoId) return;
@@ -96,9 +102,12 @@ export default function Step_3() {
           api<BankAccountDbRow[]>(`/owner/condos/${condoId}/bank-accounts`, {
             method: "GET",
           }),
-          api<PaymentInstructionDto>(`/owner/condos/${condoId}/payment-instruction`, {
-            method: "GET",
-          }),
+          api<PaymentInstructionDto>(
+            `/owner/condos/${condoId}/payment-instruction`,
+            {
+              method: "GET",
+            }
+          ),
         ]);
 
         if (!alive) return;
@@ -119,7 +128,9 @@ export default function Step_3() {
 
         const msg = String(e?.message ?? "");
         if (msg.includes("Forbidden")) {
-          setApiError("คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้างหลัง reset ฐานข้อมูล — กำลังพากลับไปเริ่มใหม่");
+          setApiError(
+            "คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้างหลัง reset ฐานข้อมูล — กำลังพากลับไปเริ่มใหม่"
+          );
           window.setTimeout(() => resetCondoFlow(), 1200);
           return;
         }
@@ -141,16 +152,19 @@ export default function Step_3() {
     setSaving(true);
     setApiError(null);
     try {
-      const bankCode = form.bank.trim().toUpperCase(); 
+      const bankCode = form.bank.trim().toUpperCase();
 
-      const created = await api<BankAccountDbRow>(`/owner/condos/${condoId}/bank-accounts`, {
-        method: "POST",
-        body: JSON.stringify({
-          bankCode, 
-          accountName: form.accountName.trim(),
-          accountNo: form.accountNo.trim(),
-        }),
-      });
+      const created = await api<BankAccountDbRow>(
+        `/owner/condos/${condoId}/bank-accounts`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            bankCode,
+            accountName: form.accountName.trim(),
+            accountNo: form.accountNo.trim(),
+          }),
+        }
+      );
 
       setAccounts((prev) => [
         ...prev,
@@ -164,12 +178,16 @@ export default function Step_3() {
       ]);
 
       form.reset();
+      setShowSaved(true);
+      window.setTimeout(() => setShowSaved(false), 2500);
     } catch (e: any) {
       const msg = String(e?.message ?? "");
       if (msg.includes("Max 2 bank accounts")) {
         setApiError("เพิ่มได้สูงสุด 2 บัญชี");
       } else if (msg.includes("Forbidden")) {
-        setApiError("คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่");
+        setApiError(
+          "คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่"
+        );
         window.setTimeout(() => resetCondoFlow(), 1200);
       } else {
         setApiError(e?.message ?? "เพิ่มบัญชีไม่สำเร็จ");
@@ -189,10 +207,14 @@ export default function Step_3() {
         method: "DELETE",
       });
       setAccounts((prev) => prev.filter((a) => a.id !== id));
+      setShowSaved(true);
+      window.setTimeout(() => setShowSaved(false), 2500);
     } catch (e: any) {
       const msg = String(e?.message ?? "");
       if (msg.includes("Forbidden")) {
-        setApiError("คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่");
+        setApiError(
+          "คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่"
+        );
         window.setTimeout(() => resetCondoFlow(), 1200);
       } else {
         setApiError(e?.message ?? "ลบบัญชีไม่สำเร็จ");
@@ -218,7 +240,9 @@ export default function Step_3() {
     } catch (e: any) {
       const msg = String(e?.message ?? "");
       if (msg.includes("Forbidden")) {
-        setApiError("คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่");
+        setApiError(
+          "คอนโดนี้ไม่ใช่ของคุณ หรือ condoId ค้าง — กำลังพากลับไปเริ่มใหม่"
+        );
         window.setTimeout(() => resetCondoFlow(), 1200);
       } else {
         setApiError(e?.message ?? "บันทึกไม่สำเร็จ");
@@ -226,6 +250,32 @@ export default function Step_3() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const goBack = () => {
+    if (!condoId) return;
+
+    if (isEditMode) {
+      nav(
+        `/owner/settings/step-2?condoId=${encodeURIComponent(condoId)}&mode=edit`
+      );
+      return;
+    }
+
+    nav("../step-2", { state: { condoId } });
+  };
+
+  const goNext = () => {
+    if (!condoId) return;
+
+    if (isEditMode) {
+      nav(
+        `/owner/settings/step-4?condoId=${encodeURIComponent(condoId)}&mode=edit`
+      );
+      return;
+    }
+
+    nav("../step-4", { state: { condoId } });
   };
 
   return (
@@ -245,7 +295,7 @@ export default function Step_3() {
       {apiError && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-700 font-extrabold flex items-center justify-between gap-4">
           <span>{apiError}</span>
-       
+
           <button
             type="button"
             onClick={resetCondoFlow}
@@ -256,13 +306,16 @@ export default function Step_3() {
         </div>
       )}
 
-   
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
         <div className="flex items-center gap-3 px-8 py-5 bg-[#f3f7ff] border-b border-blue-100/60">
           <div className="h-9 w-1.5 rounded-full bg-[#5b86ff]" />
           <div>
-            <div className="text-xl font-extrabold text-gray-900 tracking-tight">บัญชีธนาคาร</div>
-            <div className="mt-1 text-sm font-bold text-gray-600">{headerHint}</div>
+            <div className="text-xl font-extrabold text-gray-900 tracking-tight">
+              บัญชีธนาคาร
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-600">
+              {headerHint}
+            </div>
           </div>
         </div>
 
@@ -377,7 +430,7 @@ export default function Step_3() {
 
         <div className="px-8 py-7 space-y-3">
           <label className="block text-sm font-extrabold text-gray-800">
-            ข้อความแจ้งผู้เช่า <span className="text-rose-600"></span>
+            ข้อความแจ้งผู้เช่า
           </label>
 
           <textarea
@@ -410,27 +463,41 @@ export default function Step_3() {
       </div>
 
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
-        <button
-          type="button"
-          onClick={() => nav("../step-2", { state: { condoId } })}
-          className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+        {!isEditMode && (
+          <button
+            type="button"
+            onClick={goBack}
+            className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
                          focus:outline-none focus:ring-2 focus:ring-gray-200"
-        >
-          ย้อนกลับ
-        </button>
+          >
+            ย้อนกลับ
+          </button>
+        )}
 
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => nav("../step-4", { state: { condoId } })}
-          className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+        {isEditMode ? (
+          <button
+            type="button"
+            disabled={loading || saving}
+            onClick={handleSaveMessage}
+            className="h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
+                         !bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
+                         focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={goNext}
+            className="h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition
                          !bg-[#1F80DB] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer
                          focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60"
-        >
-          ต่อไป
-        </button>
+          >
+            ต่อไป
+          </button>
+        )}
       </div>
     </div>
   );
 }
-

@@ -1,9 +1,9 @@
 import ElectricIconImg from "@/assets/Electric.png";
 import WaterIconImg from "@/assets/Water.png";
-import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import UtilitySetupCard from "../components/UtilitySetupCard";
 import { api } from "@/shared/api/http";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import UtilitySetupCard from "../components/UtilitySetupCard";
 
 const STEP_CONDO_ID_KEY = "add_condo_condoId";
 
@@ -50,12 +50,7 @@ function utilityLabel(u: UtilityType) {
 }
 
 function getErrorMessage(err: any, fallback: string) {
-  return (
-    err?.response?.data?.error ||
-    err?.data?.error ||
-    err?.message ||
-    fallback
-  );
+  return err?.response?.data?.error || err?.data?.error || err?.message || fallback;
 }
 
 function formatConfigText(config: UtilityConfig | null) {
@@ -237,8 +232,7 @@ function UtilityConfigPopup({
               onSave({
                 billingType,
                 rate: rateNumber,
-                minimumCharge:
-                  billingType === "METER_MIN" ? minimumChargeNumber : null,
+                minimumCharge: billingType === "METER_MIN" ? minimumChargeNumber : null,
               });
             }}
             disabled={!canSave}
@@ -261,20 +255,27 @@ function UtilityConfigPopup({
 const Step_2: React.FC = () => {
   const nav = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  const isSettingsMode =
+    location.pathname.startsWith("/owner/settings") || searchParams.get("mode") === "edit";
 
   const condoId: string = useMemo(() => {
+    const fromQuery = searchParams.get("condoId");
     const fromState = (location.state as any)?.condoId;
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
-    return String(fromState ?? fromStorage ?? "");
-  }, [location.state]);
+    return String(fromQuery ?? fromState ?? fromStorage ?? "").trim();
+  }, [location.state, searchParams]);
 
   useEffect(() => {
     if (condoId) localStorage.setItem(STEP_CONDO_ID_KEY, condoId);
   }, [condoId]);
 
   useEffect(() => {
-    if (!condoId) nav("/owner/add-condo/step-0");
-  }, [condoId, nav]);
+    if (!condoId && !isSettingsMode) {
+      nav("/owner/add-condo/step-0");
+    }
+  }, [condoId, isSettingsMode, nav]);
 
   const [condoName, setCondoName] = useState<string>("");
 
@@ -291,9 +292,7 @@ const Step_2: React.FC = () => {
 
         if (!alive) return;
 
-        const name =
-          String(condo?.nameTh ?? "").trim() ||
-          String(condo?.nameEn ?? "").trim();
+        const name = String(condo?.nameTh ?? "").trim() || String(condo?.nameEn ?? "").trim();
 
         setCondoName(name);
       } catch {
@@ -310,9 +309,7 @@ const Step_2: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<UtilityType | null>(null);
 
-  const [utilityConfig, setUtilityConfig] = useState<
-    Record<UtilityType, UtilityConfig | null>
-  >({
+  const [utilityConfig, setUtilityConfig] = useState<Record<UtilityType, UtilityConfig | null>>({
     water: null,
     electricity: null,
   });
@@ -320,6 +317,7 @@ const Step_2: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!condoId) return;
@@ -341,15 +339,14 @@ const Step_2: React.FC = () => {
         (list ?? []).forEach((row) => {
           const u = fromDbUtilityType(row.utilityType);
 
-          const rateNum =
-            typeof row.rate === "string" ? Number(row.rate) : Number(row.rate);
+          const rateNum = typeof row.rate === "string" ? Number(row.rate) : Number(row.rate);
 
           const minimumChargeNum =
             typeof row.minimumCharge === "string"
               ? Number(row.minimumCharge)
               : row.minimumCharge == null
-              ? null
-              : Number(row.minimumCharge);
+                ? null
+                : Number(row.minimumCharge);
 
           next[u] = {
             billingType: row.billingType,
@@ -376,6 +373,7 @@ const Step_2: React.FC = () => {
     setCurrentUtility(utility);
     setModalOpen(true);
     setApiError(null);
+    setSuccessMsg(null);
   };
 
   const handleCloseModal = () => {
@@ -383,11 +381,12 @@ const Step_2: React.FC = () => {
     setCurrentUtility(null);
   };
 
-  const handleSave = async (config: UtilityConfig) => {
+  const handleSaveSingle = async (config: UtilityConfig) => {
     if (!currentUtility || !condoId) return;
 
     setSaving(true);
     setApiError(null);
+    setSuccessMsg(null);
 
     try {
       await api(`/owner/condos/${condoId}/utilities`, {
@@ -396,8 +395,7 @@ const Step_2: React.FC = () => {
           utilityType: toDbUtilityType(currentUtility),
           billingType: config.billingType,
           rate: config.rate,
-          minimumCharge:
-            config.billingType === "METER_MIN" ? config.minimumCharge : null,
+          minimumCharge: config.billingType === "METER_MIN" ? config.minimumCharge : null,
         }),
       });
 
@@ -405,7 +403,7 @@ const Step_2: React.FC = () => {
         ...prev,
         [currentUtility]: config,
       }));
-
+      setSuccessMsg(`บันทึก${utilityLabel(currentUtility)}เรียบร้อยแล้ว`);
       handleCloseModal();
     } catch (e: any) {
       setApiError(getErrorMessage(e, "บันทึกไม่สำเร็จ"));
@@ -416,10 +414,85 @@ const Step_2: React.FC = () => {
 
   const canNext = Boolean(utilityConfig.water && utilityConfig.electricity);
 
+  const canSaveAll =
+    Boolean(condoId) &&
+    Boolean(utilityConfig.water) &&
+    Boolean(utilityConfig.electricity) &&
+    !saving;
+
+  const handleSaveAll = async () => {
+    if (!condoId) {
+      setApiError("ไม่พบ condoId");
+      return;
+    }
+
+    if (!utilityConfig.water || !utilityConfig.electricity) {
+      setApiError("กรุณาตั้งค่าค่าน้ำและค่าไฟให้ครบก่อนบันทึก");
+      return;
+    }
+
+    setSaving(true);
+    setApiError(null);
+    setSuccessMsg(null);
+
+    try {
+      await Promise.all([
+        api(`/owner/condos/${condoId}/utilities`, {
+          method: "POST",
+          body: JSON.stringify({
+            utilityType: "WATER",
+            billingType: utilityConfig.water.billingType,
+            rate: utilityConfig.water.rate,
+            minimumCharge:
+              utilityConfig.water.billingType === "METER_MIN"
+                ? utilityConfig.water.minimumCharge
+                : null,
+          }),
+        }),
+        api(`/owner/condos/${condoId}/utilities`, {
+          method: "POST",
+          body: JSON.stringify({
+            utilityType: "ELECTRIC",
+            billingType: utilityConfig.electricity.billingType,
+            rate: utilityConfig.electricity.rate,
+            minimumCharge:
+              utilityConfig.electricity.billingType === "METER_MIN"
+                ? utilityConfig.electricity.minimumCharge
+                : null,
+          }),
+        }),
+      ]);
+
+      setSuccessMsg("บันทึกการตั้งค่าน้ำ / ค่าไฟเรียบร้อยแล้ว");
+    } catch (e: any) {
+      setApiError(e?.message ?? "บันทึกข้อมูลไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const goBack = () => {
+    if (!condoId) return;
+
+    if (isSettingsMode) {
+      nav(`/owner/settings/step-1?condoId=${encodeURIComponent(condoId)}&mode=edit`);
+      return;
+    }
+
+    nav("../step-1", { state: { condoId } });
+  };
+
+  const goNext = () => {
+    if (!condoId) return;
+    if (isSettingsMode) return;
+
+    nav("../step-3", { state: { condoId } });
+  };
+
   return (
     <div className="w-full max-w-[1120px] mx-auto flex flex-col gap-[18px] pb-[110px]">
       <h1 className="text-center text-[34px] font-extrabold text-black/85 tracking-[0.2px] mb-[6px] mt-[6px]">
-        ตั้งค่าคอนโดมิเนียม
+        {isSettingsMode ? "แก้ไขค่าน้ำ / ค่าไฟ" : "ตั้งค่าคอนโดมิเนียม"}
       </h1>
 
       <div className="rounded-2xl bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)] border border-blue-100/60 overflow-hidden">
@@ -456,6 +529,12 @@ const Step_2: React.FC = () => {
           {apiError && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-rose-700 font-extrabold">
               {apiError}
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700 font-extrabold">
+              {successMsg}
             </div>
           )}
 
@@ -506,29 +585,48 @@ const Step_2: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
-        <button
-          type="button"
-          onClick={() => nav("../step-1", { state: { condoId } })}
-          className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                         focus:outline-none focus:ring-2 focus:ring-gray-200"
-        >
-          ย้อนกลับ
-        </button>
+        {!isSettingsMode && (
+          <button
+            type="button"
+            onClick={goBack}
+            className="h-[46px] px-6 rounded-xl bg-white border border-gray-200 text-gray-800 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
+                 focus:outline-none focus:ring-2 focus:ring-gray-200"
+          >
+            ย้อนกลับ
+          </button>
+        )}
 
-        <button
-          type="button"
-          disabled={!canNext}
-          onClick={() => nav("../step-3", { state: { condoId } })}
-          className={[
-            "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
-            "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
-            canNext
-              ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
-              : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
-          ].join(" ")}
-        >
-          ต่อไป
-        </button>
+        {isSettingsMode ? (
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={!canSaveAll}
+            className={[
+              "h-[46px] min-w-[110px] rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
+              canSaveAll
+                ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
+                : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+            ].join(" ")}
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึก"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={goNext}
+            className={[
+              "h-[46px] w-24 rounded-xl border-0 text-white font-black text-sm shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
+              "focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-[0.98]",
+              canNext
+                ? "!bg-[#1F80DB] hover:!bg-[#7fb4fb] cursor-pointer"
+                : "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none",
+            ].join(" ")}
+          >
+            ต่อไป
+          </button>
+        )}
       </div>
 
       <UtilityConfigPopup
@@ -536,7 +634,7 @@ const Step_2: React.FC = () => {
         utilityType={currentUtility}
         initial={currentUtility ? utilityConfig[currentUtility] : null}
         onClose={handleCloseModal}
-        onSave={handleSave}
+        onSave={handleSaveSingle}
         saving={saving}
       />
     </div>
