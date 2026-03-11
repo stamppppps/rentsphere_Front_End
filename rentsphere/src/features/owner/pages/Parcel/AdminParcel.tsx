@@ -282,9 +282,11 @@ export default function AdminParcel() {
                   >
                     <option value="">{filteredRooms.length === 0 ? "โหลดข้อมูล..." : "-- เลือกห้อง --"}</option>
                     {filteredRooms.map((r) => {
-                      const status = r.occupancyStatus === "OCCUPIED" ? "มีผู้เช่า" : "ว่าง";
+                      const label = r.tenantName
+                        ? r.tenantName
+                        : r.occupancyStatus === "OCCUPIED" ? "มีผู้เช่า" : "ว่าง";
                       return (
-                        <option key={r.id} value={r.id}>ห้อง {r.roomNo} ({status})</option>
+                        <option key={r.id} value={r.id}>ห้อง {r.roomNo} ({label})</option>
                       )
                     })}
                   </select>
