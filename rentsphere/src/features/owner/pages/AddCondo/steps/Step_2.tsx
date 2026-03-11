@@ -13,6 +13,7 @@ type BillingType = "METER" | "METER_MIN" | "FLAT";
 type UtilityConfig = {
   billingType: BillingType;
   rate: number;
+  minimumCharge: number | null;
 };
 
 type UtilityDbRow = {
@@ -21,6 +22,7 @@ type UtilityDbRow = {
   utilityType: "WATER" | "ELECTRIC";
   billingType: BillingType;
   rate: string | number;
+  minimumCharge?: string | number | null;
 };
 
 type CondoDTO = {
@@ -47,6 +49,22 @@ function utilityLabel(u: UtilityType) {
   return u === "water" ? "ค่าน้ำ" : "ค่าไฟ";
 }
 
+function getErrorMessage(err: any, fallback: string) {
+  return err?.response?.data?.error || err?.data?.error || err?.message || fallback;
+}
+
+function formatConfigText(config: UtilityConfig | null) {
+  if (!config) return "ยังไม่ตั้งค่า";
+
+  if (config.billingType === "METER_MIN") {
+    return `${billingTypeLabel(config.billingType)} (${config.rate.toLocaleString()} บาท, ขั้นต่ำ ${Number(
+      config.minimumCharge ?? 0
+    ).toLocaleString()} บาท)`;
+  }
+
+  return `${billingTypeLabel(config.billingType)} (${config.rate.toLocaleString()} บาท)`;
+}
+
 function UtilityConfigPopup({
   open,
   utilityType,
@@ -64,11 +82,18 @@ function UtilityConfigPopup({
 }) {
   const [billingType, setBillingType] = useState<BillingType | "">("");
   const [rate, setRate] = useState("");
+  const [minimumCharge, setMinimumCharge] = useState("");
 
   useEffect(() => {
     if (!open) return;
+
     setBillingType(initial?.billingType ?? "");
     setRate(initial ? String(initial.rate) : "");
+    setMinimumCharge(
+      initial?.minimumCharge !== null && initial?.minimumCharge !== undefined
+        ? String(initial.minimumCharge)
+        : ""
+    );
   }, [open, initial]);
 
   useEffect(() => {
@@ -95,7 +120,20 @@ function UtilityConfigPopup({
     return Number.isFinite(v) ? v : NaN;
   }, [rate]);
 
-  const canSave = billingType !== "" && Number.isFinite(rateNumber) && !saving;
+  const minimumChargeNumber = useMemo(() => {
+    const raw = String(minimumCharge).replace(/,/g, "").trim();
+    if (!raw) return NaN;
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : NaN;
+  }, [minimumCharge]);
+
+  const needsMinimumCharge = billingType === "METER_MIN";
+
+  const canSave =
+    billingType !== "" &&
+    Number.isFinite(rateNumber) &&
+    (!needsMinimumCharge || Number.isFinite(minimumChargeNumber)) &&
+    !saving;
 
   if (!open) return null;
 
@@ -154,6 +192,26 @@ function UtilityConfigPopup({
                          focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
             />
           </div>
+
+          {needsMinimumCharge && (
+            <div>
+              <label className="block text-sm font-extrabold text-gray-800 mb-2">
+                ค่าขั้นต่ำ <span className="text-rose-600">*</span>
+              </label>
+              <input
+                value={minimumCharge}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (!/^[0-9.,]*$/.test(next)) return;
+                  setMinimumCharge(next);
+                }}
+                inputMode="decimal"
+                placeholder="0"
+                className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-900 shadow-sm
+                           focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-300"
+              />
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-5 bg-white border-t border-blue-100/70 flex items-center justify-end gap-3">
@@ -169,7 +227,13 @@ function UtilityConfigPopup({
             type="button"
             onClick={() => {
               if (billingType === "" || !Number.isFinite(rateNumber)) return;
-              onSave({ billingType, rate: rateNumber });
+              if (billingType === "METER_MIN" && !Number.isFinite(minimumChargeNumber)) return;
+
+              onSave({
+                billingType,
+                rate: rateNumber,
+                minimumCharge: billingType === "METER_MIN" ? minimumChargeNumber : null,
+              });
             }}
             disabled={!canSave}
             className={[
@@ -194,8 +258,7 @@ const Step_2: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const isSettingsMode =
-    location.pathname.startsWith("/owner/settings") ||
-    searchParams.get("mode") === "edit";
+    location.pathname.startsWith("/owner/settings") || searchParams.get("mode") === "edit";
 
   const condoId: string = useMemo(() => {
     const fromQuery = searchParams.get("condoId");
@@ -229,9 +292,7 @@ const Step_2: React.FC = () => {
 
         if (!alive) return;
 
-        const name =
-          String(condo?.nameTh ?? "").trim() ||
-          String(condo?.nameEn ?? "").trim();
+        const name = String(condo?.nameTh ?? "").trim() || String(condo?.nameEn ?? "").trim();
 
         setCondoName(name);
       } catch {
@@ -248,9 +309,7 @@ const Step_2: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentUtility, setCurrentUtility] = useState<UtilityType | null>(null);
 
-  const [utilityConfig, setUtilityConfig] = useState<
-    Record<UtilityType, UtilityConfig | null>
-  >({
+  const [utilityConfig, setUtilityConfig] = useState<Record<UtilityType, UtilityConfig | null>>({
     water: null,
     electricity: null,
   });
@@ -279,18 +338,29 @@ const Step_2: React.FC = () => {
 
         (list ?? []).forEach((row) => {
           const u = fromDbUtilityType(row.utilityType);
-          const rateNum =
-            typeof row.rate === "string" ? Number(row.rate) : Number(row.rate);
+
+          const rateNum = typeof row.rate === "string" ? Number(row.rate) : Number(row.rate);
+
+          const minimumChargeNum =
+            typeof row.minimumCharge === "string"
+              ? Number(row.minimumCharge)
+              : row.minimumCharge == null
+                ? null
+                : Number(row.minimumCharge);
 
           next[u] = {
             billingType: row.billingType,
             rate: Number.isFinite(rateNum) ? rateNum : 0,
+            minimumCharge:
+              minimumChargeNum !== null && Number.isFinite(minimumChargeNum)
+                ? minimumChargeNum
+                : null,
           };
         });
 
         setUtilityConfig(next);
       } catch (e: any) {
-        setApiError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
+        setApiError(getErrorMessage(e, "โหลดข้อมูลไม่สำเร็จ"));
       } finally {
         setLoading(false);
       }
@@ -325,14 +395,18 @@ const Step_2: React.FC = () => {
           utilityType: toDbUtilityType(currentUtility),
           billingType: config.billingType,
           rate: config.rate,
+          minimumCharge: config.billingType === "METER_MIN" ? config.minimumCharge : null,
         }),
       });
 
-      setUtilityConfig((prev) => ({ ...prev, [currentUtility]: config }));
+      setUtilityConfig((prev) => ({
+        ...prev,
+        [currentUtility]: config,
+      }));
       setSuccessMsg(`บันทึก${utilityLabel(currentUtility)}เรียบร้อยแล้ว`);
       handleCloseModal();
     } catch (e: any) {
-      setApiError(e?.message ?? "บันทึกไม่สำเร็จ");
+      setApiError(getErrorMessage(e, "บันทึกไม่สำเร็จ"));
     } finally {
       setSaving(false);
     }
@@ -369,6 +443,10 @@ const Step_2: React.FC = () => {
             utilityType: "WATER",
             billingType: utilityConfig.water.billingType,
             rate: utilityConfig.water.rate,
+            minimumCharge:
+              utilityConfig.water.billingType === "METER_MIN"
+                ? utilityConfig.water.minimumCharge
+                : null,
           }),
         }),
         api(`/owner/condos/${condoId}/utilities`, {
@@ -377,6 +455,10 @@ const Step_2: React.FC = () => {
             utilityType: "ELECTRIC",
             billingType: utilityConfig.electricity.billingType,
             rate: utilityConfig.electricity.rate,
+            minimumCharge:
+              utilityConfig.electricity.billingType === "METER_MIN"
+                ? utilityConfig.electricity.minimumCharge
+                : null,
           }),
         }),
       ]);
@@ -402,7 +484,6 @@ const Step_2: React.FC = () => {
 
   const goNext = () => {
     if (!condoId) return;
-
     if (isSettingsMode) return;
 
     nav("../step-3", { state: { condoId } });
@@ -473,13 +554,7 @@ const Step_2: React.FC = () => {
                 />
               }
               onConfigure={() => handleOpenModal("water")}
-              buttonText={
-                utilityConfig.water
-                  ? `ตั้งค่าแล้ว: ${billingTypeLabel(
-                    utilityConfig.water.billingType
-                  )} (${utilityConfig.water.rate.toLocaleString()} บาท)`
-                  : "ระบุการคิดค่าน้ำ"
-              }
+              buttonText={formatConfigText(utilityConfig.water)}
             />
 
             <UtilitySetupCard
@@ -491,13 +566,7 @@ const Step_2: React.FC = () => {
                 />
               }
               onConfigure={() => handleOpenModal("electricity")}
-              buttonText={
-                utilityConfig.electricity
-                  ? `ตั้งค่าแล้ว: ${billingTypeLabel(
-                    utilityConfig.electricity.billingType
-                  )} (${utilityConfig.electricity.rate.toLocaleString()} บาท)`
-                  : "ระบุการคิดค่าไฟ"
-              }
+              buttonText={formatConfigText(utilityConfig.electricity)}
             />
           </div>
 
@@ -505,18 +574,10 @@ const Step_2: React.FC = () => {
             <div className="text-sm font-extrabold text-gray-900 mb-2">สรุป</div>
             <div className="text-sm font-bold text-gray-700 space-y-1">
               <div>
-                {utilityLabel("water")}:{" "}
-                {utilityConfig.water
-                  ? `${billingTypeLabel(utilityConfig.water.billingType)} ${utilityConfig.water.rate.toLocaleString()}`
-                  : "ยังไม่ตั้งค่า"}
+                {utilityLabel("water")}: {formatConfigText(utilityConfig.water)}
               </div>
               <div>
-                {utilityLabel("electricity")}:{" "}
-                {utilityConfig.electricity
-                  ? `${billingTypeLabel(
-                    utilityConfig.electricity.billingType
-                  )} ${utilityConfig.electricity.rate.toLocaleString()}`
-                  : "ยังไม่ตั้งค่า"}
+                {utilityLabel("electricity")}: {formatConfigText(utilityConfig.electricity)}
               </div>
             </div>
           </div>
@@ -524,7 +585,6 @@ const Step_2: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-end gap-[14px] flex-wrap pt-4">
-
         {!isSettingsMode && (
           <button
             type="button"
