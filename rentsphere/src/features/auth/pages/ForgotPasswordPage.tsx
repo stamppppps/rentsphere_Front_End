@@ -84,38 +84,6 @@ const ForgotPasswordPage: React.FC = () => {
         <div className="w-full bg-white p-10 rounded-[3rem] shadow-xl flex flex-col items-center">
           <h3 className="text-xl font-medium text-gray-800 mb-8">โปรดระบุช่องทางสำหรับตั้งรหัสผ่านใหม่</h3>
 
-          <div className="flex w-full gap-4 mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setForgotMethod("email");
-                setValue("");
-                setError("");
-                setInfo("");
-              }}
-              className={`flex-1 py-3 rounded-xl border transition-all font-medium ${
-                forgotMethod === "email" ? "border-blue-400 text-blue-600" : "border-gray-200 text-gray-400"
-              }`}
-            >
-              อีเมล
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setForgotMethod("phone");
-                setValue("");
-                setError("");
-                setInfo("");
-              }}
-              className={`flex-1 py-3 rounded-xl border transition-all font-medium ${
-                forgotMethod === "phone" ? "border-blue-400 text-blue-600" : "border-gray-200 text-gray-400"
-              }`}
-            >
-              เบอร์โทรศัพท์
-            </button>
-          </div>
-
           <form onSubmit={onSubmit} className="w-full">
             <div className="w-full mb-6">
               <label className="block text-[10px] font-bold text-gray-400 mb-1 ml-1 uppercase">
