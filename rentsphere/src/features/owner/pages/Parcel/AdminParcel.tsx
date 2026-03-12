@@ -421,9 +421,7 @@ export default function AdminParcel() {
                             </span>
                           </div>
 
-                          <div className="mt-2 text-sm font-semibold text-slate-700">
-                            ขนส่ง: {h.carrier || "-"} | เลขพัสดุ: {h.trackingNo || "-"}
-                          </div>
+                        
                           <div className="mt-2 text-sm text-slate-600 line-clamp-2">
                             {h.note || "ไม่มีรายละเอียดอื่น"}
                           </div>

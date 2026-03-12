@@ -29,9 +29,19 @@ interface Step0FormData {
 
 type CreateCondoPayload = {
   nameTh: string;
+  subdistrictTh?: string | null;
+  districtTh?: string | null;
+  provinceTh?: string | null;
+  postalCodeTh?: string | null;
   addressTh: string;
+
   nameEn?: string | null;
+  subdistrictEn?: string | null;
+  districtEn?: string | null;
+  provinceEn?: string | null;
+  postalCodeEn?: string | null;
   addressEn?: string | null;
+
   phoneNumber?: string | null;
   taxId?: string | null;
   billing: {
@@ -44,9 +54,19 @@ type CreateCondoPayload = {
 type CondoDetailResponse = {
   id: string;
   nameTh?: string | null;
+  subdistrictTh?: string | null;
+  districtTh?: string | null;
+  provinceTh?: string | null;
+  postalCodeTh?: string | null;
   addressTh?: string | null;
+
   nameEn?: string | null;
+  subdistrictEn?: string | null;
+  districtEn?: string | null;
+  provinceEn?: string | null;
+  postalCodeEn?: string | null;
   addressEn?: string | null;
+
   phoneNumber?: string | null;
   taxId?: string | null;
   billingSetting?: {
@@ -110,9 +130,19 @@ function buildCreateCondoJson(form: Step0FormData): CreateCondoPayload {
 
   return {
     nameTh: form.nameTh.trim(),
+    subdistrictTh: asOpt(form.subdistrict),
+    districtTh: asOpt(form.district),
+    provinceTh: asOpt(form.province),
+    postalCodeTh: asOpt(form.postalCode),
     addressTh: form.addressTh.trim(),
+
     nameEn: asOpt(form.nameEn),
+    subdistrictEn: asOpt(form.subdistrictEn),
+    districtEn: asOpt(form.districtEn),
+    provinceEn: asOpt(form.provinceEn),
+    postalCodeEn: asOpt(form.postalCodeEn),
     addressEn: asOpt(form.addressEn),
+
     phoneNumber: asOpt(form.phoneNumber),
     taxId: asOpt(form.taxId),
     billing: {
@@ -156,17 +186,19 @@ function mapCondoToForm(data: CondoDetailResponse): Step0FormData {
 
   return {
     nameTh: String(data?.nameTh ?? ""),
-    subdistrict: "",
-    district: "",
-    province: "",
-    postalCode: "",
+    subdistrict: String(data?.subdistrictTh ?? ""),
+    district: String(data?.districtTh ?? ""),
+    province: String(data?.provinceTh ?? ""),
+    postalCode: String(data?.postalCodeTh ?? ""),
     addressTh: String(data?.addressTh ?? ""),
+
     nameEn: String(data?.nameEn ?? ""),
-    subdistrictEn: "",
-    districtEn: "",
-    provinceEn: "",
-    postalCodeEn: "",
+    subdistrictEn: String(data?.subdistrictEn ?? ""),
+    districtEn: String(data?.districtEn ?? ""),
+    provinceEn: String(data?.provinceEn ?? ""),
+    postalCodeEn: String(data?.postalCodeEn ?? ""),
     addressEn: String(data?.addressEn ?? ""),
+
     phoneNumber: String(data?.phoneNumber ?? ""),
     taxId: String(data?.taxId ?? ""),
     dueDay: billing?.dueDay != null ? String(billing.dueDay) : "",
