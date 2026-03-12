@@ -1,15 +1,13 @@
-import React from 'react';
-import { BookingStatus } from '../types/booking';
-import { BOOKING_STATUS_CONFIG } from '../constants/bookingStatus';
-import { 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Ban, 
-  CheckCircle, 
-  Timer, 
-  UserX 
-} from 'lucide-react';
+import {
+  Ban,
+  CheckCircle,
+  CheckCircle2,
+  Clock,
+  XCircle,
+} from "lucide-react";
+import React from "react";
+import { BOOKING_STATUS_CONFIG } from "../constants/bookingStatus";
+import { BookingStatus } from "../types/booking";
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;
@@ -21,8 +19,6 @@ const STATUS_ICONS: Record<BookingStatus, React.ElementType> = {
   [BookingStatus.REJECTED]: XCircle,
   [BookingStatus.CANCELLED]: Ban,
   [BookingStatus.COMPLETED]: CheckCircle,
-  [BookingStatus.LATE]: Timer,
-  [BookingStatus.NO_SHOW]: UserX,
 };
 
 const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status }) => {
@@ -30,11 +26,12 @@ const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status }) => {
   const Icon = STATUS_ICONS[status];
 
   return (
-    <div className={`
-      inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border whitespace-nowrap shadow-sm 
-      transition-all duration-300 hover:scale-105
-      ${config.color}
-    `}>
+    <div
+      className={`
+        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border whitespace-nowrap shadow-sm
+        ${config.color}
+      `}
+    >
       <Icon size={14} strokeWidth={2.5} />
       <span className="text-[11px] font-black uppercase tracking-tight">
         {config.label}

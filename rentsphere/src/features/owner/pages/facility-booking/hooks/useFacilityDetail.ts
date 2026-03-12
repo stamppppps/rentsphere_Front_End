@@ -1,8 +1,20 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { type Facility, FacilityStatus } from '../types/facility';
-import { type Booking, BookingStatus } from '../types/booking';
-import { facilityService } from '../services/facility.service';
-import { bookingService } from '../services/booking.service';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { bookingService } from "../services/booking.service";
+import { facilityService } from "../services/facility.service";
+import { type Booking, BookingStatus } from "../types/booking";
+import { type Facility, FacilityStatus } from "../types/facility";
+
+type FacilitySettingFormData = {
+  openTime: string;
+  closeTime: string;
+  slotMinutes: number;
+  maxPeople: number | null;
+  maxBookingsPerDay: number | null;
+  requiresApproval: boolean;
+  feePerSlot: number;
+  deposit: number;
+  cancellationHours: number;
+};
 
 export const useFacilityDetail = (id?: string) => {
   const [facility, setFacility] = useState<Facility | null>(null);
@@ -10,59 +22,98 @@ export const useFacilityDetail = (id?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
 
-  // Calculation of summary statistics based on loaded bookings
   const stats = useMemo(() => {
     return {
       total: todayBookings.length,
-      active: todayBookings.filter(b => b.status === BookingStatus.APPROVED).length,
-      late: todayBookings.filter(b => b.status === BookingStatus.LATE).length,
-      noShow: todayBookings.filter(b => b.status === BookingStatus.NO_SHOW).length,
+      active: todayBookings.filter(
+        (b) => b.status === BookingStatus.APPROVED
+      ).length,
+      pending: todayBookings.filter(
+        (b) => b.status === BookingStatus.PENDING
+      ).length,
+      completed: todayBookings.filter(
+        (b) => b.status === BookingStatus.COMPLETED
+      ).length,
     };
   }, [todayBookings]);
 
   const fetchData = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setFacility(null);
+      setTodayBookings([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      
+
       const [facilityData, bookingData] = await Promise.all([
         facilityService.getFacilityById(id),
-        bookingService.getBookings(id)
+        bookingService.getBookingsByFacility(id),
       ]);
 
       if (!facilityData) {
-        setError('ไม่พบข้อมูลพื้นที่ที่ต้องการ หรือพื้นที่ถูกลบออกจากระบบแล้ว');
+        setError("ไม่พบข้อมูลพื้นที่ที่ต้องการ หรือพื้นที่ถูกลบออกจากระบบแล้ว");
+        setFacility(null);
+        setTodayBookings([]);
         return;
       }
 
       setFacility(facilityData);
-      setTodayBookings(bookingData);
+      setTodayBookings(Array.isArray(bookingData) ? bookingData : []);
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการดึงข้อมูล โปรดลองใหม่อีกครั้ง');
-      console.error('[useFacilityDetail] Error:', err);
+      console.error("[useFacilityDetail] Error:", err);
+      setError("เกิดข้อผิดพลาดในการดึงข้อมูล โปรดลองใหม่อีกครั้ง");
+      setFacility(null);
+      setTodayBookings([]);
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  /**
-   * Universal update function for facility properties (status, settings, etc.)
-   */
-  const updateFacilityData = async (data: Partial<Facility>) => {
+  const updateStatus = async (newStatus: FacilityStatus) => {
     if (!facility || !id) return;
+
     const previousState = { ...facility };
+
     try {
-      // Optimistic update
-      setFacility(prev => prev ? { ...prev, ...data } : null);
-      
-      await facilityService.updateFacility(id, data);
-      // Optional: re-fetch to ensure sync
-      // await fetchData();
+      setFacility((prev) => (prev ? { ...prev, status: newStatus } : null));
+
+      await facilityService.updateFacility(id, { status: newStatus });
+      await fetchData();
     } catch (err) {
-      // Revert on failure
       setFacility(previousState);
-      console.error('[useFacilityDetail] Update Error:', err);
+      console.error("[useFacilityDetail] Update Status Error:", err);
+      throw err;
+    }
+  };
+
+  const updateSettings = async (settings: FacilitySettingFormData) => {
+    if (!facility || !id) return;
+
+    const previousState = { ...facility };
+
+    try {
+      setFacility((prev) =>
+        prev
+          ? {
+              ...prev,
+              bookingSetting: {
+                id: prev.bookingSetting?.id ?? "",
+                ...settings,
+              },
+            }
+          : null
+      );
+
+      await facilityService.saveFacilitySettings(id, settings);
+      await fetchData();
+    } catch (err) {
+      setFacility(previousState);
+      console.error("[useFacilityDetail] Update Settings Error:", err);
       throw err;
     }
   };
@@ -71,13 +122,14 @@ export const useFacilityDetail = (id?: string) => {
     fetchData();
   }, [fetchData]);
 
-  return { 
-    facility, 
-    loading, 
-    error, 
+  return {
+    facility,
+    loading,
+    error,
     stats,
+    todayBookings,
     refresh: fetchData,
-    updateStatus: (newStatus: FacilityStatus) => updateFacilityData({ status: newStatus }),
-    updateSettings: (settings: Partial<Facility>) => updateFacilityData(settings)
+    updateStatus,
+    updateSettings,
   };
 };

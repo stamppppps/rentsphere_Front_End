@@ -1,121 +1,263 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Clock, AlertCircle, ShieldCheck, CalendarRange, Info } from 'lucide-react';
-import DateSelector from '../components/DateSelector';
-import TimeSlotItem from '../components/TimeSlotItem';
-import type { Facility, TimeSlot, DaySelection } from '../types/facility.types';
-import { getFacilities, getAvailability, checkBookingQuota } from '../services/booking.service';
+import {
+  AlertCircle,
+  CalendarRange,
+  ChevronLeft,
+  Info,
+  ShieldCheck,
+} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import DateSelector from "../components/DateSelector";
+import TimeSlotItem from "../components/TimeSlotItem";
+import {
+  checkBookingQuota,
+  getAvailability,
+  getFacilities,
+} from "../services/booking.service";
+import { getBookingPolicy } from "../services/bookingPolicy.service";
+import type { DaySelection, Facility, TimeSlot } from "../types/facility.types";
+
+type QuotaStatus = {
+  allowed: boolean;
+  reason?: string;
+  dailyCount?: number;
+  remainingDay?: number;
+  occupiedTimes?: string[];
+};
+
+const DEFAULT_DAILY_LIMIT = 2;
+
+function formatLocalDate(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 const FacilityDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [facility, setFacility] = useState<Facility | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [quotaStatus, setQuotaStatus] = useState<{ 
-    allowed: boolean; 
-    reason?: string; 
-    dailyCount?: number;
-    remainingMonth?: number;
-    occupiedTimes?: string[];
-  }>({ allowed: true, dailyCount: 0, remainingMonth: 10, occupiedTimes: [] });
+  const [dailyLimit, setDailyLimit] = useState<number>(DEFAULT_DAILY_LIMIT);
 
-  // สร้างวันที่แบบไดนามิกเพื่อให้สัมพันธ์กับเดือนปัจจุบัน (ใช้สำหรับทดสอบการหักสิทธิ์)
-  const generateDays = (): DaySelection[] => {
-    const d = [];
-    const now = new Date();
-    const dayNames = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+  const [quotaStatus, setQuotaStatus] = useState<QuotaStatus>({
+    allowed: true,
+    dailyCount: 0,
+    remainingDay: DEFAULT_DAILY_LIMIT,
+    occupiedTimes: [],
+  });
+
+  const days = useMemo((): DaySelection[] => {
+    const result: DaySelection[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dayNames = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+
     for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(now.getDate() + i);
-      d.push({
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+
+      result.push({
         dayName: dayNames[date.getDay()],
         date: date.getDate(),
-        fullDate: date.toISOString().split('T')[0]
+        fullDate: formatLocalDate(date),
       });
     }
-    return d;
-  };
 
-  const days = generateDays();
+    return result;
+  }, []);
 
   useEffect(() => {
-    setSelectedDate(days[0].fullDate); 
-    const fetch = async () => {
-      const all = await getFacilities();
-      const match = all.find(f => f.id === id);
-      if (match) setFacility(match);
-      setLoading(false);
+    if (days.length > 0 && !selectedDate) {
+      setSelectedDate(days[0].fullDate);
+    }
+  }, [days, selectedDate]);
+
+  useEffect(() => {
+    const fetchFacility = async () => {
+      try {
+        setLoading(true);
+        const all = await getFacilities();
+        const match = all.find((f) => f.id === id) ?? null;
+        setFacility(match);
+      } catch (error) {
+        console.error("LOAD FACILITY DETAIL ERROR:", error);
+        setFacility(null);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+
+    fetchFacility();
   }, [id]);
 
   useEffect(() => {
-    if (facility && selectedDate) {
-      getAvailability(facility.id, selectedDate).then(setSlots);
-      setSelectedSlots([]);
-      const result = checkBookingQuota(selectedDate, facility.id);
-      setQuotaStatus(result);
-    }
-  }, [facility, selectedDate]);
+    const loadBookingPolicy = async () => {
+      if (!facility?.condoId) return;
 
-  const toggleSlot = (time: string) => {
-    if (quotaStatus.occupiedTimes?.includes(time)) return;
+      try {
+        const policy = await getBookingPolicy(facility.condoId);
+        setDailyLimit(policy?.maxBookingsPerDay ?? DEFAULT_DAILY_LIMIT);
+      } catch (error) {
+        console.error("LOAD TENANT BOOKING POLICY ERROR:", error);
+        setDailyLimit(DEFAULT_DAILY_LIMIT);
+      }
+    };
+
+    loadBookingPolicy();
+  }, [facility?.condoId]);
+
+  useEffect(() => {
+    const loadDetailData = async () => {
+      if (!facility || !selectedDate) return;
+
+      try {
+        const [availability, quota] = await Promise.all([
+          getAvailability(facility.id, selectedDate),
+          checkBookingQuota(selectedDate, "any", dailyLimit),
+        ]);
+
+        setSlots(availability);
+        setQuotaStatus({
+          allowed: quota.allowed,
+          reason: quota.reason,
+          dailyCount: quota.dailyCount ?? 0,
+          remainingDay: quota.remainingDay ?? dailyLimit,
+          occupiedTimes: quota.occupiedTimes ?? [],
+        });
+        setSelectedSlots([]);
+      } catch (error) {
+        console.error("LOAD FACILITY AVAILABILITY ERROR:", error);
+        setSlots([]);
+        setQuotaStatus({
+          allowed: false,
+          reason: "โหลดข้อมูลช่วงเวลาไม่สำเร็จ",
+          dailyCount: 0,
+          remainingDay: 0,
+          occupiedTimes: [],
+        });
+      }
+    };
+
+    loadDetailData();
+  }, [facility, selectedDate, dailyLimit]);
+
+  const toggleSlot = (slot: TimeSlot) => {
+    const isSelected = selectedSlots.includes(slot.time);
+    const isBlockedBySlotReason = Boolean(slot.reason);
+    const isBookedElsewhere = quotaStatus.occupiedTimes?.includes(slot.time);
+
+    if (isBlockedBySlotReason || isBookedElsewhere) return;
 
     if (!facility?.isQuotaExempt) {
-      if (!quotaStatus.allowed) return; 
+      if (!quotaStatus.allowed && !isSelected) return;
 
-      const isAlreadySelected = selectedSlots.includes(time);
-      if (!isAlreadySelected) {
+      if (!isSelected) {
         const currentSelectionCount = selectedSlots.length;
         const alreadyBookedCount = quotaStatus.dailyCount || 0;
-        if (alreadyBookedCount + currentSelectionCount >= 2) return;
+
+        if (alreadyBookedCount + currentSelectionCount >= dailyLimit) return;
       }
     }
 
-    setSelectedSlots(prev => 
-      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
+    setSelectedSlots((prev) =>
+      prev.includes(slot.time)
+        ? prev.filter((t) => t !== slot.time)
+        : [...prev, slot.time].sort()
     );
   };
 
-  if (loading || !facility) return null;
+  if (loading) {
+    return null;
+  }
 
-  const alreadyBooked = quotaStatus.dailyCount || 0;
+  if (!facility) {
+    return null;
+  }
+
+  const imageUrl =
+    facility.coverImageUrl ||
+    facility.imageUrl ||
+    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
+
   const currentSelected = selectedSlots.length;
+  const alreadyBooked = quotaStatus.dailyCount || 0;
   const totalDailyPlanned = alreadyBooked + currentSelected;
-  const isSelectionLimitReached = !facility.isQuotaExempt && totalDailyPlanned >= 2;
+
+  const isSelectionLimitReached =
+    !facility.isQuotaExempt && totalDailyPlanned >= dailyLimit;
+
   const hasSelection = selectedSlots.length > 0;
+  const isMaintenance = facility.status === "MAINTENANCE";
 
   return (
     <div className="min-h-screen bg-[#F8FAFF] pb-52">
       <div className="relative h-56 w-full overflow-hidden">
-        <img src={facility.imageUrl} className="w-full h-full object-cover brightness-75 scale-105" alt="" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#F8FAFF]"></div>
+        <img
+          src={imageUrl}
+          className="w-full h-full object-cover brightness-75 scale-105"
+          alt={facility.name}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#F8FAFF]" />
+
         <div className="absolute top-8 left-0 right-0 px-6 flex items-center justify-between">
-          <button onClick={() => navigate('/tenant/booking')} className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white hover:bg-white/30 transition-colors">
+          <button
+            onClick={() => navigate("/tenant/booking")}
+            className="p-2.5 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white hover:bg-white/30 transition-colors"
+          >
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-bold text-white drop-shadow-md">{facility.name}</h1>
-          <div className="w-10"></div>
+
+          <h1 className="text-xl font-bold text-white drop-shadow-md">
+            {facility.name}
+          </h1>
+
+          <div className="w-10" />
         </div>
       </div>
 
       <div className="px-6 -mt-12 relative z-10">
         <div className="bg-white rounded-[2.5rem] p-4 shadow-xl shadow-blue-900/5 mb-6 border border-gray-100/50">
-           <DateSelector days={days} selectedDate={selectedDate} onSelect={setSelectedDate} />
+          <DateSelector
+            days={days}
+            selectedDate={selectedDate}
+            onSelect={setSelectedDate}
+          />
         </div>
 
-        {/* Quota Info Display */}
-        {facility.isQuotaExempt ? (
+        {isMaintenance ? (
+          <div className="bg-amber-50 border border-amber-100 p-5 rounded-3xl mb-6 flex items-start gap-4">
+            <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center text-white shrink-0">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <p className="text-amber-900 font-black text-sm uppercase tracking-tight">
+                ปิดปรับปรุงชั่วคราว
+              </p>
+              <p className="text-amber-700 text-xs mt-1 font-bold leading-relaxed">
+                พื้นที่ส่วนกลางนี้ยังไม่เปิดให้จองในขณะนี้
+              </p>
+            </div>
+          </div>
+        ) : facility.isQuotaExempt ? (
           <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-3xl mb-6 flex items-center gap-4">
             <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
               <ShieldCheck size={20} />
             </div>
             <div>
-               <p className="text-emerald-800 font-bold text-sm leading-tight">สิทธิพิเศษไม่จำกัดการใช้งาน</p>
-               <p className="text-emerald-600 text-[11px] mt-0.5 font-medium">พื้นที่นี้ไม่นับรวมในโควตาการจองปกติ</p>
+              <p className="text-emerald-800 font-bold text-sm leading-tight">
+                สิทธิพิเศษไม่จำกัดการใช้งาน
+              </p>
+              <p className="text-emerald-600 text-[11px] mt-0.5 font-medium">
+                พื้นที่นี้ไม่นับรวมในโควตาการจองปกติ
+              </p>
             </div>
           </div>
         ) : (
@@ -126,64 +268,81 @@ const FacilityDetailPage: React.FC = () => {
                   <AlertCircle size={20} />
                 </div>
                 <div>
-                   <p className="text-rose-900 font-black text-sm uppercase tracking-tight">ไม่สามารถจองได้</p>
-                   <p className="text-rose-600 text-xs mt-1 font-bold leading-relaxed">{quotaStatus.reason}</p>
+                  <p className="text-rose-900 font-black text-sm uppercase tracking-tight">
+                    ไม่สามารถจองได้
+                  </p>
+                  <p className="text-rose-600 text-xs mt-1 font-bold leading-relaxed">
+                    {quotaStatus.reason}
+                  </p>
                 </div>
               </div>
             ) : (
-              <>
-                {/* Monthly Limit Info (Sessions) */}
-                <div className="bg-purple-50 border border-purple-100 p-4 rounded-3xl flex items-center gap-4">
-                   <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-purple-500 shadow-sm shrink-0">
-                     <Info size={20} />
-                   </div>
-                   <div>
-                      <p className="text-purple-800 font-bold text-sm">สิทธิ์คงเหลือเดือนนี้</p>
-                      <p className="text-purple-600 text-[11px] mt-0.5 font-medium">เหลือ {quotaStatus.remainingMonth} ครั้ง (1 การจอง = 1 ครั้ง)</p>
-                   </div>
+              <div className="bg-purple-50 border border-purple-100 p-4 rounded-3xl flex items-center gap-4">
+                <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-purple-500 shadow-sm shrink-0">
+                  <Info size={20} />
                 </div>
-                {/* Daily Limit Info (Hours) */}
-                <div className="bg-blue-50/50 border border-blue-100/50 p-4 rounded-3xl flex items-center gap-4">
-                   <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm shrink-0">
-                     <Clock size={20} />
-                   </div>
-                   <div>
-                      <p className="text-blue-800 font-bold text-sm">โควตาวันนี้ของ {facility.name}</p>
-                      <p className="text-blue-600 text-[11px] mt-0.5 font-medium">จองไปแล้ว {alreadyBooked} / 2 ชม.</p>
-                   </div>
+                <div>
+                  <p className="text-purple-800 font-bold text-sm">
+                    สิทธิ์วันที่เลือก
+                  </p>
+                  <p className="text-purple-600 text-[11px] mt-0.5 font-medium">
+                    เหลือ {quotaStatus.remainingDay ?? dailyLimit} ครั้ง
+                  </p>
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
 
         <div className="flex items-center justify-between mb-4 px-2">
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-black text-gray-800 uppercase tracking-widest">เลือกช่วงเวลา</span>
-           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+            <span className="text-sm font-black text-gray-800 uppercase tracking-widest">
+              เลือกช่วงเวลา
+            </span>
+          </div>
         </div>
 
         <div className="space-y-1">
           {slots.map((slot, i) => {
             const isSelected = selectedSlots.includes(slot.time);
-            const isBookedElsewhere = quotaStatus.occupiedTimes?.includes(slot.time);
-            const isLimitOnThisFacility = isSelectionLimitReached && !isSelected;
-            const shouldDisable = isBookedElsewhere || isLimitOnThisFacility || (!quotaStatus.allowed && !isSelected);
-            
+            const isBookedElsewhere = quotaStatus.occupiedTimes?.includes(
+              slot.time
+            );
+            const isLimitOnThisDay = isSelectionLimitReached && !isSelected;
+            const isBlockedBySlotReason = Boolean(slot.reason);
+
+            const shouldDisable =
+              isMaintenance ||
+              isBookedElsewhere ||
+              isLimitOnThisDay ||
+              isBlockedBySlotReason ||
+              (!quotaStatus.allowed && !isSelected);
+
             return (
               <div key={i} className="relative">
-                <TimeSlotItem 
-                  slot={slot} 
-                  isSelected={isSelected} 
-                  onToggle={() => toggleSlot(slot.time)} 
+                <TimeSlotItem
+                  slot={slot}
+                  isSelected={isSelected}
+                  onToggle={() => toggleSlot(slot)}
                   disabled={shouldDisable}
                 />
+
                 {isBookedElsewhere && (
-                   <div className="absolute top-2 right-4 flex items-center gap-1.5 px-3 py-1 bg-amber-50 rounded-full border border-amber-100 pointer-events-none">
-                      <CalendarRange size={10} className="text-amber-500" />
-                      <span className="text-[9px] font-black text-amber-600 uppercase">จองพื้นที่อื่นอยู่</span>
-                   </div>
+                  <div className="absolute top-2 right-4 flex items-center gap-1.5 px-3 py-1 bg-amber-50 rounded-full border border-amber-100 pointer-events-none">
+                    <CalendarRange size={10} className="text-amber-500" />
+                    <span className="text-[9px] font-black text-amber-600 uppercase">
+                      จองช่วงเวลาอื่นอยู่
+                    </span>
+                  </div>
+                )}
+
+                {!isBookedElsewhere && slot.message && (
+                  <div className="px-2 pb-2">
+                    <p className="text-[11px] font-bold text-rose-500 ml-3">
+                      {slot.message}
+                    </p>
+                  </div>
                 )}
               </div>
             );
@@ -192,21 +351,28 @@ const FacilityDetailPage: React.FC = () => {
       </div>
 
       <div className="fixed bottom-[105px] left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-[60] pointer-events-none">
-         <button 
-           disabled={!hasSelection}
-           onClick={() => navigate('/tenant/booking/confirm', { state: { facilityId: id, date: selectedDate, slots: selectedSlots } })}
-           className={`w-full py-5 font-bold text-xl rounded-2xl transition-all duration-300 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] pointer-events-auto ${
-             hasSelection 
-               ? 'bg-[#135ced] text-white shadow-[#97c1fc]/40 active:scale-95' 
-               : 'bg-[#E5E7EB] text-gray-400 cursor-not-allowed shadow-none'
-           }`}
-         >
-           ถัดไป
-         </button>
+        <button
+          disabled={!hasSelection || isMaintenance}
+          onClick={() =>
+            navigate("/tenant/booking/confirm", {
+              state: {
+                facilityId: id,
+                date: selectedDate,
+                slots: selectedSlots,
+              },
+            })
+          }
+          className={`w-full py-5 font-bold text-xl rounded-2xl transition-all duration-300 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] pointer-events-auto ${
+            hasSelection && !isMaintenance
+              ? "bg-[#135ced] text-white shadow-[#97c1fc]/40 active:scale-95"
+              : "bg-[#E5E7EB] text-gray-400 cursor-not-allowed shadow-none"
+          }`}
+        >
+          ถัดไป
+        </button>
       </div>
     </div>
   );
 };
 
 export default FacilityDetailPage;
-
