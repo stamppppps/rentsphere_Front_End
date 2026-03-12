@@ -59,24 +59,38 @@ const FilterButton = ({
   onClick,
   icon,
   label,
+  colorScheme = "blue",
 }: {
   active: boolean;
   onClick?: () => void;
   icon: React.ReactNode;
   label: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-      ? "text-white shadow-lg shadow-blue-200"
-      : "text-slate-600 hover:bg-slate-50"
+  colorScheme?: "blue" | "amber" | "emerald";
+}) => {
+  let bgGradient = "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))"; 
+  let shadowColor = "shadow-blue-200";
+
+  if (colorScheme === "amber") {
+    bgGradient = "linear-gradient(90deg, rgba(245,158,11,0.9), rgba(251,191,36,0.9))";
+    shadowColor = "shadow-amber-200";
+  } else if (colorScheme === "emerald") {
+    bgGradient = "linear-gradient(90deg, rgba(16,185,129,0.9), rgba(52,211,153,0.9))";
+    shadowColor = "shadow-emerald-200";
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+        active ? `text-white shadow-lg ${shadowColor}` : "text-slate-600 hover:bg-slate-50"
       }`}
-    style={active ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : undefined}
-  >
-    {icon}
-    <span>{label}</span>
-  </button>
-);
+      style={active ? { background: bgGradient } : undefined}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+};
 
 const ActionButton = ({
   disabled,
@@ -195,8 +209,8 @@ export default function OwnerAdminRepairsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm">
           <div className="flex flex-wrap items-center gap-1">
             <FilterButton active={filter === "new"} onClick={() => setFilter("new")} icon={<Search size={16} />} label="ใหม่" />
-            <FilterButton active={filter === "in_progress"} onClick={() => setFilter("in_progress")} icon={<Clock size={16} />} label="กำลังทำ" />
-            <FilterButton active={filter === "done"} onClick={() => setFilter("done")} icon={<CheckCircle2 size={16} />} label="เสร็จ" />
+            <FilterButton active={filter === "in_progress"} onClick={() => setFilter("in_progress")} icon={<Clock size={16} />} label="กำลังทำ" colorScheme="amber" />
+            <FilterButton active={filter === "done"} onClick={() => setFilter("done")} icon={<CheckCircle2 size={16} />} label="เสร็จ" colorScheme="emerald" />
             <FilterButton active={filter === "all"} onClick={() => setFilter("all")} icon={<LayoutList size={16} />} label="ทั้งหมด" />
           </div>
 
