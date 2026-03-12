@@ -3,7 +3,6 @@ import {
   Ban,
   Check,
   CheckCircle,
-  Clock,
   Edit3,
   Eye,
   LogIn,
@@ -31,10 +30,12 @@ export interface BookingActionItem {
  */
 export const getFacilityStatusLabel = (status: FacilityStatus) => {
   switch (status) {
-    case FacilityStatus.AVAILABLE: return 'เปิดให้บริการ';
-    case FacilityStatus.MAINTENANCE: return 'ปิดปรับปรุง';
-    case FacilityStatus.CLOSED: return 'ปิดชั่วคราว';
-    default: return 'ไม่ทราบสถานะ';
+    case FacilityStatus.AVAILABLE:
+      return 'เปิดให้บริการ';
+    case FacilityStatus.MAINTENANCE:
+      return 'ปิดปรับปรุง';
+    default:
+      return 'ไม่ทราบสถานะ';
   }
 };
 
@@ -47,7 +48,6 @@ export const getStatusConfig = (status: BookingStatus) => {
 
 /**
  * Returns allowed admin actions based on the current booking status and real-time conditions.
- * Case 3: If Expired without action, allow "Soft Complete" or "No-Show".
  */
 export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
   const status = booking.status;
@@ -74,7 +74,6 @@ export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
       ];
 
     case BookingStatus.APPROVED:
-    case BookingStatus.LATE:
       if (isExpired) {
         return [
           {
@@ -137,12 +136,6 @@ export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
           primary: true,
         },
         {
-          label: getStatusConfig(BookingStatus.LATE).actionLabel,
-          icon: Clock,
-          action: 'late',
-          hidden: status === BookingStatus.LATE,
-        },
-        {
           label: 'ไม่ปรากฏตัวตามนัด',
           icon: UserX,
           action: 'no_show',
@@ -154,11 +147,9 @@ export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
           action: 'cancel',
           divider: true,
         },
-      ].filter(a => !a.hidden);
+      ].filter((a) => !('hidden' in a) || !a.hidden);
 
     default:
-      return [
-        { label: 'ดูรายละเอียด', icon: Eye, action: 'view' },
-      ];
+      return [{ label: 'ดูรายละเอียด', icon: Eye, action: 'view' }];
   }
 };

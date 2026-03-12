@@ -9,33 +9,43 @@ const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
 
-  const loadBookings = () => {
-    setBookings(getMyBookings());
+  const loadBookings = async () => {
+    try {
+      const data = await getMyBookings();
+      setBookings(data);
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
+      setBookings([]);
+    }
   };
 
   useEffect(() => {
     loadBookings();
   }, []);
 
-  const handleUpdateStatus = (id: string, status: BookingStatus) => {
-    updateBookingStatus(id, status);
-    loadBookings();
+  const handleUpdateStatus = async (id: string, status: BookingStatus) => {
+    try {
+      await updateBookingStatus(id, status);
+      await loadBookings();
+    } catch (error) {
+      console.error('Failed to update booking status:', error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f0f7ff] via-[#f0f5ff] to-white pb-24">
-      {/* Header */}
       <div className="p-6 pt-8 flex items-center justify-between sticky top-0 bg-[#f0f7ff]/80 backdrop-blur-md z-10">
-        <button 
-          onClick={() => navigate('/home')} 
+        <button
+          onClick={() => navigate('/home')}
           className="p-2 rounded-xl bg-white shadow-sm border border-gray-100 text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <ChevronLeft size={24} />
         </button>
+
         <h1 className="text-xl font-bold text-gray-800">ประวัติการใช้งาน</h1>
         <div className="w-10"></div>
       </div>
-      
+
       <div className="px-6">
         {bookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -48,14 +58,17 @@ const HistoryPage: React.FC = () => {
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center gap-2 mb-4">
-               <Clock size={16} className="text-blue-500" />
-               <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">รายการจองพื้นที่</span>
+              <Clock size={16} className="text-blue-500" />
+              <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                รายการจองพื้นที่
+              </span>
             </div>
+
             {bookings.map((booking) => (
-              <BookingHistoryItem 
-                key={booking.id} 
-                booking={booking} 
-                onUpdateStatus={handleUpdateStatus} 
+              <BookingHistoryItem
+                key={booking.id}
+                booking={booking}
+                onUpdateStatus={handleUpdateStatus}
               />
             ))}
           </div>
