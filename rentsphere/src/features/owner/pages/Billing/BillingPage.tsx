@@ -4,7 +4,7 @@ import BillingFilter from "./componentsbill/BillingFilter";
 import BillingTable from "./componentsbill/BillingTable";
 import InvoiceDetail from "./InvoiceDetail";
 import type { BillingItem, PaymentStatus } from "./types";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 /* ================================================================
    API helpers
@@ -292,9 +292,11 @@ export default function BillingPage() {
     : billingData;
 
   /* ==================== loading ==================== */
+  const condoName = useCondoStore(s => s.condoName);
+  
   if (loading) {
     return (
-      <OwnerShell activeKey="billing" showSidebar>
+      <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
         <div className="max-w-7xl mx-auto pt-10 px-6">
           <div className="rounded-2xl bg-white border border-purple-100 shadow-sm px-6 py-12 text-center">
             <div className="text-sm font-extrabold text-gray-600">
@@ -309,7 +311,7 @@ export default function BillingPage() {
   /* ==================== invoice detail ==================== */
   if (selectedItem) {
     return (
-      <OwnerShell activeKey="billing" showSidebar>
+      <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
         <div className="max-w-7xl mx-auto pt-10 px-6">
           <InvoiceDetail
             item={selectedItem}
@@ -324,7 +326,7 @@ export default function BillingPage() {
 
   /* ==================== billing list ==================== */
   return (
-    <OwnerShell activeKey="billing" showSidebar>
+    <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
       <div className="max-w-7xl mx-auto animate-in fade-in duration-300 pt-10 px-6">
         <div className="flex justify-center items-center mb-12">
           <div className="flex items-center w-full max-w-xl">

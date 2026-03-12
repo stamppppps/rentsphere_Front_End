@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import ErrorState from '../components/ErrorState';
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 
 const FacilityDetailPage: React.FC = () => {
   const { facilityId } = useParams<{ facilityId: string }>();
@@ -95,8 +96,10 @@ const FacilityDetailPage: React.FC = () => {
 
   if (error || !facility) return <ErrorState message={error || 'ไม่พบข้อมูลพื้นที่ที่ต้องการ'} onRetry={fRefresh} />;
 
+  const condoName = useCondoStore(s => s.condoName);
+
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar>
+    <OwnerShell activeKey="common-area-booking" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
       <div className="max-w-7xl mx-auto px-6 py-12">
       {/* Header with toggle action */}
       <FacilityHeader 
