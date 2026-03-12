@@ -50,7 +50,7 @@ export default function RoleSelect() {
 
                     {/* Admin */}
                     <button
-                        onClick={() => go("/owner/admin-login")}
+                        onClick={() => go("/auth/owner/login")}
                         className="group text-left bg-white rounded-3xl border border-indigo-100 shadow-xl p-7 hover:shadow-2xl hover:-translate-y-0.5 transition-all"
                     >
                         <div className="flex items-start justify-between">

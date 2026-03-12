@@ -248,35 +248,6 @@ const OwnerRegisterPage: React.FC = () => {
               {errors.phone && <p className="mt-1 text-xs text-red-200">{errors.phone}</p>}
             </div>
 
-           
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => setVerifyChannel("EMAIL")}
-                className={`flex-1 py-3 rounded-2xl border text-sm font-semibold transition-all ${
-                  verifyChannel === "EMAIL"
-                    ? "bg-white text-slate-900 border-white"
-                    : "bg-white/10 text-white/80 border-white/20 hover:bg-white/15"
-                } ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
-                ยืนยันด้วยอีเมล
-              </button>
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => setVerifyChannel("PHONE")}
-                className={`flex-1 py-3 rounded-2xl border text-sm font-semibold transition-all ${
-                  verifyChannel === "PHONE"
-                    ? "bg-white text-slate-900 border-white"
-                    : "bg-white/10 text-white/80 border-white/20 hover:bg-white/15"
-                } ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
-                ยืนยันด้วยเบอร์
-              </button>
-            </div>
-
             {/* password */}
             <div className="pt-1">
               <input

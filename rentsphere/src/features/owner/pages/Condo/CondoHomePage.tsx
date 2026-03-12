@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/shared/api/http";
 import { useCondoStore } from "@/features/owner/stores/condoStore";
+import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 type CondoApiItem = any;
 
@@ -709,6 +710,8 @@ export default function CondoHomePage() {
   const [condos, setCondos] = useState<CondoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [popup, setPopup] = useState<PopupState>(defaultPopup);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const token = useMemo(() => getTokenFromStorage(), []);
 
@@ -795,6 +798,45 @@ export default function CondoHomePage() {
       useCondoStore.getState().selectCondo(condo.id, condo.name);
     }
     nav("/owner/dashboard", { state: { condoId } });
+  };
+
+  const handleDeleteCondo = (condo: CondoItem) => {
+    setPopup({
+      open: true,
+      type: "confirm",
+      title: "ลบคอนโด",
+      message: `ต้องการลบ "${condo.name}" หรือไม่?\n\nข้อมูลทั้งหมดของคอนโดนี้จะถูกลบ (ห้อง, สัญญา, ใบแจ้งหนี้)`,
+      confirmText: "ลบ",
+      cancelText: "ยกเลิก",
+      onConfirm: async () => {
+        setPopup(defaultPopup);
+        setDeletingId(condo.id);
+        try {
+          await api(`/owner/condos/${encodeURIComponent(condo.id)}`, { method: "DELETE" });
+          setPopup({
+            open: true,
+            type: "success",
+            title: "ลบสำเร็จ",
+            message: `ลบคอนโด "${condo.name}" เรียบร้อยแล้ว`,
+            onConfirm: () => {},
+            onCancel: () => {},
+          });
+          await loadCondos();
+        } catch (e: any) {
+          setPopup({
+            open: true,
+            type: "error",
+            title: "ลบไม่สำเร็จ",
+            message: e?.message ?? "เกิดข้อผิดพลาด",
+            onConfirm: () => {},
+            onCancel: () => {},
+          });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+      onCancel: () => {},
+    });
   };
 
 
@@ -1027,18 +1069,26 @@ export default function CondoHomePage() {
                                       </div>
                                     </div>
 
-                                    <div className="flex items-center justify-center">
+                                    <div className="flex items-center justify-center gap-2">
                                       <button
                                         type="button"
                                         onClick={() => goDashboard(c.id)}
                                         className={[
-                                          "h-[40px] px-6 rounded-xl border-0 text-white font-extrabold text-sm tracking-[0.2px]",
+                                          "h-[40px] px-5 rounded-xl border-0 text-white font-extrabold text-sm tracking-[0.2px]",
                                           "shadow-[0_12px_22px_rgba(0,0,0,0.18)] transition",
                                           "!bg-[#93C5FD] hover:!bg-[#7fb4fb] active:scale-[0.98] cursor-pointer",
                                           "focus:outline-none focus:ring-2 focus:ring-blue-200",
                                         ].join(" ")}
                                       >
                                         จัดการ
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteCondo(c)}
+                                        disabled={deletingId === c.id}
+                                        className="h-[40px] px-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-extrabold text-sm hover:bg-rose-100 active:scale-[0.98] transition disabled:opacity-50"
+                                      >
+                                        {deletingId === c.id ? "..." : "ลบ"}
                                       </button>
                                     </div>
                                   </div>
@@ -1063,6 +1113,11 @@ export default function CondoHomePage() {
           </div>
         </div>
       </div>
+
+      <PopupModal
+        {...popup}
+        onClose={() => setPopup(defaultPopup)}
+      />
     </div>
   );
 }

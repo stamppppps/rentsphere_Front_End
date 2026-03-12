@@ -1,38 +1,34 @@
 import BillingStatus from "./BillingStatus";
 import type { BillingItem } from "../types";
 
+
+/* ==================== types ==================== */
 interface BillingRowProps {
   item: BillingItem;
   onSelect: (item: BillingItem) => void;
 }
 
-function formatMoney(num: number) {
-  return num.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
+/* ==================== component ==================== */
 export default function BillingRow({ item, onSelect }: BillingRowProps) {
+  /* ===== derived state ===== */
   const isOccupied = item.status === "ไม่ว่าง";
   const canCreateInvoice = isOccupied;
 
-  const buttonLabel = item.invoiceId
-    ? item.isPaid
-      ? "สร้างใบแจ้งหนี้ใหม่"
-      : "ดูใบแจ้งหนี้"
-    : "สร้างใบแจ้งหนี้";
-
   return (
     <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+
+      {/* ===== ห้อง ===== */}
       <td className="px-6 py-6 text-[#1E293B] font-bold text-xl">
         {item.roomNumber}
       </td>
 
+      {/* ===== สถานะ ===== */}
       <td className="px-6 py-6">
         <BillingStatus status={item.status} />
       </td>
 
+      {/* ===== มิเตอร์น้ำ ===== */}
       <td className="px-6 py-6">
         {isOccupied && item.waterMeter ? (
           <div className="text-[#1E293B]">
@@ -48,6 +44,7 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
         )}
       </td>
 
+      {/* ===== มิเตอร์ไฟ ===== */}
       <td className="px-6 py-6">
         {isOccupied && item.elecMeter ? (
           <div className="text-[#1E293B]">
@@ -63,11 +60,12 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
         )}
       </td>
 
+      {/* ===== ยอดรวม ===== */}
       <td className="px-6 py-6">
         {isOccupied ? (
           <div className="flex items-center text-[#8B5CF6] font-bold text-lg">
             <span className="mr-1">฿</span>
-            <span>{formatMoney(item.estimatedTotal)}</span>
+            <span>{item.estimatedTotal.toLocaleString()}</span>
           </div>
         ) : (
           <span className="text-gray-400 text-sm">
@@ -76,24 +74,24 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
         )}
       </td>
 
+      {/* ===== การจัดการ ===== */}
       <td className="px-6 py-6 text-right">
         {canCreateInvoice ? (
           <button
             onClick={() => onSelect(item)}
             className="
               text-white
-              px-6
-              py-2.5
-              rounded-2xl
+              px-6 py-2.5
+              !rounded-2xl
               text-sm
-              font-semibold
-              shadow-sm
-              transition-all
-              hover:bg-[#7C3AED]
+              font-medium
+              !shadow-sm
+              !transition-all
+              !hover:bg-[#7C3AED]
             "
-            style={{ backgroundColor: "#8B5CF6" }}
+            style={{ backgroundColor: "#7C3AED" }}
           >
-            {buttonLabel}
+            {item.isPaid ? "สร้างใบแจ้งหนี้ใหม่" : "สร้างใบแจ้งหนี้"}
           </button>
         ) : (
           <button
@@ -101,9 +99,8 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
             className="
               bg-[#E3E3E3]
               text-[#CBD5E1]
-              px-6
-              py-2.5
-              rounded-2xl
+              px-6 py-2.5
+              !rounded-2xl
               text-sm
               font-medium
               cursor-not-allowed

@@ -232,7 +232,7 @@ export default function AdminParcel() {
       <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
         <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
               <span className="text-lg">📦</span>
             </div>
             <div>
@@ -282,9 +282,11 @@ export default function AdminParcel() {
                   >
                     <option value="">{filteredRooms.length === 0 ? "โหลดข้อมูล..." : "-- เลือกห้อง --"}</option>
                     {filteredRooms.map((r) => {
-                      const status = r.occupancyStatus === "OCCUPIED" ? "มีผู้เช่า" : "ว่าง";
+                      const label = r.tenantName
+                        ? r.tenantName
+                        : r.occupancyStatus === "OCCUPIED" ? "มีผู้เช่า" : "ว่าง";
                       return (
-                        <option key={r.id} value={r.id}>ห้อง {r.roomNo} ({status})</option>
+                        <option key={r.id} value={r.id}>ห้อง {r.roomNo} ({label})</option>
                       )
                     })}
                   </select>
@@ -297,17 +299,6 @@ export default function AdminParcel() {
                     placeholder="พิมพ์ที่นี่..."
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition"
                   />
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-black text-slate-900 mb-2">ขนส่ง (ไม่บังคับ)</div>
-                  <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold focus:ring-indigo-100" placeholder="ShopeeXpress, Kerry..." value={carrier} onChange={e => setCarrier(e.target.value)} />
-                </div>
-                <div>
-                  <div className="text-sm font-black text-slate-900 mb-2">เลขพัสดุ (ไม่บังคับ)</div>
-                  <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold focus:ring-indigo-100" placeholder="TH0000000..." value={trackingNo} onChange={e => setTrackingNo(e.target.value)} />
                 </div>
               </div>
 
@@ -324,10 +315,10 @@ export default function AdminParcel() {
               <div className="mt-6">
                 <div className="flex items-end justify-between gap-3 mb-2">
                   <div>
-                    <div className="text-sm font-black text-slate-900">รูปพัสดุ (ยังไม่เปิดใช้)</div>
-                    <div className="text-xs font-semibold text-slate-500">JPG/PNG/WEBP ≤ 5MB</div>
+                    <div className="text-sm font-black text-slate-900">รูปพัสดุ (อัปโหลดได้ทีละ 1 รูป/ครั้ง)</div>
+                    <div className="text-xs font-semibold text-slate-500">JPG/PNG ≤ 5MB</div>
                   </div>
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-black transition">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 rounded-xl bg-indigo-50 text-blue-700 hover:bg-indigo-100 font-black transition">
                     เลือกรูป
                   </button>
                 </div>
@@ -339,7 +330,7 @@ export default function AdminParcel() {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700">📷</div>
                       <div>
-                        <div className="font-black text-slate-900">ลากรูปมาวาง หรือกดเพื่อเลือกไฟล์ (Coming soon)</div>
+                        <div className="font-black text-slate-900">ลากรูปมาวาง หรือกดเพื่อเลือกไฟล์ </div>
                       </div>
                     </div>
                   ) : (
@@ -366,13 +357,12 @@ export default function AdminParcel() {
                 <button
                   onClick={submit}
                   disabled={loading}
-                  className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 transition disabled:opacity-50"
+                  className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 transition disabled:opacity-50"
                 >
                   {loading ? "กำลังบันทึก..." : "ส่งแจ้งพัสดุเข้าสู่ระบบ"}
                 </button>
               </div>
             </div>
-            <div className="h-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
           </div>
         ) : (
           <div className="bg-white rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/30 overflow-hidden">
@@ -388,7 +378,7 @@ export default function AdminParcel() {
                   />
                 </div>
                 <div className="md:w-40">
-                  <button onClick={loadHistory} className="w-full px-4 py-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 font-black text-indigo-700 transition">
+                  <button onClick={loadHistory} className="w-full px-4 py-3 rounded-2xl bg-blue-50 hover:bg-blue-100 font-black text-blue-700 transition">
                     รีเฟรช
                   </button>
                 </div>
@@ -423,7 +413,7 @@ export default function AdminParcel() {
                               </div>
                             </div>
 
-                            <span className={`inline-flex px-3 py-1.5 rounded-xl font-black text-xs ${h.status === "PICKED_UP" ? "bg-emerald-50 text-emerald-700" : "bg-indigo-50 text-indigo-700"}`}>
+                            <span className={`inline-flex px-3 py-1.5 rounded-xl font-black text-xs ${h.status === "PICKED_UP" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>
                               {h.status === "RECEIVED" ? "รอรับ" : h.status === "PICKED_UP" ? "รับแล้ว" : h.status}
                             </span>
                           </div>
@@ -439,7 +429,7 @@ export default function AdminParcel() {
                             <div className="mt-3">
                               <button
                                 onClick={() => markPickedUp(h.id)}
-                                className="inline-flex px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-black text-white transition text-xs"
+                                className="inline-flex px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 font-black text-white transition text-xs"
                               >
                                 กดเมื่อลูกบ้านมารับพัสดุ
                               </button>
@@ -452,7 +442,6 @@ export default function AdminParcel() {
                 )}
               </div>
             </div>
-            <div className="h-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
           </div>
         )}
       </div>
