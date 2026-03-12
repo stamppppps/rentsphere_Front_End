@@ -1,404 +1,569 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import {
+  getSelectedCondoId,
+  useCondoStore,
+} from "@/features/owner/stores/condoStore";
+import { useAuthStore } from "@/features/auth/auth.store";
 
 /* ================================================================
    Types
    ================================================================ */
 interface PaymentRecord {
-    id: string;
-    invoiceNo: string;
-    roomNo: string;
-    tenantName: string;
-    sentDate: string | null;
-    amount: number;
-    status: "overdue" | "pending" | "paid";
+  id: string;
+  invoiceNo: string;
+  roomNo: string;
+  tenantName: string;
+  sentDate: string | null;
+  amount: number;
+  status: "overdue" | "pending" | "paid";
 }
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function getAuthToken(): string {
-    try {
-        const raw = localStorage.getItem("rentsphere_auth");
-        if (!raw) return "";
-        return JSON.parse(raw)?.state?.token || "";
-    } catch {
-        return "";
-    }
+  try {
+    const raw = localStorage.getItem("rentsphere_auth");
+    if (!raw) return "";
+    return JSON.parse(raw)?.state?.token || "";
+  } catch {
+    return "";
+  }
 }
 
 function authHeaders() {
-    const t = getAuthToken();
-    return {
-        "Content-Type": "application/json",
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-    };
+  const t = getAuthToken();
+  return {
+    "Content-Type": "application/json",
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+  };
+}
+
+function getActiveCondoIdForPage(): string {
+  const auth = useAuthStore.getState();
+  const condo = useCondoStore.getState();
+
+  if (auth.user?.role === "STAFF") {
+    return auth.activeMembership?.condoId ?? "";
+  }
+
+  return getSelectedCondoId() ?? "";
 }
 
 /* ================================================================
    Status helpers
    ================================================================ */
 function statusLabel(s: PaymentRecord["status"]) {
-    switch (s) {
-        case "overdue":
-            return "ค้างชำระ";
-        case "pending":
-            return "ยังไม่ส่ง";
-        case "paid":
-            return "ชำระแล้ว";
-    }
+  switch (s) {
+    case "overdue":
+      return "ค้างชำระ";
+    case "pending":
+      return "ยังไม่ส่ง";
+    case "paid":
+      return "ชำระแล้ว";
+  }
 }
 
 function statusClass(s: PaymentRecord["status"]) {
-    switch (s) {
-        case "overdue":
-            return "bg-red-100 text-red-600 border-red-200";
-        case "pending":
-            return "bg-amber-100 text-amber-600 border-amber-200";
-        case "paid":
-            return "bg-green-100 text-green-600 border-green-200";
-    }
+  switch (s) {
+    case "overdue":
+      return "bg-red-100 text-red-600 border-red-200";
+    case "pending":
+      return "bg-amber-100 text-amber-600 border-amber-200";
+    case "paid":
+      return "bg-green-100 text-green-600 border-green-200";
+  }
 }
 
 /* ================================================================
    Main Page
    ================================================================ */
 export default function PaymentsPage() {
-    const [page, setPage] = useState(1);
-    const [data, setData] = useState<PaymentRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const PER_PAGE = 4;
+  const authUser = useAuthStore((s) => s.user);
+  const activeMembership = useAuthStore((s) => s.activeMembership);
 
-    useEffect(() => {
-        let cancelled = false;
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<PaymentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-        (async () => {
-            try {
-                setLoading(true);
-                const condoId = getSelectedCondoId();
-                if (!condoId) {
-                    setLoading(false);
-                    return;
-                }
+  const PER_PAGE = 4;
 
-                const [roomRes, meterRes, utilRes, invRes] = await Promise.all([
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/rooms`, { headers: authHeaders() }),
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/meters`, { headers: authHeaders() }).catch(() => null),
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/utilities`, { headers: authHeaders() }).catch(() => null),
-                    fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, { headers: authHeaders() }).catch(() => null),
-                ]);
+  const condoId = useMemo(() => {
+    if (authUser?.role === "STAFF") {
+      return activeMembership?.condoId ?? "";
+    }
+    return getActiveCondoIdForPage();
+  }, [authUser?.role, activeMembership?.condoId]);
 
-                if (cancelled) return;
+  useEffect(() => {
+    let cancelled = false;
 
-                const roomsRaw = await roomRes.json();
-                const rooms: any[] = Array.isArray(roomsRaw) ? roomsRaw : (roomsRaw?.rooms || []);
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-                const metersRaw = meterRes?.ok ? await meterRes.json() : {};
-                const meters: any[] = metersRaw?.meters || [];
+        if (!condoId) {
+          if (!cancelled) {
+            setData([]);
+            setError("ไม่พบคอนโดสำหรับผู้ใช้งานนี้");
+            setLoading(false);
+          }
+          return;
+        }
 
-                const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
-                const configs: any[] =
-                    utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
+        const [roomRes, meterRes, utilRes, invRes] = await Promise.all([
+          fetch(`${API}/api/v1/owner/condos/${condoId}/rooms`, {
+            headers: authHeaders(),
+          }),
+          fetch(`${API}/api/v1/owner/condos/${condoId}/meters`, {
+            headers: authHeaders(),
+          }).catch(() => null),
+          fetch(`${API}/api/v1/owner/condos/${condoId}/utilities`, {
+            headers: authHeaders(),
+          }).catch(() => null),
+          fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
+            headers: authHeaders(),
+          }).catch(() => null),
+        ]);
 
-                const invoicesRaw = invRes?.ok ? await invRes.json() : {};
-                const invoices: any[] = invoicesRaw?.invoices || [];
+        if (cancelled) return;
 
-                let wRate = 18;
-                let eRate = 8;
+        if (!roomRes.ok) {
+          const msg =
+            roomRes.status === 403
+              ? "คุณไม่มีสิทธิ์เข้าถึงข้อมูลคอนโดนี้"
+              : roomRes.status === 404
+              ? "ไม่พบข้อมูลห้องของคอนโดนี้"
+              : "โหลดข้อมูลห้องไม่สำเร็จ";
+          throw new Error(msg);
+        }
 
-                for (const c of configs) {
-                    if (c.utility_type === "water" || c.utilityType === "water") {
-                        wRate = Number(c.rate || c.pricePerUnit || 18);
-                    }
-                    if (c.utility_type === "electricity" || c.utilityType === "electricity") {
-                        eRate = Number(c.rate || c.pricePerUnit || 8);
-                    }
-                }
+        const roomsRaw = await roomRes.json();
+        const rooms: any[] = Array.isArray(roomsRaw)
+          ? roomsRaw
+          : roomsRaw?.rooms || [];
 
-                const meterMap: Record<string, any> = {};
-                for (const m of meters) {
-                    if (m.roomId) meterMap[m.roomId] = m;
-                }
+        const metersRaw = meterRes?.ok ? await meterRes.json() : {};
+        const meters: any[] = metersRaw?.meters || [];
 
-                const invoiceMap: Record<string, any> = {};
-                for (const inv of invoices) {
-                    const rid = String(inv.room_id || inv.roomId || "");
-                    if (rid) invoiceMap[rid] = inv;
-                }
+        const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
+        const configs: any[] =
+          utilsRaw?.configs ||
+          utilsRaw?.items ||
+          (Array.isArray(utilsRaw) ? utilsRaw : []);
 
-                const records: PaymentRecord[] = rooms
-                    .filter((r: any) => r.occupancyStatus === "OCCUPIED")
-                    .map((r: any) => {
-                        const m = meterMap[r.id];
-                        const inv = invoiceMap[r.id];
+        const invoicesRaw = invRes?.ok ? await invRes.json() : {};
+        const invoices: any[] = invoicesRaw?.invoices || [];
 
-                        let total: number;
-                        if (inv?.totalAmount != null) {
-                            total = Number(inv.totalAmount);
-                        } else {
-                            const rent = Number(r.price || 0);
-                            const waterCost = m ? Number(m.waterUnits || 0) * wRate : 0;
-                            const elecCost = m ? Number(m.electricUnits || 0) * eRate : 0;
-                            total = rent + waterCost + elecCost;
-                        }
+        let wRate = 18;
+        let eRate = 8;
 
-                        const isPaid = inv ? String(inv.status || "").toUpperCase() === "PAID" : false;
+        for (const c of configs) {
+          if (c.utility_type === "water" || c.utilityType === "water") {
+            wRate = Number(c.rate || c.pricePerUnit || 18);
+          }
+          if (
+            c.utility_type === "electricity" ||
+            c.utilityType === "electricity"
+          ) {
+            eRate = Number(c.rate || c.pricePerUnit || 8);
+          }
+        }
 
-                        return {
-                            id: r.id,
-                            invoiceNo: inv?.invoiceNo || `INV-${r.roomNo}-${new Date().toISOString().slice(0, 7)}`,
-                            roomNo: r.roomNo || "—",
-                            tenantName: "มีผู้เช่า",
-                            sentDate: m?.recordedAt ? new Date(m.recordedAt).toLocaleDateString("th-TH") : null,
-                            amount: total,
-                            status: isPaid ? "paid" : "pending",
-                        };
-                    });
+        const meterMap: Record<string, any> = {};
+        for (const m of meters) {
+          if (m.roomId) meterMap[m.roomId] = m;
+        }
 
-                if (!cancelled) setData(records);
-            } catch (e) {
-                console.error("PaymentsPage load error:", e);
-            } finally {
-                if (!cancelled) setLoading(false);
+        const invoiceMap: Record<string, any> = {};
+        for (const inv of invoices) {
+          const rid = String(inv.room_id || inv.roomId || "");
+          if (rid) invoiceMap[rid] = inv;
+        }
+
+        const records: PaymentRecord[] = rooms
+          .filter((r: any) => r.occupancyStatus === "OCCUPIED")
+          .map((r: any) => {
+            const m = meterMap[r.id];
+            const inv = invoiceMap[r.id];
+
+            let total: number;
+            if (inv?.totalAmount != null) {
+              total = Number(inv.totalAmount);
+            } else {
+              const rent = Number(r.price || 0);
+              const waterCost = m ? Number(m.waterUnits || 0) * wRate : 0;
+              const elecCost = m ? Number(m.electricUnits || 0) * eRate : 0;
+              total = rent + waterCost + elecCost;
             }
-        })();
 
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+            const rawStatus = String(inv?.status || "").toUpperCase();
+            const status: PaymentRecord["status"] =
+              rawStatus === "PAID"
+                ? "paid"
+                : rawStatus === "OVERDUE"
+                ? "overdue"
+                : "pending";
 
-    const TOTAL_AMOUNT = data.reduce((s, r) => s + r.amount, 0);
-    const PAID_AMOUNT = data.filter((r) => r.status === "paid").reduce((s, r) => s + r.amount, 0);
-    const UNPAID_AMOUNT = data.filter((r) => r.status !== "paid").reduce((s, r) => s + r.amount, 0);
-    const TOTAL_ROOMS = data.length;
-    const UNPAID_ROOMS = data.filter((r) => r.status !== "paid").length;
+            return {
+              id: r.id,
+              invoiceNo:
+                inv?.invoiceNo ||
+                `INV-${r.roomNo}-${new Date().toISOString().slice(0, 7)}`,
+              roomNo: r.roomNo || "—",
+              tenantName:
+                r.tenantName || r.tenant?.name || r.currentTenant?.name || "มีผู้เช่า",
+              sentDate: m?.recordedAt
+                ? new Date(m.recordedAt).toLocaleDateString("th-TH")
+                : null,
+              amount: total,
+              status,
+            };
+          });
 
-    const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
-    const pageData = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-    const startIdx = (page - 1) * PER_PAGE + 1;
-    const endIdx = Math.min(page * PER_PAGE, data.length);
+        if (!cancelled) {
+          setData(records);
+          setPage(1);
+        }
+      } catch (e: any) {
+        console.error("PaymentsPage load error:", e);
+        if (!cancelled) {
+          setData([]);
+          setError(e?.message || "โหลดข้อมูลไม่สำเร็จ");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
-    const paidPct = TOTAL_AMOUNT > 0 ? Math.round((PAID_AMOUNT / TOTAL_AMOUNT) * 100) : 0;
-    const now = new Date();
-    const monthName = now.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+    return () => {
+      cancelled = true;
+    };
+  }, [condoId]);
 
-    return (
-        <OwnerShell activeKey="payments">
-            <div className="w-full mx-auto animate-in fade-in duration-300 pt-6 px-8 pb-10">
-                <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
-                    <div>
-                        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">ติดตามการชำระเงิน</h1>
-                        <p className="text-sm font-bold text-gray-500 mt-1 pt-1">
-                            ภาพรวมสถานะการค้างชำระประจำเดือน {monthName}
-                        </p>
-                    </div>
-                </div>
+  const TOTAL_AMOUNT = data.reduce((s, r) => s + r.amount, 0);
+  const PAID_AMOUNT = data
+    .filter((r) => r.status === "paid")
+    .reduce((s, r) => s + r.amount, 0);
+  const UNPAID_AMOUNT = data
+    .filter((r) => r.status !== "paid")
+    .reduce((s, r) => s + r.amount, 0);
+  const TOTAL_ROOMS = data.length;
+  const UNPAID_ROOMS = data.filter((r) => r.status !== "paid").length;
 
-                {loading ? (
-                    <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-6 py-16 text-center">
-                        <div className="text-sm font-extrabold text-gray-500">กำลังโหลดข้อมูล...</div>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                            <div className="rounded-2xl bg-white border border-blue-100 px-6 py-5 shadow-sm">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-[#93C5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">ยอดรวมทั้งหมด</span>
-                                </div>
-                                <p className="text-3xl font-black text-gray-900 tracking-tight">
-                                    {TOTAL_AMOUNT.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                </p>
-                                <p className="text-xs font-bold text-gray-400 mt-1">จากทั้งหมด {TOTAL_ROOMS} ห้อง</p>
-                            </div>
+  const totalPages = Math.max(1, Math.ceil(data.length / PER_PAGE));
+  const pageData = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const startIdx = (page - 1) * PER_PAGE + 1;
+  const endIdx = Math.min(page * PER_PAGE, data.length);
 
-                            <div className="rounded-2xl bg-white border border-green-100 px-6 py-5 shadow-sm">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">ชำระแล้ว</span>
-                                </div>
-                                <p className="text-3xl font-black text-green-600 tracking-tight">
-                                    {PAID_AMOUNT.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                </p>
-                                <div className="mt-3 flex items-center gap-3">
-                                    <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full bg-green-500 transition-all"
-                                            style={{ width: `${paidPct}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs font-extrabold text-green-600">{paidPct}%</span>
-                                </div>
-                            </div>
+  const paidPct =
+    TOTAL_AMOUNT > 0 ? Math.round((PAID_AMOUNT / TOTAL_AMOUNT) * 100) : 0;
 
-                            <div className="rounded-2xl bg-white border border-red-100 px-6 py-5 shadow-sm">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">ยังไม่ชำระ</span>
-                                </div>
-                                <p className="text-3xl font-black text-red-500 tracking-tight">
-                                    {UNPAID_AMOUNT.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                </p>
-                                <p className="text-xs font-bold text-gray-400 mt-1">
-                                    จำนวน {UNPAID_ROOMS} ห้องที่ยังค้างจ่าย
-                                </p>
-                            </div>
-                        </div>
+  const now = new Date();
+  const monthName = now.toLocaleDateString("th-TH", {
+    month: "long",
+    year: "numeric",
+  });
 
-                        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                                        <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider w-10">
-                                            #
-                                        </th>
-                                        <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">
-                                            เลขใบแจ้งหนี้
-                                        </th>
-                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">
-                                            ห้อง
-                                        </th>
-                                        <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">
-                                            ผู้เช่า
-                                        </th>
-                                        <th className="py-4 px-4 text-right font-extrabold text-gray-500 text-xs uppercase tracking-wider">
-                                            ยอดค้าง
-                                        </th>
-                                        <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">
-                                            สถานะ
-                                        </th>
-                                    </tr>
-                                </thead>
+  return (
+    <OwnerShell activeKey="payments">
+      <div className="w-full mx-auto animate-in fade-in duration-300 pt-6 px-8 pb-10">
+        <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+              ติดตามการชำระเงิน
+            </h1>
+            <p className="text-sm font-bold text-gray-500 mt-1 pt-1">
+              ภาพรวมสถานะการค้างชำระประจำเดือน {monthName}
+            </p>
+          </div>
+        </div>
 
-                                <tbody>
-                                    {pageData.map((r, idx) => (
-                                        <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/20 transition">
-                                            <td className="py-5 px-4 font-bold text-gray-400">{startIdx + idx}</td>
-                                            <td className="py-5 px-4 font-bold text-gray-700">{r.invoiceNo}</td>
-                                            <td className="py-5 px-4 text-center font-extrabold text-gray-900">{r.roomNo}</td>
-
-                                            <td className="py-5 px-4">
-                                                <div>
-                                                    <p className="font-extrabold text-gray-900 text-sm">{r.tenantName}</p>
-                                                    {r.sentDate && (
-                                                        <p className="text-[11px] font-bold text-gray-400 mt-0.5">
-                                                            {r.sentDate}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            <td
-                                                className={`py-5 px-4 text-right font-extrabold ${
-                                                    r.amount > 0 ? "text-red-500" : "text-gray-400"
-                                                }`}
-                                            >
-                                                {r.amount > 0
-                                                    ? r.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })
-                                                    : "0.00"}
-                                            </td>
-
-                                            <td className="py-5 px-4 text-center">
-                                                <span
-                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold border ${statusClass(
-                                                        r.status
-                                                    )}`}
-                                                >
-                                                    {statusLabel(r.status)}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-
-                                    {pageData.length === 0 && (
-                                        <tr>
-                                            <td colSpan={6} className="py-16 text-center text-gray-400 font-bold">
-                                                ไม่พบข้อมูลการชำระเงิน
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-
-                            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                                <p className="text-sm font-bold text-gray-400">
-                                    แสดง {data.length > 0 ? startIdx : 0} ถึง {endIdx} จาก {data.length} รายการ
-                                </p>
-
-                                {totalPages > 1 && (
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPage(Math.max(1, page - 1))}
-                                            disabled={page === 1}
-                                            className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                            </svg>
-                                        </button>
-
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                                            <button
-                                                key={p}
-                                                type="button"
-                                                onClick={() => setPage(p)}
-                                                className={[
-                                                    "w-8 h-8 rounded-lg font-extrabold text-sm transition",
-                                                    page === p
-                                                        ? "bg-[#93C5FD] text-white shadow-md"
-                                                        : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50",
-                                                ].join(" ")}
-                                            >
-                                                {p}
-                                            </button>
-                                        ))}
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                            disabled={page === totalPages}
-                                            className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </>
-                )}
+        {loading ? (
+          <div className="rounded-2xl bg-white border border-blue-100 shadow-sm px-6 py-16 text-center">
+            <div className="text-sm font-extrabold text-gray-500">
+              กำลังโหลดข้อมูล...
             </div>
-        </OwnerShell>
-    );
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl bg-white border border-rose-200 shadow-sm px-6 py-10 text-center">
+            <div className="text-base font-extrabold text-rose-600">
+              โหลดข้อมูลไม่สำเร็จ
+            </div>
+            <div className="text-sm font-bold text-rose-500 mt-2">{error}</div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+              <div className="rounded-2xl bg-white border border-blue-100 px-6 py-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-[#93C5FD]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    ยอดรวมทั้งหมด
+                  </span>
+                </div>
+                <p className="text-3xl font-black text-gray-900 tracking-tight">
+                  {TOTAL_AMOUNT.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs font-bold text-gray-400 mt-1">
+                  จากทั้งหมด {TOTAL_ROOMS} ห้อง
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white border border-green-100 px-6 py-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-green-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    ชำระแล้ว
+                  </span>
+                </div>
+                <p className="text-3xl font-black text-green-600 tracking-tight">
+                  {PAID_AMOUNT.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-green-500 transition-all"
+                      style={{ width: `${paidPct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-extrabold text-green-600">
+                    {paidPct}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white border border-red-100 px-6 py-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-red-100 flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-red-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    ยังไม่ชำระ
+                  </span>
+                </div>
+                <p className="text-3xl font-black text-red-500 tracking-tight">
+                  {UNPAID_AMOUNT.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs font-bold text-gray-400 mt-1">
+                  จำนวน {UNPAID_ROOMS} ห้องที่ยังค้างจ่าย
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider w-10">
+                      #
+                    </th>
+                    <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">
+                      เลขใบแจ้งหนี้
+                    </th>
+                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">
+                      ห้อง
+                    </th>
+                    <th className="py-4 px-4 text-left font-extrabold text-gray-500 text-xs uppercase tracking-wider">
+                      ผู้เช่า
+                    </th>
+                    <th className="py-4 px-4 text-right font-extrabold text-gray-500 text-xs uppercase tracking-wider">
+                      ยอดค้าง
+                    </th>
+                    <th className="py-4 px-4 text-center font-extrabold text-gray-500 text-xs uppercase tracking-wider">
+                      สถานะ
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {pageData.map((r, idx) => (
+                    <tr
+                      key={r.id}
+                      className="border-b border-gray-50 hover:bg-blue-50/20 transition"
+                    >
+                      <td className="py-5 px-4 font-bold text-gray-400">
+                        {startIdx + idx}
+                      </td>
+                      <td className="py-5 px-4 font-bold text-gray-700">
+                        {r.invoiceNo}
+                      </td>
+                      <td className="py-5 px-4 text-center font-extrabold text-gray-900">
+                        {r.roomNo}
+                      </td>
+
+                      <td className="py-5 px-4">
+                        <div>
+                          <p className="font-extrabold text-gray-900 text-sm">
+                            {r.tenantName}
+                          </p>
+                          {r.sentDate && (
+                            <p className="text-[11px] font-bold text-gray-400 mt-0.5">
+                              {r.sentDate}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      <td
+                        className={`py-5 px-4 text-right font-extrabold ${
+                          r.amount > 0 ? "text-red-500" : "text-gray-400"
+                        }`}
+                      >
+                        {r.amount > 0
+                          ? r.amount.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                            })
+                          : "0.00"}
+                      </td>
+
+                      <td className="py-5 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold border ${statusClass(
+                            r.status
+                          )}`}
+                        >
+                          {statusLabel(r.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {pageData.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="py-16 text-center text-gray-400 font-bold"
+                      >
+                        ไม่พบข้อมูลการชำระเงิน
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+                <p className="text-sm font-bold text-gray-400">
+                  แสดง {data.length > 0 ? startIdx : 0} ถึง {endIdx} จาก{" "}
+                  {data.length} รายการ
+                </p>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPage(Math.max(1, page - 1))}
+                      disabled={page === 1}
+                      className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPage(p)}
+                          className={[
+                            "w-8 h-8 rounded-lg font-extrabold text-sm transition",
+                            page === p
+                              ? "bg-[#93C5FD] text-white shadow-md"
+                              : "bg-white border border-gray-200 text-gray-600 hover:bg-blue-50",
+                          ].join(" ")}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setPage(Math.min(totalPages, page + 1))}
+                      disabled={page === totalPages}
+                      className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </OwnerShell>
+  );
 }

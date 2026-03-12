@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-interface PaymentFormProps {
+interface PaymentFormProps{
   paymentAmount: string;
   setPaymentAmount: (val: string) => void;
   paymentMethod: string;

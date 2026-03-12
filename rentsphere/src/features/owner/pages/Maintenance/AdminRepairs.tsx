@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getActiveCondoId } from "@/shared/utils/getActiveCondoId";
 import {
   LayoutList,
   Search,
@@ -8,31 +8,50 @@ import {
   CheckCircle2,
   RefreshCcw,
   XCircle,
-  MapPin,
   MessageSquare,
-  Maximize2,
-  Send,
   Package,
   User,
 } from "lucide-react";
+
+function getAuthToken(): string {
+  try {
+    const raw = localStorage.getItem("rentsphere_auth");
+    if (!raw) return "";
+    return JSON.parse(raw)?.state?.token || "";
+  } catch {
+    return "";
+  }
+}
+
+function authHeaders() {
+  const token = getAuthToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 function StatusBadge({ status }: { status: string }) {
   const base =
     "text-[11px] font-black px-2.5 py-1 rounded-full border inline-flex items-center gap-1";
 
-  if (status === "new")
+  if (status === "new") {
     return (
       <span className={`${base} bg-blue-50 text-blue-700 border-blue-100`}>
         ใหม่
       </span>
     );
-  if (status === "in_progress")
+  }
+
+  if (status === "in_progress") {
     return (
       <span className={`${base} bg-amber-50 text-amber-700 border-amber-100`}>
         กำลังทำ
       </span>
     );
-  if (status === "done")
+  }
+
+  if (status === "done") {
     return (
       <span
         className={`${base} bg-emerald-50 text-emerald-700 border-emerald-100`}
@@ -40,12 +59,15 @@ function StatusBadge({ status }: { status: string }) {
         เสร็จ
       </span>
     );
-  if (status === "rejected")
+  }
+
+  if (status === "rejected") {
     return (
       <span className={`${base} bg-rose-50 text-rose-700 border-rose-100`}>
         ปฏิเสธ
       </span>
     );
+  }
 
   return (
     <span className={`${base} bg-slate-50 text-slate-700 border-slate-100`}>
@@ -67,10 +89,11 @@ const FilterButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-      : "text-slate-600 hover:bg-slate-50"
-      }`}
+    className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+      active
+        ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+        : "text-slate-600 hover:bg-slate-50"
+    }`}
   >
     {icon}
     <span>{label}</span>
@@ -96,10 +119,10 @@ const ActionButton = ({
     variant === "primary"
       ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"
       : variant === "emerald"
-        ? "bg-white border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 shadow-emerald-50"
-        : variant === "rose"
-          ? "bg-white border-2 border-rose-100 hover:border-rose-500 hover:bg-rose-50 text-rose-700 shadow-rose-50"
-          : "bg-white border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-700 shadow-slate-50";
+      ? "bg-white border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 shadow-emerald-50"
+      : variant === "rose"
+      ? "bg-white border-2 border-rose-100 hover:border-rose-500 hover:bg-rose-50 text-rose-700 shadow-rose-50"
+      : "bg-white border-2 border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-700 shadow-slate-50";
 
   return (
     <button
@@ -116,27 +139,61 @@ const ActionButton = ({
   );
 };
 
+function mapRepairStatus(raw: string) {
+  const s = String(raw ?? "").toUpperCase();
+
+  if (s === "OPEN") return "new";
+  if (s === "IN_PROGRESS" || s === "WAITING_PARTS") return "in_progress";
+  if (s === "DONE") return "done";
+  if (s === "CANCELLED" || s === "REJECTED") return "rejected";
+
+  return "new";
+}
+
 export default function OwnerAdminRepairsPage() {
   const [repairs, setRepairs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [selectedRepair, setSelectedRepair] = useState<any>(null);
   const [filter, setFilter] = useState("all");
+  const [activeCondoId, setActiveCondoId] = useState<string>("");
 
-  const loadRepairs = async () => {
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  const loadRepairs = async (condoIdArg?: string) => {
     setLoading(true);
     setErr("");
-    try {
-      const condoId = getSelectedCondoId();
-      if (!condoId) throw new Error("Please select a condo first.");
 
-      const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
-      const res = await fetch(`${API}/repair/condo/${condoId}`);
-      if (!res.ok) throw new Error("Failed to load repairs");
+    try {
+      const condoId = condoIdArg || getActiveCondoId();
+      setActiveCondoId(condoId);
+
+      if (!condoId) {
+        throw new Error("Please select a condo first.");
+      }
+
+      const res = await fetch(`${API}/repair/condo/${condoId}`, {
+        headers: authHeaders(),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to load repairs");
+      }
 
       const data = await res.json();
-      setRepairs(data.items || []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+
+      setRepairs(items);
+
+      if (selectedRepair?.id) {
+        const freshSelected = items.find((x: any) => x.id === selectedRepair.id);
+        setSelectedRepair(freshSelected ?? null);
+      } else {
+        setSelectedRepair(items[0] ?? null);
+      }
     } catch (e: any) {
+      setRepairs([]);
+      setSelectedRepair(null);
       setErr(e.message || "Error loading repairs");
     } finally {
       setLoading(false);
@@ -144,61 +201,107 @@ export default function OwnerAdminRepairsPage() {
   };
 
   useEffect(() => {
-    loadRepairs();
+    const condoId = getActiveCondoId();
+    setActiveCondoId(condoId);
+    loadRepairs(condoId);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const latest = getActiveCondoId();
+      if (latest && latest !== activeCondoId) {
+        setActiveCondoId(latest);
+        loadRepairs(latest);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [activeCondoId]);
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
       const res = await fetch(`${API}/repair/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
+        headers: authHeaders(),
+        body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error("Failed to update status");
 
-      loadRepairs(); // Refresh the list
-      if (selectedRepair && selectedRepair.id === id) {
-        setSelectedRepair({ ...selectedRepair, status });
+      if (!res.ok) {
+        throw new Error("Failed to update status");
       }
+
+      await loadRepairs(activeCondoId || getActiveCondoId());
     } catch (e: any) {
       alert(e.message || "Failed to update status");
     }
   };
 
-  const filteredRepairs = repairs.filter(r => {
-    if (filter === "all") return true;
-    if (filter === "new") return r.status === "OPEN";
-    if (filter === "in_progress") return r.status === "IN_PROGRESS" || r.status === "WAITING_PARTS";
-    if (filter === "done") return r.status === "DONE";
-    if (filter === "rejected") return r.status === "CANCELLED";
-    return true;
-  });
+  const filteredRepairs = useMemo(() => {
+    return repairs.filter((r) => {
+      if (filter === "all") return true;
+      if (filter === "new") return r.status === "OPEN";
+      if (filter === "in_progress") {
+        return r.status === "IN_PROGRESS" || r.status === "WAITING_PARTS";
+      }
+      if (filter === "done") return r.status === "DONE";
+      if (filter === "rejected") {
+        return r.status === "CANCELLED" || r.status === "REJECTED";
+      }
+      return true;
+    });
+  }, [repairs, filter]);
 
   return (
-    <OwnerShell title="งานแจ้งซ่อม" activeKey="repairs" showSidebar={true}>
+    <OwnerShell title="งานแจ้งซ่อม" activeKey="repairs" showSidebar>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
             <LayoutList size={22} />
           </div>
           <div>
-            <div className="text-lg font-extrabold text-slate-900">Admin Repairs</div>
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Management Dashboard</div>
+            <div className="text-lg font-extrabold text-slate-900">
+              Admin Repairs
+            </div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+              Management Dashboard
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-blue-100/60 bg-blue-to-b from-[#EAF2FF] to-white/60 p-6">
+      <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm">
           <div className="flex flex-wrap items-center gap-1">
-            <FilterButton active={filter === "new"} onClick={() => setFilter("new")} icon={<Search size={16} />} label="ใหม่" />
-            <FilterButton active={filter === "in_progress"} onClick={() => setFilter("in_progress")} icon={<Clock size={16} />} label="กำลังทำ" />
-            <FilterButton active={filter === "done"} onClick={() => setFilter("done")} icon={<CheckCircle2 size={16} />} label="เสร็จ" />
-            <FilterButton active={filter === "all"} onClick={() => setFilter("all")} icon={<LayoutList size={16} />} label="ทั้งหมด" />
+            <FilterButton
+              active={filter === "new"}
+              onClick={() => setFilter("new")}
+              icon={<Search size={16} />}
+              label="ใหม่"
+            />
+            <FilterButton
+              active={filter === "in_progress"}
+              onClick={() => setFilter("in_progress")}
+              icon={<Clock size={16} />}
+              label="กำลังทำ"
+            />
+            <FilterButton
+              active={filter === "done"}
+              onClick={() => setFilter("done")}
+              icon={<CheckCircle2 size={16} />}
+              label="เสร็จ"
+            />
+            <FilterButton
+              active={filter === "all"}
+              onClick={() => setFilter("all")}
+              icon={<LayoutList size={16} />}
+              label="ทั้งหมด"
+            />
           </div>
 
-          <button onClick={loadRepairs} className="flex items-center justify-center gap-2 px-5 py-2.5 text-blue-600 hover:bg-blue-50 font-black rounded-xl transition-all">
+          <button
+            onClick={() => loadRepairs(activeCondoId || getActiveCondoId())}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 text-blue-600 hover:bg-blue-50 font-black rounded-xl transition-all"
+          >
             <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
             รีเฟรชข้อมูล
           </button>
@@ -222,10 +325,14 @@ export default function OwnerAdminRepairsPage() {
 
             <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[calc(100vh-320px)]">
               {loading && repairs.length === 0 ? (
-                <div className="p-4 text-center text-slate-500 font-bold">กำลังโหลด...</div>
+                <div className="p-4 text-center text-slate-500 font-bold">
+                  กำลังโหลด...
+                </div>
               ) : filteredRepairs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-3 opacity-60">
-                  <div className="bg-slate-100 p-4 rounded-full"><Search size={32} /></div>
+                  <div className="bg-slate-100 p-4 rounded-full">
+                    <Search size={32} />
+                  </div>
                   <p className="text-sm font-bold italic">ยังไม่มีงานแจ้งซ่อม</p>
                 </div>
               ) : (
@@ -233,20 +340,29 @@ export default function OwnerAdminRepairsPage() {
                   <button
                     key={r.id}
                     onClick={() => setSelectedRepair(r)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedRepair?.id === r.id
-                      ? "border-blue-400 bg-blue-50 shadow-md"
-                      : "border-slate-100 hover:border-blue-200 hover:bg-slate-50"
-                      }`}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                      selectedRepair?.id === r.id
+                        ? "border-blue-400 bg-blue-50 shadow-md"
+                        : "border-slate-100 hover:border-blue-200 hover:bg-slate-50"
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-slate-800 truncate pr-2">{r.problem_type}</h3>
-                      <StatusBadge status={r.status === "OPEN" ? "new" : r.status === "IN_PROGRESS" || r.status === "WAITING_PARTS" ? "in_progress" : r.status === "DONE" ? "done" : "rejected"} />
+                      <h3 className="font-bold text-slate-800 truncate pr-2">
+                        {r.problem_type}
+                      </h3>
+                      <StatusBadge status={mapRepairStatus(r.status)} />
                     </div>
+
                     <div className="text-xs text-slate-500 flex justify-between">
                       <span>{r.room ? `ห้อง ${r.room}` : "ห้อง -"}</span>
-                      <span>{new Date(r.created_at).toLocaleDateString("th-TH")}</span>
+                      <span>
+                        {new Date(r.created_at).toLocaleDateString("th-TH")}
+                      </span>
                     </div>
-                    <div className="mt-2 text-sm text-slate-600 line-clamp-2">{r.description}</div>
+
+                    <div className="mt-2 text-sm text-slate-600 line-clamp-2">
+                      {r.description}
+                    </div>
                   </button>
                 ))
               )}
@@ -255,7 +371,9 @@ export default function OwnerAdminRepairsPage() {
 
           <section className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-blue-100 shadow-xl shadow-blue-100/20 flex flex-col">
             <div className="p-5 border-b border-slate-50">
-              <h2 className="font-extrabold text-slate-800">รายละเอียดงานแจ้งซ่อม</h2>
+              <h2 className="font-extrabold text-slate-800">
+                รายละเอียดงานแจ้งซ่อม
+              </h2>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 lg:p-10">
@@ -265,8 +383,12 @@ export default function OwnerAdminRepairsPage() {
                     <LayoutList size={40} />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-black text-slate-800">โปรดเลือกรายการ</h3>
-                    <p className="text-slate-500 font-bold">เลือกรายการจากรายชื่อด้านซ้ายเพื่อดูรายละเอียด</p>
+                    <h3 className="text-xl font-black text-slate-800">
+                      โปรดเลือกรายการ
+                    </h3>
+                    <p className="text-slate-500 font-bold">
+                      เลือกรายการจากรายชื่อด้านซ้ายเพื่อดูรายละเอียด
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -274,9 +396,14 @@ export default function OwnerAdminRepairsPage() {
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="text-3xl font-black text-slate-900">{selectedRepair.problem_type}</h3>
-                        <StatusBadge status={selectedRepair.status === "OPEN" ? "new" : selectedRepair.status === "IN_PROGRESS" || selectedRepair.status === "WAITING_PARTS" ? "in_progress" : selectedRepair.status === "DONE" ? "done" : "rejected"} />
+                        <h3 className="text-3xl font-black text-slate-900">
+                          {selectedRepair.problem_type}
+                        </h3>
+                        <StatusBadge
+                          status={mapRepairStatus(selectedRepair.status)}
+                        />
                       </div>
+
                       <div className="flex items-center gap-4 text-slate-500 font-bold">
                         <div className="flex items-center gap-1.5">
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
@@ -284,6 +411,7 @@ export default function OwnerAdminRepairsPage() {
                           </div>
                           <span>ห้อง {selectedRepair.room || "-"}</span>
                         </div>
+
                         <div className="flex items-center gap-1.5">
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
                             <User size={14} />
@@ -294,9 +422,13 @@ export default function OwnerAdminRepairsPage() {
                     </div>
 
                     <div className="text-right flex flex-col items-end">
-                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">วันที่แจ้ง</span>
+                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                        วันที่แจ้ง
+                      </span>
                       <span className="text-lg font-mono font-black text-slate-700">
-                        {new Date(selectedRepair.created_at).toLocaleDateString("th-TH")}
+                        {new Date(selectedRepair.created_at).toLocaleDateString(
+                          "th-TH"
+                        )}
                       </span>
                     </div>
                   </div>
@@ -306,8 +438,11 @@ export default function OwnerAdminRepairsPage() {
                       <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
                         <div className="flex items-center gap-2 text-slate-400">
                           <MessageSquare size={16} />
-                          <h4 className="text-sm font-black uppercase tracking-wider">รายละเอียดปัญหา</h4>
+                          <h4 className="text-sm font-black uppercase tracking-wider">
+                            รายละเอียดปัญหา
+                          </h4>
                         </div>
+
                         <p className="text-slate-700 leading-relaxed font-bold whitespace-pre-wrap">
                           {selectedRepair.description || "ไม่มีรายละเอียด"}
                         </p>
@@ -327,9 +462,12 @@ export default function OwnerAdminRepairsPage() {
                         icon={<Clock size={20} />}
                         label="รับเรื่อง"
                         sub="In Progress"
-                        onClick={() => updateStatus(selectedRepair.id, "IN_PROGRESS")}
+                        onClick={() =>
+                          updateStatus(selectedRepair.id, "IN_PROGRESS")
+                        }
                         disabled={selectedRepair.status === "IN_PROGRESS"}
                       />
+
                       <ActionButton
                         variant="emerald"
                         icon={<CheckCircle2 size={20} />}
@@ -338,12 +476,15 @@ export default function OwnerAdminRepairsPage() {
                         onClick={() => updateStatus(selectedRepair.id, "DONE")}
                         disabled={selectedRepair.status === "DONE"}
                       />
+
                       <ActionButton
                         variant="rose"
                         icon={<XCircle size={20} />}
                         label="ยกเลิก/ปฏิเสธ"
                         sub="Cancelled"
-                        onClick={() => updateStatus(selectedRepair.id, "CANCELLED")}
+                        onClick={() =>
+                          updateStatus(selectedRepair.id, "CANCELLED")
+                        }
                         disabled={selectedRepair.status === "CANCELLED"}
                       />
                     </div>

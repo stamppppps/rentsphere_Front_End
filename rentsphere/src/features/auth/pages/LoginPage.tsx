@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import rentsphereLogo from "@/assets/brand/rentsphere-logo.png";
-import { CondoBackground, Meteors, SaaSBackground } from "@/features/auth/components/AuthBackground";
+import {
+  CondoBackground,
+  Meteors,
+  SaaSBackground,
+} from "@/features/auth/components/AuthBackground";
 import { api } from "@/shared/api/http";
 import { useAuthStore } from "@/features/auth/auth.store";
 
@@ -10,18 +14,24 @@ type LoginResponse = {
     id: string;
     email: string;
     name?: string | null;
-    role: "TENANT" | "OWNER" | "ADMIN";
+    role: "TENANT" | "OWNER" | "ADMIN" | "STAFF";
   };
   token: string;
+  staffMemberships?: {
+    id: string;
+    condoId: string;
+    condoName: string;
+    staffPosition?: string | null;
+    isActive?: boolean;
+    allowedModules: string[];
+  }[];
 };
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
- 
-
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [identifier, setIdentifier] = useState(""); 
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,51 +46,72 @@ const LoginPage: React.FC = () => {
     "w-full max-w-xl rounded-3xl bg-white/65 backdrop-blur-xl border border-white/60 " +
     "shadow-[0_24px_60px_rgba(15,23,42,0.18)] p-10";
 
-  async function handleLogin(){
+  async function handleLogin() {
     try {
       setLoading(true);
       setError(null);
 
-      
       const payload = {
         email: identifier.trim(),
         password,
       };
 
-      const data = await api<LoginResponse>("/auth/login",{
+      const data = await api<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      setAuth(data.token, data.user);
+      setAuth(data.token, data.user, {
+        staffMemberships: data.staffMemberships ?? [],
+        activeMembership: data.staffMemberships?.[0] ?? null,
+      });
 
-      
-      if (data.user.role === "OWNER") navigate("/owner/condo");
-      else if (data.user.role === "TENANT") navigate("/tenant");
-      else navigate("/admin");
+      if (data.user.role === "OWNER") {
+        navigate("/owner/condo", { replace: true });
+        return;
+      }
+
+      if (data.user.role === "TENANT") {
+        navigate("/tenant", { replace: true });
+        return;
+      }
+
+      if (data.user.role === "STAFF") {
+        navigate("/staff/dashboard", { replace: true });
+        return;
+      }
+
+      navigate("/admin", { replace: true });
     } catch (e: any) {
-      setError(e.message || "เข้าสู่ระบบไม่สำเร็จ");
+      const message =
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        e?.message ||
+        "เข้าสู่ระบบไม่สำเร็จ";
+      setError(message);
     } finally {
       setLoading(false);
     }
   }
 
-  function onSubmit(e: React.FormEvent){
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!identifier.trim()){
+
+    if (!identifier.trim()) {
       setError("กรุณากรอกอีเมล");
       return;
     }
+
     if (!password) {
       setError("กรุณากรอกรหัสผ่าน");
       return;
     }
+
     handleLogin();
   }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen w-full">
-     
       <div className="hidden md:flex w-7/12 cosmic-gradient flex-col items-center justify-center relative overflow-hidden">
         <CondoBackground />
         <Meteors />
@@ -103,7 +134,6 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
 
-     
       <div className="flex-1 relative overflow-hidden flex items-center justify-center p-8">
         <SaaSBackground />
 
@@ -111,10 +141,14 @@ const LoginPage: React.FC = () => {
           <h2 className="text-5xl font-bold text-slate-900 mb-2">ลงชื่อเข้าใช้</h2>
 
           <p className="text-xs text-slate-600 mb-8 leading-relaxed">
-            ยินดีต้อนรับสู่ <span className="text-indigo-600 font-bold">RentSphere</span>
+            ยินดีต้อนรับสู่{" "}
+            <span className="text-indigo-600 font-bold">RentSphere</span>
             <br />
             เมื่อคุณลงชื่อเข้าใช้ แสดงว่าคุณยอมรับ
-            <a href="#" className="text-blue-600 underline ml-1 underline-offset-2">
+            <a
+              href="#"
+              className="text-blue-600 underline ml-1 underline-offset-2"
+            >
               เงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว
             </a>
           </p>
@@ -164,26 +198,23 @@ const LoginPage: React.FC = () => {
             <div className="flex items-center justify-between text-[11px] pt-4 border-t border-slate-200">
               <div className="text-slate-600">
                 สมาชิกใหม่?{" "}
-               <button
-                      type="button"
-                      onClick={() => navigate("/auth/owner/register")}
-                      className="text-blue-700 font-bold"
-                    >
-                      สมัครสมาชิกเพื่อเข้าใช้งานระบบ
-                    </button>
-
+                <button
+                  type="button"
+                  onClick={() => navigate("/auth/owner/register")}
+                  className="text-blue-700 font-bold"
+                >
+                  สมัครสมาชิกเพื่อเข้าใช้งานระบบ
+                </button>
               </div>
 
               <button
                 type="button"
                 onClick={() => navigate("/auth/owner/forgot")}
-
                 className="text-blue-700"
               >
                 ลืมรหัสผ่าน?
               </button>
             </div>
-
           </form>
         </div>
       </div>

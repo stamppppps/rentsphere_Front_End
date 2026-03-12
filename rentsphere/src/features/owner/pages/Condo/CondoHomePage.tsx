@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/shared/api/http";
 import { useCondoStore } from "@/features/owner/stores/condoStore";
-import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
+import PopupModal, {
+  type PopupState,
+  defaultPopup,
+} from "@/shared/components/PopupModal";
 
 type CondoApiItem = any;
-
 
 function normalizeCondo(x: any) {
   const id = String(x.id ?? x.condoId ?? "");
@@ -13,60 +15,56 @@ function normalizeCondo(x: any) {
     x.name ?? x.nameTh ?? x.nameTH ?? x.condoName ?? x.title ?? "—"
   );
 
-  // ----- roomsTotal -----
   const roomsTotal =
     Number(
       x.roomsTotal ??
-      x.totalRooms ??
-      x.rooms_total ??
-      x.roomsCount ??
-      x.stats?.roomsTotal ??
-      x.stats?.totalRooms ??
-      x._count?.rooms ??
-      x.countRooms ??
-      0
+        x.totalRooms ??
+        x.rooms_total ??
+        x.roomsCount ??
+        x.stats?.roomsTotal ??
+        x.stats?.totalRooms ??
+        x._count?.rooms ??
+        x.countRooms ??
+        0
     ) ||
     (Array.isArray(x.rooms) ? x.rooms.length : 0) ||
     (Array.isArray(x.room) ? x.room.length : 0) ||
     0;
 
-
   const roomsActiveDirect = Number(
     x.roomsActive ??
-    x.activeRooms ??
-    x.rooms_active ??
-    x.activeCount ??
-    x.stats?.roomsActive ??
-    x.stats?.activeRooms ??
-    x._count?.activeRooms ??
-    0
+      x.activeRooms ??
+      x.rooms_active ??
+      x.activeCount ??
+      x.stats?.roomsActive ??
+      x.stats?.activeRooms ??
+      x._count?.activeRooms ??
+      0
   );
 
-  const roomsActiveFromRooms =
-    Array.isArray(x.rooms)
-      ? x.rooms.filter((r: any) => {
+  const roomsActiveFromRooms = Array.isArray(x.rooms)
+    ? x.rooms.filter((r: any) => {
         if (typeof r?.isActive === "boolean") return r.isActive;
         if (typeof r?.active === "boolean") return r.active;
         const s = String(r?.status ?? r?.state ?? "").toUpperCase();
         return s === "ACTIVE" || s === "OCCUPIED" || s === "IN_USE";
       }).length
-      : 0;
+    : 0;
 
   const roomsActive = roomsActiveDirect || roomsActiveFromRooms || 0;
 
-  // ----- unpaidBills -----
   const unpaidBills =
     Number(
       x.unpaidBills ??
-      x.unpaid ??
-      x.unpaid_bills ??
-      x.unpaidCount ??
-      x.stats?.unpaidBills ??
-      x.stats?.unpaid ??
-      x.stats?.unpaidCount ??
-      x.billStats?.unpaidBills ??
-      x.billStats?.unpaidCount ??
-      0
+        x.unpaid ??
+        x.unpaid_bills ??
+        x.unpaidCount ??
+        x.stats?.unpaidBills ??
+        x.stats?.unpaid ??
+        x.stats?.unpaidCount ??
+        x.billStats?.unpaidBills ??
+        x.billStats?.unpaidCount ??
+        0
     ) || 0;
 
   return { id, name, roomsTotal, roomsActive, unpaidBills };
@@ -75,14 +73,13 @@ function normalizeCondo(x: any) {
 async function fetchCondosFromApi(): Promise<CondoItem[]> {
   const data = await api<any>(`/owner/condos`, { method: "GET" });
 
-  const list =
-    Array.isArray(data)
-      ? data
-      : Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data?.data)
-          ? data.data
-          : [];
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
 
   return list.map(normalizeCondo);
 }
@@ -100,30 +97,40 @@ type CondoItem = {
 type PermissionModule =
   | "DASHBOARD"
   | "ROOMS"
+  | "REPAIR"
+  | "PARCEL"
+  | "FACILITY"
+  | "METER"
   | "BILLING"
   | "PAYMENT"
-  | "PARCEL"
-  | "REPAIR"
-  | "FACILITY"
-  | "ANNOUNCE"
-  | "CHAT"
-  | "STAFF";
+  | "REPORTS";
 
 const MODULES: { code: PermissionModule; label: string }[] = [
-  { code: "DASHBOARD", label: "Dashboard" },
-  { code: "ROOMS", label: "Rooms" },
-  { code: "BILLING", label: "Billing" },
-  { code: "PAYMENT", label: "Payment" },
-  { code: "PARCEL", label: "Parcel" },
-  { code: "REPAIR", label: "Repair" },
-  { code: "FACILITY", label: "Facility" },
-  { code: "ANNOUNCE", label: "Announce" },
-  { code: "CHAT", label: "Chat" },
-  { code: "STAFF", label: "Staff" },
+  { code: "DASHBOARD", label: "ข้อมูลภาพรวม" },
+  { code: "ROOMS", label: "ห้อง" },
+  { code: "REPAIR", label: "แจ้งซ่อม" },
+  { code: "PARCEL", label: "แจ้งพัสดุ" },
+  { code: "FACILITY", label: "จองส่วนกลาง" },
+  { code: "METER", label: "จดมิเตอร์" },
+  { code: "BILLING", label: "ออกบิล" },
+  { code: "PAYMENT", label: "แจ้งชำระเงิน" },
+  { code: "REPORTS", label: "รายงาน" },
 ];
 
+const MODULE_LABEL_MAP: Record<PermissionModule, string> = {
+  DASHBOARD: "ข้อมูลภาพรวม",
+  ROOMS: "ห้อง",
+  REPAIR: "แจ้งซ่อม",
+  PARCEL: "แจ้งพัสดุ",
+  FACILITY: "จองส่วนกลาง",
+  METER: "จดมิเตอร์",
+  BILLING: "ออกบิล",
+  PAYMENT: "แจ้งชำระเงิน",
+  REPORTS: "รายงาน",
+};
+
 type StaffItem = {
-  id: string; // membershipId
+  id: string;
   staffUserId: string;
   fullName: string;
   phone?: string;
@@ -226,7 +233,13 @@ function selectPill() {
   ].join(" ");
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <div className="text-sm font-extrabold text-gray-800 mb-3">{label}</div>
@@ -234,7 +247,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-
 
 function getTokenFromStorage(): string | null {
   try {
@@ -264,7 +276,6 @@ function isHtmlError(e: any) {
   return raw.startsWith("<!doctype") || raw.startsWith("<html");
 }
 
-
 function UserManagementPanel({
   condoId,
   condoName,
@@ -278,7 +289,7 @@ function UserManagementPanel({
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
-  const [editingId, setEditingId] = useState<string | null>(null); // membershipId
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<StaffForm>(emptyStaffForm);
 
   const [tempPassword, setTempPassword] = useState<string | null>(null);
@@ -293,6 +304,7 @@ function UserManagementPanel({
       setUsers([]);
       return;
     }
+
     try {
       setError(null);
       setLoading(true);
@@ -301,14 +313,13 @@ function UserManagementPanel({
         method: "GET",
       });
 
-      const list: any[] =
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+      const list: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
 
       setUsers(
         list.map((x: any) => ({
@@ -319,7 +330,9 @@ function UserManagementPanel({
           email: x.email ? String(x.email) : "",
           staffPosition: x.staffPosition ? String(x.staffPosition) : "",
           isActive: Boolean(x.isActive ?? true),
-          allowedModules: Array.isArray(x.allowedModules) ? x.allowedModules : [],
+          allowedModules: Array.isArray(x.allowedModules)
+            ? x.allowedModules
+            : [],
         }))
       );
     } catch (e: any) {
@@ -332,7 +345,6 @@ function UserManagementPanel({
 
   useEffect(() => {
     loadUsers();
-
   }, [condoId]);
 
   const openCreate = () => {
@@ -340,6 +352,7 @@ function UserManagementPanel({
     setEditingId(null);
     setForm({ ...emptyStaffForm });
     setTempPassword(null);
+    setError(null);
     setOpen(true);
   };
 
@@ -355,10 +368,14 @@ function UserManagementPanel({
       isActive: u.isActive ?? true,
     });
     setTempPassword(null);
+    setError(null);
     setOpen(true);
   };
 
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    setTempPassword(null);
+  };
 
   const toggleModule = (m: PermissionModule) => {
     setForm((s) => {
@@ -374,8 +391,21 @@ function UserManagementPanel({
 
   const onSave = async () => {
     if (!condoId) return;
-    if (!form.fullName.trim()) return;
-    if (!form.email.trim() && !form.phone.trim()) return;
+
+    if (!form.fullName.trim()) {
+      setError("กรุณากรอกชื่อและนามสกุล");
+      return;
+    }
+
+    if (!form.email.trim() && !form.phone.trim()) {
+      setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์อย่างน้อย 1 อย่าง");
+      return;
+    }
+
+    if (!form.allowedModules.length) {
+      setError("กรุณาเลือกสิทธิ์อย่างน้อย 1 รายการ");
+      return;
+    }
 
     try {
       setError(null);
@@ -460,7 +490,7 @@ function UserManagementPanel({
               <div className="col-span-1 text-center">#</div>
               <div className="col-span-4">ชื่อ/ตำแหน่ง</div>
               <div className="col-span-3">เบอร์/อีเมล</div>
-              <div className="col-span-3">สิทธิ์ (Modules)</div>
+              <div className="col-span-3">สิทธิ์</div>
               <div className="col-span-1 text-right"></div>
             </div>
           </div>
@@ -480,56 +510,75 @@ function UserManagementPanel({
               </div>
             ) : (
               <div className="divide-y divide-gray-200/80">
-                {rows.map((u) => (
-                  <div
-                    key={u.id}
-                    className="grid grid-cols-12 gap-4 items-start px-6 py-6"
-                  >
-                    <div className="col-span-1 text-center font-extrabold text-gray-600">
-                      {u.no}
-                    </div>
+                {rows.map((u) => {
+                  const visibleLabels = (u.allowedModules || [])
+                    .map((code) => MODULE_LABEL_MAP[code as PermissionModule] ?? code)
+                    .slice(0, 3);
 
-                    <div className="col-span-4">
-                      <div className="font-extrabold text-gray-900">
-                        {u.fullName}
-                      </div>
-                      <div className="mt-1 text-sm font-bold text-gray-500">
-                        {u.staffPosition || "—"}{" "}
-                        {!u.isActive ? "(ปิดใช้งาน)" : ""}
-                      </div>
-                    </div>
+                  const moreCount = Math.max(
+                    0,
+                    (u.allowedModules || []).length - visibleLabels.length
+                  );
 
-                    <div className="col-span-3">
-                      <div className="font-extrabold text-gray-900">
-                        {u.phone || "—"}
+                  return (
+                    <div
+                      key={u.id}
+                      className="grid grid-cols-12 gap-4 items-start px-6 py-6"
+                    >
+                      <div className="col-span-1 text-center font-extrabold text-gray-600">
+                        {u.no}
                       </div>
-                      <div className="mt-1 text-sm font-bold text-gray-500">
-                        {u.email || "—"}
-                      </div>
-                    </div>
 
-                    <div className="col-span-3">
-                      <div className="text-sm font-bold text-gray-700">
-                        {(u.allowedModules || []).slice(0, 4).join(", ")}
-                        {(u.allowedModules || []).length > 4
-                          ? ` +${u.allowedModules.length - 4}`
-                          : ""}
+                      <div className="col-span-4">
+                        <div className="font-extrabold text-gray-900">
+                          {u.fullName}
+                        </div>
+                        <div className="mt-1 text-sm font-bold text-gray-500">
+                          {u.staffPosition || "—"}{" "}
+                          {!u.isActive ? "(ปิดใช้งาน)" : ""}
+                        </div>
+                      </div>
+
+                      <div className="col-span-3">
+                        <div className="font-extrabold text-gray-900">
+                          {u.phone || "—"}
+                        </div>
+                        <div className="mt-1 text-sm font-bold text-gray-500 break-all">
+                          {u.email || "—"}
+                        </div>
+                      </div>
+
+                      <div className="col-span-3">
+                        <div className="flex flex-wrap gap-2">
+                          {visibleLabels.map((label) => (
+                            <span
+                              key={label}
+                              className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-3 py-1 text-xs font-extrabold text-blue-700"
+                            >
+                              {label}
+                            </span>
+                          ))}
+
+                          {moreCount > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-3 py-1 text-xs font-extrabold text-gray-600">
+                              +{moreCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 text-right">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(u)}
+                          className="h-[36px] px-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        >
+                          edit
+                        </button>
                       </div>
                     </div>
-
-                    <div className="col-span-1 text-right">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(u)}
-                        className="h-[36px] px-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm
-                        shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                        focus:outline-none focus:ring-2 focus:ring-gray-200"
-                      >
-                        edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -540,8 +589,7 @@ function UserManagementPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/30" onClick={close} />
           <div
-            className="relative w-full max-w-[900px] rounded-2xl bg-white shadow-[0_18px_55px_rgba(0,0,0,0.35)]
-            border border-blue-100/60 overflow-hidden"
+            className="relative w-full max-w-[900px] rounded-2xl bg-white shadow-[0_18px_55px_rgba(0,0,0,0.35)] border border-blue-100/60 overflow-hidden"
             role="dialog"
             aria-modal="true"
           >
@@ -563,9 +611,7 @@ function UserManagementPanel({
                     </div>
                     <button
                       className="h-[38px] px-4 rounded-xl bg-white border border-amber-200 font-extrabold"
-                      onClick={() =>
-                        navigator.clipboard.writeText(tempPassword)
-                      }
+                      onClick={() => navigator.clipboard.writeText(tempPassword)}
                       type="button"
                     >
                       คัดลอก
@@ -574,6 +620,12 @@ function UserManagementPanel({
                   <div className="mt-3 text-xs font-bold text-amber-700">
                     คัดลอกแล้วกด “ปิด” ได้เลย
                   </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-700">
+                  {error}
                 </div>
               )}
 
@@ -621,14 +673,47 @@ function UserManagementPanel({
                   />
                 </Field>
 
-                <Field label="สิทธิ์เข้าถึง (Modules)">
+                <Field label="สิทธิ์เข้าถึง">
+                  <div className="flex items-center justify-end gap-3 mb-3">
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-blue-700"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          allowedModules: MODULES.map((m) => m.code),
+                        }))
+                      }
+                    >
+                      เลือกทั้งหมด
+                    </button>
+
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-slate-500"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          allowedModules: [],
+                        }))
+                      }
+                    >
+                      ล้างทั้งหมด
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {MODULES.map((m) => {
                       const checked = form.allowedModules.includes(m.code);
                       return (
                         <label
                           key={m.code}
-                          className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 cursor-pointer"
+                          className={[
+                            "flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition",
+                            checked
+                              ? "border-blue-300 bg-blue-50"
+                              : "border-gray-200 bg-white hover:bg-gray-50",
+                          ].join(" ")}
                         >
                           <input
                             type="checkbox"
@@ -681,9 +766,7 @@ function UserManagementPanel({
                 </button>
               </div>
 
-              <div className="mt-3 text-xs font-bold text-gray-400">
-
-              </div>
+              <div className="mt-3 text-xs font-bold text-gray-400"></div>
             </div>
           </div>
         </div>
@@ -693,7 +776,7 @@ function UserManagementPanel({
 }
 
 /* =========================
-    CondoHomePage (production-safe)
+   CondoHomePage (production-safe)
    ========================= */
 type LocationState = { justCreated?: boolean; condoId?: string } | null;
 
@@ -715,7 +798,6 @@ export default function CondoHomePage() {
 
   const token = useMemo(() => getTokenFromStorage(), []);
 
-
   useEffect(() => {
     if (!token) {
       nav("/login", {
@@ -723,7 +805,6 @@ export default function CondoHomePage() {
         state: { from: location.pathname + location.search },
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const loadCondos = async () => {
@@ -740,14 +821,13 @@ export default function CondoHomePage() {
 
       const data = await api<any>("/owner/condos", { method: "GET" });
 
-      const listRaw =
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+      const listRaw = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
 
       setCondos(listRaw.map(normalizeCondo));
     } catch (e: any) {
@@ -776,12 +856,10 @@ export default function CondoHomePage() {
 
   useEffect(() => {
     loadCondos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (justCreated) loadCondos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justCreated]);
 
   const sortedCondos = useMemo(() => {
@@ -792,8 +870,7 @@ export default function CondoHomePage() {
   }, [condos, createdCondoId]);
 
   const goDashboard = (condoId: string) => {
-    // Sync condo to Zustand store so sidebar pages (Repairs, Parcels, etc.) can access it
-    const condo = sortedCondos.find(c => c.id === condoId);
+    const condo = sortedCondos.find((c) => c.id === condoId);
     if (condo) {
       useCondoStore.getState().selectCondo(condo.id, condo.name);
     }
@@ -812,7 +889,9 @@ export default function CondoHomePage() {
         setPopup(defaultPopup);
         setDeletingId(condo.id);
         try {
-          await api(`/owner/condos/${encodeURIComponent(condo.id)}`, { method: "DELETE" });
+          await api(`/owner/condos/${encodeURIComponent(condo.id)}`, {
+            method: "DELETE",
+          });
           setPopup({
             open: true,
             type: "success",
@@ -839,7 +918,6 @@ export default function CondoHomePage() {
     });
   };
 
-
   const condoNameForUsers = sortedCondos[0]?.name ?? "—";
   const condoIdForUsers = sortedCondos[0]?.id ?? null;
 
@@ -855,7 +933,6 @@ export default function CondoHomePage() {
             </div>
 
             <div className="px-6 py-6">
-              {/* tabs */}
               <div className="flex items-center justify-center">
                 <div className="w-full max-w-3xl">
                   <div className="flex items-end justify-center gap-14">
@@ -968,7 +1045,7 @@ export default function CondoHomePage() {
                 <button
                   type="button"
                   className="text-gray-500 font-bold underline underline-offset-4 hover:text-gray-700"
-                  onClick={() => { }}
+                  onClick={() => {}}
                 >
                   จัดเรียงลำดับ
                 </button>
@@ -1114,10 +1191,7 @@ export default function CondoHomePage() {
         </div>
       </div>
 
-      <PopupModal
-        {...popup}
-        onClose={() => setPopup(defaultPopup)}
-      />
+      <PopupModal {...popup} onClose={() => setPopup(defaultPopup)} />
     </div>
   );
 }

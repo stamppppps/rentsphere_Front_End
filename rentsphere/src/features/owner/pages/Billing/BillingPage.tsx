@@ -4,7 +4,7 @@ import BillingFilter from "./componentsbill/BillingFilter";
 import BillingTable from "./componentsbill/BillingTable";
 import InvoiceDetail from "./InvoiceDetail";
 import type { BillingItem } from "./types";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getActiveCondoId } from "@/shared/utils/getActiveCondoId";
 
 /* ================================================================
    API helpers
@@ -29,41 +29,10 @@ function authHeaders() {
   };
 }
 
-async function resolveCondoId(): Promise<string> {
-  const storeId = getSelectedCondoId();
-  if (storeId) return storeId;
-
-  const ls = localStorage.getItem("rentsphere_selected_condo");
-  if (ls) return ls;
-
-  try {
-    const raw = localStorage.getItem("rentsphere_condo_wizard");
-    if (raw) {
-      const id = JSON.parse(raw)?.state?.condoId;
-      if (id) return id;
-    }
-  } catch {}
-
-  try {
-    const r = await fetch(`${API}/api/v1/condos/mine`, {
-      method: "GET",
-      headers: authHeaders(),
-    });
-    if (r.ok) {
-      const d = await r.json();
-      const c = d.condo || (d.condos && d.condos[0]);
-      if (c?.id) return String(c.id);
-    }
-  } catch {}
-
-  throw new Error("ไม่พบ condoId");
-}
-
 /* ================================================================
    Main Page
    ================================================================ */
 export default function BillingPage() {
-  /* ==================== state ==================== */
   const [billingData, setBillingData] = useState<BillingItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<BillingItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +40,7 @@ export default function BillingPage() {
   const [waterRate, setWaterRate] = useState(18);
   const [electricRate, setElectricRate] = useState(8);
   const [condoId, setCondoId] = useState("");
+  const [error, setError] = useState("");
 
   /* ==================== load data from backend ==================== */
   useEffect(() => {
@@ -79,7 +49,13 @@ export default function BillingPage() {
     (async () => {
       try {
         setLoading(true);
-        const cId = await resolveCondoId();
+        setError("");
+
+        const cId = getActiveCondoId();
+        if (!cId) {
+          throw new Error("ไม่พบ condoId ที่กำลังใช้งาน");
+        }
+
         if (cancelled) return;
         setCondoId(cId);
 
@@ -87,12 +63,15 @@ export default function BillingPage() {
           fetch(`${API}/api/v1/owner/condos/${cId}/rooms`, {
             headers: authHeaders(),
           }).catch(() => null),
+
           fetch(`${API}/api/v1/owner/condos/${cId}/meters`, {
             headers: authHeaders(),
           }).catch(() => null),
+
           fetch(`${API}/api/v1/owner/condos/${cId}/utilities`, {
             headers: authHeaders(),
           }).catch(() => null),
+
           fetch(`${API}/api/v1/owner/condos/${cId}/invoices`, {
             headers: authHeaders(),
           }).catch(() => null),
@@ -104,7 +83,10 @@ export default function BillingPage() {
           : roomsRaw?.rooms || roomsRaw?.items || [];
 
         const metersRaw = meterRes?.ok ? await meterRes.json() : {};
-        const meters: any[] = metersRaw?.readings || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
+        const meters: any[] =
+          metersRaw?.readings ||
+          metersRaw?.items ||
+          (Array.isArray(metersRaw) ? metersRaw : []);
 
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
         const configs: any[] =
@@ -124,10 +106,13 @@ export default function BillingPage() {
         let eRate = 8;
 
         for (const c of configs) {
-          const ut = String(c.utility_type || c.utilityType || "").toUpperCase();
+          const ut = String(c.utility_type || c.utilityType || c.utilitytype || "")
+            .toUpperCase();
+
           if (ut === "WATER") {
             wRate = Number(c.rate || c.pricePerUnit || 18);
           }
+
           if (ut === "ELECTRIC" || ut === "ELECTRICITY") {
             eRate = Number(c.rate || c.pricePerUnit || 8);
           }
@@ -139,8 +124,8 @@ export default function BillingPage() {
         const tenantMap: Record<string, string> = {};
         for (const r of rooms) {
           const roomNo = String(r.roomNo || r.room_no || "");
-          if (r.occupancyStatus === "OCCUPIED") {
-            tenantMap[roomNo] = "มีผู้เช่า";
+          if (String(r.occupancyStatus || "").toUpperCase() === "OCCUPIED") {
+            tenantMap[roomNo] = r.tenantName || r.tenant?.name || "มีผู้เช่า";
           }
         }
 
@@ -158,7 +143,7 @@ export default function BillingPage() {
         }
 
         const occupiedRooms = rooms.filter(
-          (r: any) => r.occupancyStatus === "OCCUPIED"
+          (r: any) => String(r.occupancyStatus || "").toUpperCase() === "OCCUPIED"
         );
 
         const items: BillingItem[] = occupiedRooms.map((r: any) => {
@@ -189,8 +174,10 @@ export default function BillingPage() {
           const waterCost = waterMeter ? waterMeter.totalUnits * wRate : 0;
           const elecCost = elecMeter ? elecMeter.totalUnits * eRate : 0;
           const estimatedTotal = rentAmount + waterCost + elecCost;
-          const isPaid =
-            inv ? String(inv.status || "").toLowerCase() === "paid" : false;
+
+          const isPaid = inv
+            ? String(inv.status || "").toUpperCase() === "PAID"
+            : false;
 
           return {
             id: roomId,
@@ -217,8 +204,12 @@ export default function BillingPage() {
         );
 
         setBillingData(items);
-      } catch (e) {
+      } catch (e: any) {
         console.error("BillingPage load error:", e);
+        if (!cancelled) {
+          setError(e?.message || "โหลดข้อมูลใบแจ้งหนี้ไม่สำเร็จ");
+          setBillingData([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -254,25 +245,31 @@ export default function BillingPage() {
             roomId: item.id,
             totalAmount: item.estimatedTotal,
             status: "PAID",
-            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${((item.waterMeter?.totalUnits || 0) * item.waterRate)}฿ + ค่าไฟ ${((item.elecMeter?.totalUnits || 0) * item.electricRate)}฿`,
+            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${
+              (item.waterMeter?.totalUnits || 0) * item.waterRate
+            }฿ + ค่าไฟ ${
+              (item.elecMeter?.totalUnits || 0) * item.electricRate
+            }฿`,
           }),
         });
 
         if (res.ok) {
           const d = await res.json();
+
           setBillingData((prev) =>
             prev.map((b) =>
               b.id === id
                 ? {
                     ...b,
                     isPaid: true,
-                    invoiceId: d.invoice?.id
-                      ? String(d.invoice.id)
-                      : b.invoiceId,
+                    invoiceId: d.invoice?.id ? String(d.invoice.id) : b.invoiceId,
+                    invoiceNo: d.invoice?.invoiceNo || b.invoiceNo,
+                    invoiceStatus: d.invoice?.status || "PAID",
                   }
                 : b
             )
           );
+
           setSelectedItem(null);
           return;
         }
@@ -303,6 +300,21 @@ export default function BillingPage() {
             <div className="text-sm font-extrabold text-gray-600">
               กำลังโหลดข้อมูลใบแจ้งหนี้...
             </div>
+          </div>
+        </div>
+      </OwnerShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <OwnerShell activeKey="billing" showSidebar>
+        <div className="max-w-7xl mx-auto pt-10 px-6">
+          <div className="rounded-2xl bg-white border border-rose-200 shadow-sm px-6 py-12 text-center">
+            <div className="text-base font-extrabold text-rose-600">
+              โหลดข้อมูลไม่สำเร็จ
+            </div>
+            <div className="mt-2 text-sm font-bold text-gray-500">{error}</div>
           </div>
         </div>
       </OwnerShell>

@@ -1,5 +1,6 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { useAuthStore } from "@/features/auth/auth.store";
+import { getActiveCondoId } from "@/shared/utils/getActiveCondoId";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,15 +23,23 @@ type LocationState = { condoId?: string } | null;
 
 function moneyTHB(n?: number | null) {
   if (n == null || !Number.isFinite(n)) return "0.00";
-  return new Intl.NumberFormat("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 }
 
 /* =========================
    API
    ========================= */
 async function fetchMyCondos(): Promise<CondoPick[]> {
-  const data = await api<any>("/owner/condos"); // GET /owner/condos
-  const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  const data = await api<any>("/owner/condos");
+  const arr = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+    ? data.items
+    : [];
+
   return arr.map((c: any) => ({
     id: String(c?.id),
     name: String(c?.nameTh ?? c?.nameEn ?? c?.condoName ?? "—"),
@@ -38,18 +47,31 @@ async function fetchMyCondos(): Promise<CondoPick[]> {
 }
 
 async function fetchRooms(condoId: string): Promise<RoomRow[]> {
-  const data = await api<any>(`/owner/condos/${encodeURIComponent(condoId)}/rooms`);
-  const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  const data = await api<any>(
+    `/owner/condos/${encodeURIComponent(condoId)}/rooms`
+  );
+
+  const arr = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+    ? data.items
+    : [];
+
   return arr.map((r: any) => ({
     id: String(r?.id),
     floor: Number(r?.floor ?? 0),
     roomNo: String(r?.roomNo ?? "—"),
-    price: Number(r?.price ?? 0),
+    price: Number(r?.price ?? r?.rentPrice ?? 0),
     isActive: Boolean(r?.isActive ?? true),
-    occupancyStatus: String(r?.occupancyStatus ?? "VACANT").toUpperCase() === "OCCUPIED" ? "OCCUPIED" : "VACANT",
+    occupancyStatus:
+      String(r?.occupancyStatus ?? "VACANT").toUpperCase() === "OCCUPIED"
+        ? "OCCUPIED"
+        : "VACANT",
     roomStatus: r?.roomStatus ?? null,
     serviceId: r?.serviceId ?? null,
-    serviceIds: Array.isArray(r?.serviceIds) ? r.serviceIds.map((x: any) => String(x)) : [],
+    serviceIds: Array.isArray(r?.serviceIds)
+      ? r.serviceIds.map((x: any) => String(x))
+      : [],
   }));
 }
 
@@ -58,6 +80,7 @@ async function fetchRooms(condoId: string): Promise<RoomRow[]> {
    ========================= */
 function StatusPill({ status }: { status: "VACANT" | "OCCUPIED" }) {
   const vacant = status === "VACANT";
+
   return (
     <span
       className={[
@@ -75,27 +98,35 @@ function StatusPill({ status }: { status: "VACANT" | "OCCUPIED" }) {
 export default function RoomsPage() {
   const nav = useNavigate();
   const location = useLocation();
+  const auth = useAuthStore((s) => s);
+
   const state = (location.state ?? null) as LocationState;
   const params = new URLSearchParams(location.search);
+
+  const isStaff = auth.user?.role === "STAFF";
+
+  const routeBase = isStaff ? "/staff" : "/owner";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [condoId, setCondoId] = useState<string | null>(
-    params.get("condoId") ?? state?.condoId ?? getSelectedCondoId() ?? null
+    params.get("condoId") ?? state?.condoId ?? getActiveCondoId() ?? null
   );
-  const [condoName, setCondoName] = useState<string>("—");
+
+  const [condoName, setCondoName] = useState<string>(
+    isStaff ? auth.activeMembership?.condoName ?? "—" : "—"
+  );
 
   const [rooms, setRooms] = useState<RoomRow[]>([]);
 
-  // modal pick room (ไปหน้า access codes)
   const [openPickRoom, setOpenPickRoom] = useState(false);
   const [pickRoomId, setPickRoomId] = useState("");
 
   const btnPrimary =
     "inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_20px_rgba(37,99,235,0.18)] hover:bg-blue-700 active:scale-[0.99] transition";
 
-  const retry = () => setCondoId((x) => (x ? `${x}` : x)); // trigger useEffect
+  const retry = () => setCondoId((x) => (x ? `${x}` : x));
 
   // 1) ensure condoId
   useEffect(() => {
@@ -108,6 +139,20 @@ export default function RoomsPage() {
         setLoading(true);
         setError(null);
 
+        // STAFF → ใช้ condo จาก membership เท่านั้น
+        if (isStaff) {
+          const membershipCondoId = auth.activeMembership?.condoId ?? "";
+          const membershipCondoName = auth.activeMembership?.condoName ?? "—";
+
+          if (!cancelled) {
+            setCondoId(membershipCondoId || null);
+            setCondoName(membershipCondoName);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // OWNER → ดึงจาก owner condos
         const condos = await fetchMyCondos();
         if (cancelled) return;
 
@@ -118,11 +163,11 @@ export default function RoomsPage() {
           return;
         }
 
-        // Try zustand store first, then fall back to first condo
-        const storeId = getSelectedCondoId();
-        if (storeId) {
-          setCondoId(storeId);
-          const found = condos.find((c) => c.id === storeId);
+        const activeId = getActiveCondoId();
+
+        if (activeId) {
+          setCondoId(activeId);
+          const found = condos.find((c) => c.id === activeId);
           if (found) setCondoName(found.name);
         } else {
           setCondoId(condos[0].id);
@@ -136,24 +181,34 @@ export default function RoomsPage() {
     };
 
     ensure();
+
     return () => {
       cancelled = true;
     };
-  }, [condoId]);
+  }, [condoId, isStaff, auth.activeMembership?.condoId, auth.activeMembership?.condoName]);
 
-  // 2) load rooms
+  // 2) keep staff condo name in sync
+  useEffect(() => {
+    if (!isStaff) return;
+    setCondoName(auth.activeMembership?.condoName ?? "—");
+  }, [isStaff, auth.activeMembership?.condoName]);
+
+  // 3) load rooms
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
-      if (!condoId) return;
+      if (!condoId) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
         setError(null);
 
-        // ถ้ายังไม่รู้ชื่อคอนโด (เช่นมาจาก state condoId อย่างเดียว)
-        if (condoName === "—") {
+        // OWNER only: ถ้ายังไม่รู้ชื่อคอนโด
+        if (!isStaff && condoName === "—") {
           const condos = await fetchMyCondos();
           const found = condos.find((c) => c.id === condoId);
           if (!cancelled && found) setCondoName(found.name);
@@ -173,27 +228,40 @@ export default function RoomsPage() {
     };
 
     load();
+
     return () => {
       cancelled = true;
     };
-  }, [condoId, condoName]);
+  }, [condoId, condoName, isStaff]);
 
   const roomsTotal = rooms.length;
 
-  const roomsActive = useMemo(() => rooms.filter((r) => r.isActive).length, [rooms]);
-  const roomsVacant = useMemo(
-    () => rooms.filter((r) => r.isActive && r.occupancyStatus === "VACANT").length,
+  const roomsActive = useMemo(
+    () => rooms.filter((r) => r.isActive).length,
     [rooms]
   );
+
+  const roomsVacant = useMemo(
+    () =>
+      rooms.filter((r) => r.isActive && r.occupancyStatus === "VACANT").length,
+    [rooms]
+  );
+
   const roomsOccupied = useMemo(
-    () => rooms.filter((r) => r.isActive && r.occupancyStatus === "OCCUPIED").length,
+    () =>
+      rooms.filter((r) => r.isActive && r.occupancyStatus === "OCCUPIED").length,
     [rooms]
   );
 
   const avgRent = useMemo(() => {
     const list = rooms.filter((r) => r.isActive);
     if (!list.length) return 0;
-    const sum = list.reduce((acc, r) => acc + (Number.isFinite(r.price) ? r.price : 0), 0);
+
+    const sum = list.reduce(
+      (acc, r) => acc + (Number.isFinite(r.price) ? r.price : 0),
+      0
+    );
+
     return Math.round(sum / list.length);
   }, [rooms]);
 
@@ -215,40 +283,69 @@ export default function RoomsPage() {
         <div className="text-sm font-bold text-gray-500">
           คอนโดมิเนียม : <span className="text-gray-800">{condoName}</span>
         </div>
+
+        {rooms.length > 0 && (
+          <button
+            type="button"
+            onClick={openAccessCodeModal}
+            className="px-4 py-2 rounded-xl bg-white border border-blue-200 text-blue-700 font-extrabold hover:bg-blue-50"
+          >
+            สร้างรหัสเข้าสู่ระบบ
+          </button>
+        )}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
         <div className="rounded-2xl border border-blue-100/70 bg-white p-5 shadow-sm">
           <div className="text-xs font-extrabold text-gray-500">จำนวนห้องทั้งหมด</div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{roomsTotal}</div>
-          <div className="mt-1 text-xs font-bold text-gray-500">Active {roomsActive}</div>
+          <div className="mt-2 text-2xl font-extrabold text-gray-900">
+            {roomsTotal}
+          </div>
+          <div className="mt-1 text-xs font-bold text-gray-500">
+            Active {roomsActive}
+          </div>
         </div>
+
         <div className="rounded-2xl border border-emerald-100/70 bg-white p-5 shadow-sm">
           <div className="text-xs font-extrabold text-gray-500">ห้องว่าง</div>
-          <div className="mt-2 text-2xl font-extrabold text-emerald-700">{roomsVacant}</div>
+          <div className="mt-2 text-2xl font-extrabold text-emerald-700">
+            {roomsVacant}
+          </div>
         </div>
+
         <div className="rounded-2xl border border-rose-100/70 bg-white p-5 shadow-sm">
           <div className="text-xs font-extrabold text-gray-500">ห้องไม่ว่าง</div>
-          <div className="mt-2 text-2xl font-extrabold text-rose-700">{roomsOccupied}</div>
+          <div className="mt-2 text-2xl font-extrabold text-rose-700">
+            {roomsOccupied}
+          </div>
         </div>
+
         <div className="rounded-2xl border border-blue-100/70 bg-white p-5 shadow-sm">
-          <div className="text-xs font-extrabold text-gray-500">ค่าเช่าเฉลี่ย (โดยประมาณ)</div>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{moneyTHB(avgRent)}</div>
-          <div className="mt-1 text-xs font-bold text-gray-500">บาท/เดือน</div>
+          <div className="text-xs font-extrabold text-gray-500">
+            ค่าเช่าเฉลี่ย (โดยประมาณ)
+          </div>
+          <div className="mt-2 text-2xl font-extrabold text-gray-900">
+            {moneyTHB(avgRent)}
+          </div>
+          <div className="mt-1 text-xs font-bold text-gray-500">
+            บาท/เดือน
+          </div>
         </div>
       </div>
 
-      {/* States */}
       {loading && (
         <div className="rounded-2xl bg-white border border-blue-100/70 shadow-sm px-6 py-8 text-center">
-          <div className="text-sm font-extrabold text-gray-600">กำลังโหลดรายการห้อง...</div>
+          <div className="text-sm font-extrabold text-gray-600">
+            กำลังโหลดรายการห้อง...
+          </div>
         </div>
       )}
 
       {!loading && error && (
         <div className="rounded-2xl bg-rose-50 border border-rose-200 shadow-sm px-6 py-6">
-          <div className="font-extrabold text-rose-700">โหลดข้อมูลไม่สำเร็จ</div>
+          <div className="font-extrabold text-rose-700">
+            โหลดข้อมูลไม่สำเร็จ
+          </div>
           <div className="mt-1 text-sm font-bold text-rose-600">{error}</div>
 
           <button
@@ -264,8 +361,12 @@ export default function RoomsPage() {
       {!loading && !error && (
         <div className="rounded-2xl border border-blue-100/70 bg-white overflow-hidden shadow-sm">
           <div className="px-6 py-4 bg-[#F3F7FF] border-b border-blue-100/70">
-            <div className="text-lg font-extrabold text-gray-900">รายการห้อง</div>
-            <div className="text-sm font-bold text-gray-500 mt-1">กดที่แถวเพื่อดูรายละเอียดห้อง</div>
+            <div className="text-lg font-extrabold text-gray-900">
+              รายการห้อง
+            </div>
+            <div className="text-sm font-bold text-gray-500 mt-1">
+              กดที่แถวเพื่อดูรายละเอียดห้อง
+            </div>
           </div>
 
           <div className="w-full overflow-x-auto">
@@ -284,7 +385,10 @@ export default function RoomsPage() {
               <tbody>
                 {rooms.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-gray-500 font-bold">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-10 text-gray-500 font-bold"
+                    >
                       ยังไม่มีห้อง (ลองทำ Step5 generate rooms ก่อน)
                     </td>
                   </tr>
@@ -293,17 +397,25 @@ export default function RoomsPage() {
                     <tr
                       key={r.id}
                       className="border-b border-blue-50 hover:bg-blue-50/30 cursor-pointer"
-                      onClick={() => nav(`/owner/rooms/${r.id}`)}
+                      onClick={() => nav(`${routeBase}/rooms/${r.id}`)}
                       role="button"
                     >
                       <td className="px-6 py-4 font-bold">{r.floor}</td>
-                      <td className="px-6 py-4 font-extrabold text-gray-900">{r.roomNo}</td>
+                      <td className="px-6 py-4 font-extrabold text-gray-900">
+                        {r.roomNo}
+                      </td>
                       <td className="px-6 py-4">
                         <StatusPill status={r.occupancyStatus} />
                       </td>
-                      <td className="px-6 py-4 text-right font-extrabold">{moneyTHB(r.price)}</td>
+                      <td className="px-6 py-4 text-right font-extrabold">
+                        {moneyTHB(r.price)}
+                      </td>
                       <td className="px-6 py-4 text-right font-bold">
-                        {r.isActive ? <span className="text-emerald-700">ใช้งาน</span> : <span className="text-gray-400">ปิด</span>}
+                        {r.isActive ? (
+                          <span className="text-emerald-700">ใช้งาน</span>
+                        ) : (
+                          <span className="text-gray-400">ปิด</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                         {r.occupancyStatus === "OCCUPIED" && (
@@ -311,18 +423,19 @@ export default function RoomsPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              nav(`/owner/rooms/${r.id}/edit-contract`);
+                              nav(`${routeBase}/rooms/${r.id}/edit-contract`);
                             }}
                             className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 font-extrabold text-blue-600 hover:bg-blue-100 text-sm"
                           >
                             แก้ไขสัญญา
                           </button>
                         )}
+
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            nav(`/owner/rooms/${r.id}`);
+                            nav(`${routeBase}/rooms/${r.id}`);
                           }}
                           className="px-4 py-2 rounded-xl bg-white border border-gray-200 font-extrabold text-gray-700 hover:bg-gray-50"
                         >
@@ -338,7 +451,6 @@ export default function RoomsPage() {
         </div>
       )}
 
-      {/* ===== Pick Room Modal (Access Codes) ===== */}
       {openPickRoom && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <button
@@ -350,8 +462,12 @@ export default function RoomsPage() {
 
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-blue-100 overflow-hidden">
             <div className="px-6 py-4 bg-[#EAF2FF] border-b border-blue-100">
-              <div className="text-lg font-extrabold text-gray-900">สร้างรหัสเข้าสู่ระบบ</div>
-              <div className="text-sm font-bold text-gray-600 mt-1">เลือกห้องที่ต้องการสร้างรหัส</div>
+              <div className="text-lg font-extrabold text-gray-900">
+                สร้างรหัสเข้าสู่ระบบ
+              </div>
+              <div className="text-sm font-bold text-gray-600 mt-1">
+                เลือกห้องที่ต้องการสร้างรหัส
+              </div>
             </div>
 
             <div className="p-6 space-y-5">
@@ -380,7 +496,7 @@ export default function RoomsPage() {
                   type="button"
                   className={btnPrimary}
                   disabled={!pickRoomId}
-                  onClick={() => nav(`/owner/rooms/${pickRoomId}/access-codes`)}
+                  onClick={() => nav(`${routeBase}/rooms/${pickRoomId}/access-codes`)}
                 >
                   ไปหน้ารหัส
                 </button>
