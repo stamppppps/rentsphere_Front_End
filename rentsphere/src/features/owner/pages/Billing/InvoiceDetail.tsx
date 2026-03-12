@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { BillingItem } from './types';
 import InvoiceHeader from './componentsinvoice/InvoiceHeader';
 import InvoiceInfo from './componentsinvoice/InvoiceInfo';
 import InvoiceTable from './componentsinvoice/InvoiceTable';
 import InvoiceTotal from './componentsinvoice/InvoiceTotal';
 import PaymentPanel from './componentsinvoice/PaymentPanel';
-import type { BillingItem } from './types';
 
 interface InvoiceDetailProps {
   item: BillingItem;
@@ -29,7 +29,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 
   // Form States
   const [paymentAmount, setPaymentAmount] = useState<string>(item.estimatedTotal.toString());
-  const [paymentMethod, setPaymentMethod] = useState<string>('เงินสด');
+  const [paymentMethod, setPaymentMethod] = useState<string>('เงินโอน');
   const [typedDate, setTypedDate] = useState<string>('');
 
   // Initialize date to today on mount
@@ -47,84 +47,44 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
     paymentMethod !== '' &&
     typedDate.length >= 10;
 
-const handlePayment = async () => {
-  if (!isFormValid) return;
+  const handlePayment = async () => {
+    if (!isFormValid) return;
 
-  try {
-    const waterUnits = Number(item.waterMeter?.totalUnits || 0);
-    const elecUnits = Number(item.elecMeter?.totalUnits || 0);
+    try {
+      let invoiceId = item.invoiceId ? String(item.invoiceId) : "";
 
-    const rentAmount = Number(item.rentAmount || 0);
-    const waterAmount = Number((waterUnits * item.waterRate).toFixed(2));
-    const elecAmount = Number((elecUnits * item.electricRate).toFixed(2));
-
-    const total = Number(paymentAmount);
-
-    const now = new Date();
-    const billingMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString();
-
-    const items = [
-      {
-        itemType: "RENT",
-        itemName: "ค่าเช่าห้องพัก",
-        amount: rentAmount,
-      },
-      {
-        itemType: "WATER",
-        itemName: `ค่าน้ำ (${waterUnits} หน่วย x ${item.waterRate} บาท)`,
-        amount: waterAmount,
-      },
-      {
-        itemType: "ELECTRIC",
-        itemName: `ค่าไฟ (${elecUnits} หน่วย x ${item.electricRate} บาท)`,
-        amount: elecAmount,
-      },
-    ].filter((x) => x.amount > 0);
-
-    if (item.invoiceId && !item.isPaid) {
-      setCreatedInvoiceId(item.invoiceId);
-    } else {
-      const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          roomId: item.id,
-          billingMonth,
-          totalAmount: total,
-          status: "ISSUED",
-          note: `ชำระผ่าน ${paymentMethod}`,
-          items,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err?.error || "สร้างใบแจ้งหนี้ไม่สำเร็จ");
-        return;
+      if (!invoiceId) {
+        // สร้างใบแจ้งหนี้เป็น ISSUED (รอการชำระ) — ยังไม่ mark เป็น PAID
+        const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            roomId: item.id,
+            totalAmount: parseFloat(paymentAmount),
+            status: "ISSUED",
+            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${((item.waterMeter?.totalUnits || 0) * item.waterRate).toFixed(2)}฿ + ค่าไฟ ${((item.elecMeter?.totalUnits || 0) * item.electricRate).toFixed(2)}฿ (${paymentMethod})`,
+          }),
+        });
+        if (!res.ok) throw new Error("Create invoice failed");
+        const d = await res.json();
+        invoiceId = d.invoice?.id ? String(d.invoice.id) : "";
       }
 
-      const d = await res.json();
-      const newId = d.invoice?.id ? String(d.invoice.id) : undefined;
+      if (!invoiceId) throw new Error("Missing invoiceId");
 
-      if (newId) {
-        setCreatedInvoiceId(newId);
-      }
+      // บันทึก invoiceId แล้วแสดงว่าสร้างบิลสำเร็จ (ยังไม่ชำระ → รอการชำระ ส้ม)
+      setCreatedInvoiceId(invoiceId);
+      setIsPaid(true); // ใช้ flag นี้เพื่อแสดง success panel (ส่ง LINE / เสร็จสิ้น)
+    } catch (e) {
+      console.error("Invoice API error:", e);
+      alert("สร้างใบแจ้งหนี้ไม่สำเร็จ");
     }
-  } catch (e) {
-    console.error("Payment API error:", e);
-    alert("เกิดข้อผิดพลาดในการบันทึกใบแจ้งหนี้");
-    return;
-  }
-
-  setIsPaid(true);
-};
+  };
 
   const handleReset = () => {
     setIsPaid(false);
     setCreatedInvoiceId(item.invoiceId);
     setPaymentAmount(item.estimatedTotal.toString());
-    setPaymentMethod('เงินสด');
+    setPaymentMethod('เงินโอน');
     const today = new Date();
     const d = String(today.getDate()).padStart(2, '0');
     const m = String(today.getMonth() + 1).padStart(2, '0');
@@ -183,3 +143,5 @@ const handlePayment = async () => {
 };
 
 export default InvoiceDetail;
+
+

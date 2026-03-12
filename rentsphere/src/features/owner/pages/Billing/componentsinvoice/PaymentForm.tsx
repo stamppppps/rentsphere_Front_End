@@ -66,7 +66,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       {/* Recording Form */}
       <div className="bg-white rounded-[40px] p-8 sm:p-10 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center text-[#8B5CF6]">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
@@ -84,7 +84,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder="ระบุจำนวนเงิน"
-              className="w-full bg-[#F8FAFC] border-0 rounded-2xl py-4 px-6 text-[#1E293B] font-bold text-lg focus:ring-2 focus:ring-purple-100 transition-all outline-none"
+              className="w-full bg-[#F8FAFC] border-0 rounded-2xl py-4 px-6 text-[#1E293B] font-bold text-lg focus:ring-2 focus:ring-blue-100 transition-all outline-none"
             />
           </div>
 
@@ -96,9 +96,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               <select 
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="appearance-none w-full bg-[#F8FAFC] border-0 rounded-2xl py-4 px-6 text-[#1E293B] font-medium focus:ring-2 focus:ring-purple-100 transition-all outline-none pr-12 cursor-pointer"
+                className="appearance-none w-full bg-[#F8FAFC] border-0 rounded-2xl py-4 px-6 text-[#1E293B] font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none pr-12 cursor-pointer"
               >
-                <option value="เงินสด">เงินสด</option>
                 <option value="เงินโอน">เงินโอน</option>
               </select>
               <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
@@ -113,13 +112,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <label className="block text-[#64748B] text-sm font-medium mb-2.5">
               วันที่รับเงิน <span className="text-red-400">* จำเป็น</span>
             </label>
-            <div className="relative bg-[#F8FAFC] rounded-2xl flex items-center min-h-[64px] transition-all focus-within:ring-2 focus-within:ring-purple-100 overflow-hidden">
+            <div className="relative bg-[#F8FAFC] rounded-2xl flex items-center min-h-[64px] transition-all focus-within:ring-2 focus-within:ring-blue-100 overflow-hidden">
               <button 
                 onClick={triggerDatePicker}
                 className="pl-5 pr-4 h-full flex items-center group cursor-pointer"
                 type="button"
               >
-                <svg className="w-6 h-6 text-gray-400 group-hover:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
@@ -147,10 +146,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             disabled={!isFormValid}
             className={`w-full py-5 !rounded-[24px] font-bold text-lg transition-all transform mt-4 shadow-lg ${
               isFormValid 
-              ? 'text-white shadow-purple-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90' 
+              ? 'text-white shadow-blue-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90' 
               : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-80 shadow-none'
             }`}
-            style={{ backgroundColor: isFormValid ? "#8B5CF6" : "#F3F4F6" }}
+            style={isFormValid ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : { backgroundColor: "#F3F4F6" }}
           >
             บันทึกการชำระเงิน
           </button>

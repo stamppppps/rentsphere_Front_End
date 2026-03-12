@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import BookingTable from "../components/BookingTable";
 import EmptyState from "../components/EmptyState";
 import { bookingService } from "../services/booking.service";
@@ -34,6 +35,8 @@ const BookingHistoryPage: React.FC = () => {
     const fromStorage = localStorage.getItem(STEP_CONDO_ID_KEY);
     return String(fromQuery ?? fromState ?? fromStorage ?? "").trim();
   }, [searchParams, st?.condoId]);
+
+  const condoName = useCondoStore((s) => s.condoName);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +91,9 @@ const BookingHistoryPage: React.FC = () => {
 
       const matchesFacility =
         !facilityKeyword ||
-        String(booking.facilityName ?? "").toLowerCase().includes(facilityKeyword);
+        String(booking.facilityName ?? "")
+          .toLowerCase()
+          .includes(facilityKeyword);
 
       const matchesDate = !dateFilter || booking.date === dateFilter;
 
@@ -108,7 +113,12 @@ const BookingHistoryPage: React.FC = () => {
     : "/owner/common-area-booking";
 
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar condoId={condoId}>
+    <OwnerShell
+      activeKey="common-area-booking"
+      showSidebar
+      condoId={condoId}
+      condoName={condoName || "คอนโดมิเนียม"}
+    >
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center gap-4 mb-10">
           <Link
@@ -153,7 +163,9 @@ const BookingHistoryPage: React.FC = () => {
                   <Filter size={18} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">ตัวกรองข้อมูล</h2>
+                  <h2 className="text-lg font-black text-slate-900">
+                    ตัวกรองข้อมูล
+                  </h2>
                   <p className="text-sm text-slate-500">
                     การจองทั้งหมด {filteredBookings.length} รายการ
                   </p>

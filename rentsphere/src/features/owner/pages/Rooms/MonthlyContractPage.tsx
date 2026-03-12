@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 type RoomDetail = {
   id: string;
@@ -116,6 +117,7 @@ export default function MonthlyContractPage() {
 
   // Note
   const [note, setNote] = useState("");
+  const [popup, setPopup] = useState<PopupState>(defaultPopup);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +198,7 @@ export default function MonthlyContractPage() {
       });
       nav(`/owner/rooms/${roomId}/advance-payment`, { replace: true });
     } catch (e: any) {
-      alert(e?.message ?? "บันทึกสัญญาไม่สำเร็จ");
+      setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกสัญญาไม่สำเร็จ", title: "ผิดพลาด" });
     } finally {
       setSaving(false);
     }
@@ -243,6 +245,7 @@ export default function MonthlyContractPage() {
   }
 
   return (
+    <>
     <OwnerShell activeKey="rooms" showSidebar>
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-600">
@@ -315,7 +318,7 @@ export default function MonthlyContractPage() {
                 onChange={(e) => setDepositPaidBy(e.target.value)}
                 className={inputCls}
               >
-                <option value="CASH">เงินสด</option>
+                
                 <option value="TRANSFER">โอนเงิน</option>
               </select>
             </div>
@@ -437,7 +440,7 @@ export default function MonthlyContractPage() {
             <button
               type="button"
               onClick={() => {
-                if (!canNext) return alert("กรุณากรอกข้อมูลให้ครบ (ชื่อจริง, นามสกุล, เบอร์ติดต่อ, เลขบัตร, วันเริ่ม)");
+                if (!canNext) return setPopup({ open: true, type: "warning", message: "กรุณากรอกข้อมูลให้ครบ (ชื่อจริง, นามสกุล, เบอร์ติดต่อ, เลขบัตร, วันเริ่ม)", title: "ข้อมูลไม่ครบ" });
                 goNext();
               }}
               className={[
@@ -454,5 +457,8 @@ export default function MonthlyContractPage() {
         </div>
       </div>
     </OwnerShell>
+
+    <PopupModal {...popup} onClose={() => setPopup(defaultPopup)} />
+    </>
   );
 }

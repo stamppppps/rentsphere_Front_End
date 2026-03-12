@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import BookingTable from "../components/BookingTable";
 import ErrorState from "../components/ErrorState";
 import FacilityHeader from "../components/FacilityHeader";
@@ -32,6 +33,7 @@ type FacilitySettingFormData = {
 const FacilityDetailPage: React.FC = () => {
   const { facilityId } = useParams<{ facilityId: string }>();
   const navigate = useNavigate();
+  const condoName = useCondoStore((s) => s.condoName);
 
   const {
     facility,
@@ -170,7 +172,11 @@ const FacilityDetailPage: React.FC = () => {
   }
 
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar>
+    <OwnerShell
+      activeKey="common-area-booking"
+      showSidebar
+      condoName={condoName || "คอนโดมิเนียม"}
+    >
       <div className="max-w-7xl mx-auto px-6 py-12">
         <FacilityHeader
           facility={facility}

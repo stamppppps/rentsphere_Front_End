@@ -166,24 +166,43 @@ export default function BillingBankTransferPage() {
     const onSubmitSlip = async () => {
         if (!slipFile || !selected) return;
 
-        // TODO: upload จริงค่อยใส่
-        // await uploadSlip(...)
+        try {
+            const form = new FormData();
+            form.append("slip", slipFile);
 
-        nav(`/tenant/billing/${billId}/pay/success`, {
-            replace: true,
-            state: {
-                total,
-                methodText: "โอนผ่านธนาคาร",
-                paymentAtText: new Date().toLocaleString("th-TH", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }).replace(",", " |"),
-                statusText: "รอตรวจสอบ",
-            },
-        });
+            const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+            const res = await fetch(`${API}/api/v1/tenant-billing/${billId}/verify-slip`, {
+                method: "POST",
+                body: form,
+            });
+
+            const json = await res.json();
+
+            if (!json.success) {
+                alert(`❌ ตรวจสลิปไม่สำเร็จ\n${json.error || "กรุณาลองใหม่อีกครั้ง"}`);
+                return;
+            }
+
+            nav(`/tenant/billing/${billId}/pay/success`, {
+                replace: true,
+                state: {
+                    total: json.totalAmount ?? total,
+                    methodText: "โอนผ่านธนาคาร",
+                    paymentAtText: new Date().toLocaleString("th-TH", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }).replace(",", " |"),
+                    statusText: "✅ ชำระแล้ว",
+                    slipData: json.slipData,
+                },
+            });
+        } catch (e) {
+            console.error(e);
+            alert("อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง");
+        }
     };
 
     if (!selected) {

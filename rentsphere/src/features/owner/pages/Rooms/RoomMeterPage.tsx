@@ -2,6 +2,8 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
+import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 /* =========================
    Types (ตาม owner.routes.ts)
@@ -88,6 +90,7 @@ export default function RoomMeterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [popup, setPopup] = useState<PopupState>(defaultPopup);
 
   const [condoName, setCondoName] = useState("คอนโดมิเนียม");
   const [roomNo, setRoomNo] = useState("—");
@@ -177,9 +180,9 @@ export default function RoomMeterPage() {
         waterMeterNo: waterMeterNo.trim() ? waterMeterNo.trim() : null,
         electricMeterNo: electricMeterNo.trim() ? electricMeterNo.trim() : null,
       });
-      alert("บันทึกเลขมิเตอร์แล้ว");
+      setPopup({ open: true, type: "success", message: "บันทึกเลขมิเตอร์แล้ว", title: "สำเร็จ" });
     } catch (e: any) {
-      alert(e?.message ?? "บันทึกเลขมิเตอร์ไม่สำเร็จ");
+      setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกเลขมิเตอร์ไม่สำเร็จ", title: "ผิดพลาด" });
     } finally {
       setNumbersSaving(false);
     }
@@ -191,24 +194,26 @@ export default function RoomMeterPage() {
     const cw = Number(currWater);
     const ce = Number(currElectric);
 
-    if (!Number.isFinite(cw) || cw < 0) return alert("กรอกเลขมิเตอร์น้ำ (ตัวเลข >= 0)");
-    if (!Number.isFinite(ce) || ce < 0) return alert("กรอกเลขมิเตอร์ไฟ (ตัวเลข >= 0)");
+    if (!Number.isFinite(cw) || cw < 0) return setPopup({ open: true, type: "warning", message: "กรอกเลขมิเตอร์น้ำ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
+    if (!Number.isFinite(ce) || ce < 0) return setPopup({ open: true, type: "warning", message: "กรอกเลขมิเตอร์ไฟ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
 
     try {
       setSaving(true);
       await submitCurrentMeters(roomId, { currWater: cw, currElectric: ce, note: note.trim() ? note.trim() : undefined });
-      alert("บันทึกหน่วยเดือนนี้แล้ว");
+      setPopup({ open: true, type: "success", message: "บันทึกหน่วยเดือนนี้แล้ว", title: "สำเร็จ" });
       await loadAll();
     } catch (e: any) {
-      alert(e?.message ?? "บันทึกหน่วยไม่สำเร็จ");
+      setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกหน่วยไม่สำเร็จ", title: "ผิดพลาด" });
     } finally {
       setSaving(false);
     }
   };
 
+  const storeCondoName = useCondoStore(s => s.condoName);
+
   if (loading) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูลมิเตอร์...</div>
         </div>
@@ -218,7 +223,7 @@ export default function RoomMeterPage() {
 
   if (!roomId || error) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูล</div>
           <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
@@ -245,8 +250,8 @@ export default function RoomMeterPage() {
     );
   }
 
-  return (
-    <OwnerShell activeKey="rooms" showSidebar>
+  return (<>
+    <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
       {/* header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-600">
@@ -390,5 +395,7 @@ export default function RoomMeterPage() {
         </div>
       </div>
     </OwnerShell>
-  );
+
+    <PopupModal {...popup} onClose={() => setPopup(defaultPopup)} />
+  </>);
 }

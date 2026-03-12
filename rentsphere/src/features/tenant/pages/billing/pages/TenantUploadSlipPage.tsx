@@ -138,22 +138,21 @@ export default function TenantUploadSlipPage() {
             setSubmitting(true);
 
             const form = new FormData();
-            form.append("billId", billId);
             form.append("slip", file);
-            form.append("transferDate", transferDate);
-            form.append("transferTime", transferTime);
-            form.append("amount", String(amountNumber));
-            form.append("note", note);
 
-            // TODO: ต่อ backend จริง
-            // const res = await fetch(`/api/bills/${billId}/slip`, {
-            //   method: "POST",
-            //   body: form,
-            //   credentials: "include",
-            // });
-            // if (!res.ok) throw new Error("upload failed");
+            const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+            const res = await fetch(`${API}/api/v1/tenant-billing/${billId}/verify-slip`, {
+                method: "POST",
+                body: form,
+            });
 
-            await new Promise((r) => setTimeout(r, 700));
+            const json = await res.json();
+
+            if (!json.success) {
+                alert(`❌ ตรวจสลิปไม่สำเร็จ\n${json.error || "กรุณาลองใหม่อีกครั้ง"}`);
+                setSubmitting(false);
+                return;
+            }
 
             const paymentAtText = new Date()
                 .toLocaleString("th-TH", {
@@ -168,10 +167,11 @@ export default function TenantUploadSlipPage() {
             nav(`/tenant/billing/${billId}/pay/success`, {
                 replace: true,
                 state: {
-                    total: amountNumber,
+                    total: json.totalAmount ?? amountNumber,
                     methodText: "โอนผ่านธนาคาร",
                     paymentAtText,
-                    statusText: "รอตรวจสอบ",
+                    statusText: "✅ ชำระแล้ว",
+                    slipData: json.slipData,
                 },
             });
         } catch (e) {

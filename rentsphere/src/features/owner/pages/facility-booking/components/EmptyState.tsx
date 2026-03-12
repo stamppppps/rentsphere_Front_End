@@ -26,7 +26,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <Icon size={56} strokeWidth={1.2} className="text-slate-200" />
       </div>
       
-      <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200 border-4 border-white">
+      <div className="absolute -bottom-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200 border-4 border-white" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
         <Inbox size={22} />
       </div>
     </div>
@@ -50,7 +50,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       </button>
     ) : (
       <div className="flex items-center gap-4 py-4 px-6 bg-slate-50 rounded-2xl border border-slate-100/50">
-        <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce"></div>
+        <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"></div>
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
           ระบบกำลังรอรายการใหม่จากลูกบ้าน
         </span>
@@ -59,7 +59,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     
     <div className="mt-12 grid grid-cols-3 gap-3">
       <div className="w-12 h-1.5 rounded-full bg-slate-100"></div>
-      <div className="w-12 h-1.5 rounded-full bg-indigo-100"></div>
+      <div className="w-12 h-1.5 rounded-full bg-blue-100"></div>
       <div className="w-12 h-1.5 rounded-full bg-slate-100"></div>
     </div>
   </div>

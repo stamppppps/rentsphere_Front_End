@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import EmptyState from "../components/EmptyState";
 import FacilityCard from "../components/FacilityCard";
 import { useFacilities } from "../hooks/useFacilities";
@@ -32,6 +33,7 @@ const FacilityListPage: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const st = (location.state as NavState | null) ?? null;
+  const condoName = useCondoStore((s) => s.condoName);
 
   const condoId = useMemo(() => {
     const fromQuery = searchParams.get("condoId");
@@ -50,7 +52,6 @@ const FacilityListPage: React.FC = () => {
   const [bookingPolicy, setBookingPolicy] = useState({
     maxBookingsPerDay: 2,
   });
-
   const [policyInput, setPolicyInput] = useState("2");
 
   const [isLoadingPolicy, setIsLoadingPolicy] = useState(false);
@@ -131,7 +132,11 @@ const FacilityListPage: React.FC = () => {
   };
 
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar condoId={condoId}>
+    <OwnerShell
+      activeKey="common-area-booking"
+      showSidebar
+      condoName={condoName || "คอนโดมิเนียม"}
+    >
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
@@ -224,7 +229,11 @@ const FacilityListPage: React.FC = () => {
                 onBlur={() => {
                   const parsed = Number(policyInput);
 
-                  if (!policyInput.trim() || !Number.isFinite(parsed) || parsed < 1) {
+                  if (
+                    !policyInput.trim() ||
+                    !Number.isFinite(parsed) ||
+                    parsed < 1
+                  ) {
                     setPolicyInput(String(bookingPolicy.maxBookingsPerDay));
                     return;
                   }
@@ -266,18 +275,16 @@ const FacilityListPage: React.FC = () => {
           <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-xl ${
-                viewMode === "grid" ? "bg-white shadow-sm" : ""
-              }`}
+              className={`p-2 rounded-xl ${viewMode === "grid" ? "bg-white shadow-sm" : ""
+                }`}
             >
               <LayoutGrid size={18} />
             </button>
 
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 rounded-xl ${
-                viewMode === "list" ? "bg-white shadow-sm" : ""
-              }`}
+              className={`p-2 rounded-xl ${viewMode === "list" ? "bg-white shadow-sm" : ""
+                }`}
             >
               <List size={18} />
             </button>

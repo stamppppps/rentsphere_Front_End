@@ -1,10 +1,14 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Camera, X } from 'lucide-react';
 
 interface ImageUploaderProps {
   images: string[];
   onChange: (images: string[]) => void;
   maxImages?: number;
+}
+
+function cx(...cls: Array<string | false | undefined | null>) {
+  return cls.filter(Boolean).join(" ");
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ images, onChange, maxImages = 5 }) => {
@@ -39,21 +43,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ images, onChange, maxImag
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-gray-700">แนบรูปประกอบ</label>
-        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+        <label className="text-[13px] font-black text-slate-700">แนบรูปประกอบ</label>
+        <span className="px-3 py-1 rounded-full text-[11px] font-black bg-[#EAF0FF] border border-blue-100/70 text-blue-700">
           {images.length} / {maxImages} รูป
         </span>
       </div>
-      <p className="text-[10px] text-gray-400">สูงสุด {maxImages} รูป (จำกัด 5MB/รูป)</p>
+      <div className="text-[11px] font-bold text-slate-400">สูงสุด {maxImages} รูป • ช่วยให้ช่างเตรียมอุปกรณ์ได้แม่นยำขึ้น</div>
 
       <div className="grid grid-cols-3 gap-3">
         {images.map((img, index) => (
-          <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm group">
+          <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-blue-100/70 shadow-sm group">
             <img src={img} alt={`upload-${index}`} className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => removeImage(index)}
-              className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-1.5 right-1.5 p-1.5 bg-black/50 backdrop-blur text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
             >
               <X size={14} />
             </button>
@@ -64,13 +68,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ images, onChange, maxImag
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-blue-300 transition-all group"
+            className={cx(
+              "aspect-square flex flex-col items-center justify-center",
+              "border-2 border-dashed border-blue-200/70 rounded-2xl",
+              "bg-[#F8FAFF] hover:bg-[#EEF3FF] hover:border-[#2F6BFF]/40",
+              "transition-all group cursor-pointer"
+            )}
           >
-            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-              <Camera size={20} className="text-gray-400 group-hover:text-blue-500" />
+            <div className="w-10 h-10 bg-white rounded-xl border border-blue-100/70 shadow-inner flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+              <Camera size={20} className="text-[#2F6BFF]" />
             </div>
-            <span className="text-[10px] font-bold text-gray-800">กดที่นี่เพื่อเพิ่มรูปภาพ</span>
-            <span className="text-[9px] text-gray-400 mt-0.5">ช่วยให้ช่างเตรียมอุปกรณ์ได้แม่นยำขึ้น</span>
+            <span className="text-[10px] font-black text-slate-700">เพิ่มรูปภาพ</span>
           </button>
         )}
       </div>

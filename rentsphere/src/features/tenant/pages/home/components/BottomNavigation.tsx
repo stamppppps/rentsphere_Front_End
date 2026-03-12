@@ -5,8 +5,6 @@ import { Home, History, Bell, User } from 'lucide-react';
 const BottomNavigation: React.FC = () => {
   const navItems = [
     { to: '/tenant/home', icon: <Home size={22} />, label: 'หน้าแรก' },
-    { to: '/tenant/history', icon: <History size={22} />, label: 'ประวัติ' },
-    { to: '/tenant/notifications', icon: <Bell size={22} />, label: 'แจ้งเตือน' },
     { to: '/tenant/profile', icon: <User size={22} />, label: 'โปรไฟล์' },
   ];
 

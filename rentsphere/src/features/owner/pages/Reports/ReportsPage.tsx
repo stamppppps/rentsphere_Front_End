@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -156,8 +156,10 @@ export default function ReportsPage() {
         );
     }, [pageData]);
 
+    const condoName = useCondoStore(s => s.condoName);
+
     return (
-        <OwnerShell activeKey="reports">
+        <OwnerShell activeKey="reports" condoName={condoName || "คอนโดมิเนียม"}>
             <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#f8faff] p-8 pb-12">
 
                 {/* 1. Header Section */}
@@ -170,17 +172,7 @@ export default function ReportsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <button className="h-[40px] px-4 rounded-lg bg-white border border-gray-200 text-gray-600 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.98] transition flex items-center gap-2 shadow-sm">
-                            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                            Export PDF
-                        </button>
-                        <button className="h-[40px] px-4 rounded-lg bg-white border border-gray-200 text-gray-600 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.98] transition flex items-center gap-2 shadow-sm">
-                            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            Export Excel
-                        </button>
-                        <button aria-label="พิมพ์" className="h-[40px] w-[40px] rounded-lg bg-[#93C5FD] text-white flex items-center justify-center shadow-lg shadow-blue-200 hover:bg-[#7fb4fb] active:scale-[0.98] transition">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                        </button>
+                      
                     </div>
                 </div>
 
@@ -268,7 +260,7 @@ export default function ReportsPage() {
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.electric.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.other.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-red-500">{pageTotals.unpaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className="py-5 px-6 text-right font-extrabold text-[#93C5FD]">{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="py-5 px-6 text-right font-extrabold" style={{ color: '#3478F6' }}>{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

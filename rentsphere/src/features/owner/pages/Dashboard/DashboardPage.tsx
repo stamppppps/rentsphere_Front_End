@@ -671,7 +671,7 @@ export default function DashboardPage() {
               Owner Dashboard
             </div>
             <h1 className="mt-2 text-[34px] font-black leading-tight text-slate-900">
-              ภาพรวมธุรกิจของ {condoName}
+              ภาพรวมธุรกิจของ คอนโดมีเนียม
             </h1>
             <div className="mt-2 text-[14px] font-bold text-slate-500">
               ดูสถานะห้องพัก รายรับ และแนวโน้มการเรียกเก็บย้อนหลังในหน้าเดียว

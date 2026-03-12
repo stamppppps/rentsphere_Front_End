@@ -1,4 +1,5 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import {
   Calendar,
   ChevronLeft,
@@ -22,6 +23,7 @@ import {
 const BookingDetailPage: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const condoName = useCondoStore((s) => s.condoName);
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +130,9 @@ const BookingDetailPage: React.FC = () => {
         <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
           <ShieldAlert size={40} />
         </div>
-        <h2 className="text-xl font-black text-slate-800">ไม่พบข้อมูลการจอง</h2>
+        <h2 className="text-xl font-black text-slate-800">
+          ไม่พบข้อมูลการจอง
+        </h2>
         <button
           onClick={() => navigate(-1)}
           className="mt-4 text-indigo-600 font-bold"
@@ -140,8 +144,12 @@ const BookingDetailPage: React.FC = () => {
   }
 
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar>
-      <div className="max-w-5xl mx-auto px-6 py-12">
+    <OwnerShell
+      activeKey="common-area-booking"
+      showSidebar
+      condoName={condoName || "คอนโดมิเนียม"}
+    >
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => navigate(-1)}
@@ -149,8 +157,9 @@ const BookingDetailPage: React.FC = () => {
           >
             <ChevronLeft size={22} />
           </button>
+
           <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
-            รายละเอียดการจอง
+            ดูรายละเอียดการจอง
           </p>
         </div>
 

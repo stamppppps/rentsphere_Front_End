@@ -25,7 +25,7 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
 
       {/* ===== สถานะ ===== */}
       <td className="px-6 py-6">
-        <BillingStatus status={item.status} />
+        <BillingStatus paymentStatus={item.paymentStatus} />
       </td>
 
       {/* ===== มิเตอร์น้ำ ===== */}
@@ -63,7 +63,7 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
       {/* ===== ยอดรวม ===== */}
       <td className="px-6 py-6">
         {isOccupied ? (
-          <div className="flex items-center text-[#8B5CF6] font-bold text-lg">
+          <div className="flex items-center text-slate-900 font-bold text-lg">
             <span className="mr-1">฿</span>
             <span>{item.estimatedTotal.toLocaleString()}</span>
           </div>
@@ -89,9 +89,9 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
               !transition-all
               !hover:bg-[#7C3AED]
             "
-            style={{ backgroundColor: "#7C3AED" }}
+            style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
           >
-            {item.isPaid ? "สร้างใบแจ้งหนี้ใหม่" : "สร้างใบแจ้งหนี้"}
+            {item.paymentStatus === 'ค้างชำระ' ? "สร้างใบแจ้งหนี้" : "ดูใบแจ้งหนี้"}
           </button>
         ) : (
           <button
@@ -112,4 +112,4 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
       </td>
     </tr>
   );
-}
+}
