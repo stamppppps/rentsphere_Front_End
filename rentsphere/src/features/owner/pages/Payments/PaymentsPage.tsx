@@ -114,7 +114,18 @@ export default function PaymentsPage() {
                 const invoiceMap: Record<string, any> = {};
                 for (const inv of invoices) {
                     const rid = String(inv.room_id || inv.roomId || "");
-                    if (rid) invoiceMap[rid] = inv;
+                    if (!rid) continue;
+                    const existing = invoiceMap[rid];
+                    if (!existing) {
+                        invoiceMap[rid] = inv;
+                    } else {
+                        // เก็บ invoice ล่าสุดเท่านั้น
+                        const existDate = new Date(existing.createdAt || existing.created_at || 0).getTime();
+                        const newDate = new Date(inv.createdAt || inv.created_at || 0).getTime();
+                        if (newDate > existDate) {
+                            invoiceMap[rid] = inv;
+                        }
+                    }
                 }
 
                 const records: PaymentRecord[] = rooms

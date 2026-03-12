@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import { type Facility, FacilityStatus } from "../types/facility";
 
 interface FacilityHeaderProps {
@@ -21,13 +22,18 @@ const FacilityHeader: React.FC<FacilityHeaderProps> = ({
   onToggleStatus,
 }) => {
   const navigate = useNavigate();
+  const condoId = useCondoStore((s) => s.condoId);
   const isAvailable = facility.status === FacilityStatus.AVAILABLE;
+
+  const backUrl = condoId
+    ? `/owner/common-area-booking?condoId=${encodeURIComponent(condoId)}`
+    : "/owner/common-area-booking";
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
       <div className="flex items-center gap-5">
         <button
-          onClick={() => navigate("/owner/common-area-booking")}
+          onClick={() => navigate(backUrl)}
           className="p-4 bg-white border border-slate-200 rounded-[22px] text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm active:scale-90"
           title="กลับไปหน้าหลัก"
         >

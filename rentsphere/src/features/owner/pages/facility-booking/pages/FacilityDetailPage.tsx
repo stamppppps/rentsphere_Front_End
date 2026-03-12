@@ -141,7 +141,11 @@ const FacilityDetailPage: React.FC = () => {
     try {
       await facilityService.deleteFacility(facility.id);
       alert("ลบพื้นที่ส่วนกลางเรียบร้อยแล้ว");
-      navigate("/owner/common-area-booking");
+      const cid = useCondoStore.getState().condoId;
+      const backUrl = cid
+        ? `/owner/common-area-booking?condoId=${encodeURIComponent(cid)}`
+        : "/owner/common-area-booking";
+      navigate(backUrl);
     } catch (error) {
       console.error("DELETE FACILITY ERROR:", error);
       alert("ลบพื้นที่ส่วนกลางไม่สำเร็จ");

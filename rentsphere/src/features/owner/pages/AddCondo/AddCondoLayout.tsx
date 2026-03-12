@@ -1,6 +1,7 @@
 import RentSphereLogo from "@/assets/brand/rentsphere-logo.png";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/features/auth/auth.store";
 
 const MENU = [
     { label: "ค่าบริการ", path: "step-1" },
@@ -43,34 +44,6 @@ function SidebarItem({
     );
 }
 
-/* ===== Types ===== */
-type MeResponse = {
-    id: string;
-    firstName?: string | null;
-    lastName?: string | null;
-    displayName?: string | null;
-};
-
-/* ===== Backend call  ===== */
-async function fetchMe(): Promise<MeResponse> {
-    // TODO: GET /api/me หรือ /api/owner/me
-    const res = await fetch("/api/me", {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) throw new Error("โหลดข้อมูลผู้ใช้ไม่สำเร็จ");
-    const data = await res.json();
-
-    return {
-        id: String(data.id ?? ""),
-        firstName: data.firstName ?? null,
-        lastName: data.lastName ?? null,
-        displayName: data.displayName ?? data.name ?? null,
-    };
-}
-
 function getInitials(name: string) {
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return "U";
@@ -79,57 +52,19 @@ function getInitials(name: string) {
     return (a + b).toUpperCase();
 }
 
-function buildDisplayName(me: MeResponse | null) {
-    if (!me) return "";
-    const dn = (me.displayName ?? "").trim();
-    if (dn) return dn;
-
-    const fn = (me.firstName ?? "").trim();
-    const ln = (me.lastName ?? "").trim();
-    const full = `${fn} ${ln}`.trim();
-    return full || "";
-}
-
 export default function AddCondoLayout() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
+
+    const user = useAuthStore((s) => s.user);
+    const logout = useAuthStore((s) => s.logout);
+    const [showMenu, setShowMenu] = useState(false);
 
     const isActive = (stepPath: string) =>
         !!matchPath({ path: `/owner/add-condo/${stepPath}` }, pathname);
 
     const isStep0 = !!matchPath({ path: "/owner/add-condo/step-0" }, pathname);
     const isStep9 = !!matchPath({ path: "/owner/add-condo/step-9" }, pathname);
-
-    /* ===== load owner name  ===== */
-    const [me, setMe] = useState<MeResponse | null>(null);
-    const [meLoading, setMeLoading] = useState(false);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const run = async () => {
-            if (isStep0 || isStep9) return;
-
-            if (me) return;
-
-            setMeLoading(true);
-            try {
-                const data = await fetchMe();
-                if (cancelled) return;
-                setMe(data);
-            } catch {
-                if (cancelled) return;
-                setMe(null);
-            } finally {
-                if (!cancelled) setMeLoading(false);
-            }
-        };
-
-        run();
-        return () => {
-            cancelled = true;
-        };
-    }, [pathname, isStep0, isStep9, me]);
 
     if (isStep0) {
         return (
@@ -149,14 +84,24 @@ export default function AddCondoLayout() {
         );
     }
 
-    const ownerName = buildDisplayName(me) || "Owner";
+    const ownerName = user?.name?.trim() || user?.email || "Owner";
     const initials = getInitials(ownerName);
+
+    const handleLogout = () => {
+        logout();
+        localStorage.removeItem("rentsphere_auth");
+        navigate("/login", { replace: true });
+    };
 
     return (
         <div className="owner-ui flex h-screen w-full overflow-hidden bg-[#EEF4FF] font-sans text-black/85">
             <aside className="w-[22rem] shrink-0 bg-[#D6E6FF] border-r border-blue-100/80 shadow-[2px_0_14px_rgba(0,0,0,0.05)] flex flex-col h-screen overflow-hidden">
                 <div className="shrink-0 px-8 pt-7 pb-5">
-                    <div className="flex items-start gap-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/owner/condo")}
+                        className="flex items-start gap-4 cursor-pointer hover:opacity-80 transition"
+                    >
                         <div className="h-24 w-24 shrink-0 overflow-hidden -mt-2">
                             <img
                                 src={RentSphereLogo}
@@ -169,7 +114,7 @@ export default function AddCondoLayout() {
                         <span className="text-3xl font-extrabold tracking-tight text-gray-900 leading-none pt-[6px]">
                             RentSphere
                         </span>
-                    </div>
+                    </button>
 
                     <div className="text-3xl font-extrabold tracking-tight text-gray-900 text-center">
                         คอนโดมิเนียม
@@ -196,14 +141,46 @@ export default function AddCondoLayout() {
 
             <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative">
                 <header className="h-20 shrink-0 bg-[#D6E6FF] border-b border-blue-100/80 flex items-center justify-end px-10 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-full bg-white border border-blue-100 flex items-center justify-center text-blue-700 font-extrabold text-lg shadow-sm">
-                            {meLoading ? "…" : initials}
-                        </div>
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowMenu((v) => !v)}
+                            className="flex items-center gap-4 px-3 py-2 rounded-2xl hover:bg-white/50 transition cursor-pointer"
+                        >
+                            <div className="w-11 h-11 rounded-full bg-white border border-blue-100 flex items-center justify-center text-blue-700 font-extrabold text-lg shadow-sm">
+                                {initials}
+                            </div>
+                            <div className="text-gray-900 font-extrabold text-[16px] tracking-[0.2px]">
+                                {ownerName}
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-500">
+                                <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
 
-                        <div className="text-gray-900 font-extrabold text-[16px] tracking-[0.2px]">
-                            {meLoading ? "กำลังโหลดชื่อ..." : ownerName}
-                        </div>
+                        {showMenu && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                                <div className="absolute right-0 top-full mt-2 z-50 w-56 bg-white rounded-2xl border border-blue-100/80 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="px-5 py-4 border-b border-gray-100">
+                                        <div className="text-[13px] font-black text-slate-900 truncate">{ownerName}</div>
+                                        {user?.email && <div className="text-[11px] font-bold text-slate-500 truncate mt-0.5">{user.email}</div>}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-5 py-3.5 text-[14px] font-black text-rose-600 hover:bg-rose-50 transition flex items-center gap-3"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        ออกจากระบบ
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </header>
 
@@ -216,3 +193,4 @@ export default function AddCondoLayout() {
         </div>
     );
 }
+
