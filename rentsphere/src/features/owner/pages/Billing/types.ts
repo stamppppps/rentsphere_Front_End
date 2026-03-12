@@ -9,29 +9,6 @@ export interface MeterData {
   totalUnits: number;
 }
 
-export interface BillingItem {
-  id: string;
-  roomNumber: string;
-  status: RoomStatus;
-  paymentStatus: PaymentStatus;  // 🟢ชำระแล้ว | 🟠รอการชำระ | 🔴ค้างชำระ
-  waterMeter?: MeterData;
-  elecMeter?: MeterData;
-  rentAmount: number;
-  estimatedTotal: number;
-  isPaid?: boolean;
-  /* — added for backend integration — */
-  waterRate: number;
-  electricRate: number;
-  invoiceId?: string;      // backend invoice id if exists
-  invoiceNo?: string;
-  invoiceStatus?: string;
-  tenantName?: string;
-  condoName?: string;
-  condoAddress?: string;
-  invoiceDate?: string;     // created_at / recorded_at
-  billingMonth?: string;
-  dueDate?: string;
-}
 export interface PreviewInvoiceItem {
   itemType: string;
   itemName: string;
@@ -42,11 +19,29 @@ export interface PreviewInvoiceItem {
   facilityBookingId?: string | null;
 }
 
+export interface BillingItem {
+  id: string;
+  roomNumber: string;
+  status: RoomStatus;
+  paymentStatus: PaymentStatus;
+  waterMeter?: MeterData;
+  elecMeter?: MeterData;
+  rentAmount: number;
+  estimatedTotal: number;
+  isPaid?: boolean;
 
+  waterRate: number;
+  electricRate: number;
 
+  invoiceId?: string;
+  invoiceNo?: string;
+  invoiceStatus?: string;
+  tenantName?: string;
+  condoName?: string;
+  condoAddress?: string;
+  invoiceDate?: string;
+  billingMonth?: string;
+  dueDate?: string;
 
-
-
-
-
-
+  items?: PreviewInvoiceItem[]; // ✅ ต้องมีอันนี้
+}

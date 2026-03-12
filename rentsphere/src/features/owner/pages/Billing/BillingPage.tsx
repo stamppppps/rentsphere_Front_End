@@ -3,7 +3,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import BillingFilter from "./componentsbill/BillingFilter";
 import BillingTable from "./componentsbill/BillingTable";
 import InvoiceDetail from "./InvoiceDetail";
-import type { BillingItem, PaymentStatus } from "./types";
+import type { BillingItem, PaymentStatus, PreviewInvoiceItem } from "./types";
 import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
 /* ================================================================
@@ -83,7 +83,7 @@ export default function BillingPage() {
         if (cancelled) return;
         setCondoId(cId);
 
-        const [roomRes, meterRes, utilRes, invRes] = await Promise.all([
+        const [roomRes, meterRes, utilRes, invRes, previewRes] = await Promise.all([
           fetch(`${API}/api/v1/owner/condos/${cId}/rooms`, {
             headers: authHeaders(),
           }).catch(() => null),
@@ -96,6 +96,9 @@ export default function BillingPage() {
           fetch(`${API}/api/v1/owner/condos/${cId}/invoices`, {
             headers: authHeaders(),
           }).catch(() => null),
+          fetch(`${API}/api/v1/owner/condos/${cId}/invoices/generate-preview`, {
+            headers: authHeaders(),
+          }).catch(() => null),
         ]);
 
         const roomsRaw = roomRes?.ok ? await roomRes.json() : [];
@@ -104,19 +107,20 @@ export default function BillingPage() {
           : roomsRaw?.rooms || roomsRaw?.items || [];
 
         const metersRaw = meterRes?.ok ? await meterRes.json() : {};
-        const meters: any[] = metersRaw?.readings || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
+        const meters: any[] =
+          metersRaw?.readings || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
 
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
         const configs: any[] =
-          utilsRaw?.configs ||
-          utilsRaw?.items ||
-          (Array.isArray(utilsRaw) ? utilsRaw : []);
+          utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
 
         const invoicesRaw = invRes?.ok ? await invRes.json() : {};
         const invoices: any[] =
-          invoicesRaw?.invoices ||
-          invoicesRaw?.items ||
-          (Array.isArray(invoicesRaw) ? invoicesRaw : []);
+          invoicesRaw?.invoices || invoicesRaw?.items || (Array.isArray(invoicesRaw) ? invoicesRaw : []);
+
+        const previewRaw = previewRes?.ok ? await previewRes.json() : {};
+        const previewRooms: any[] =
+          previewRaw?.rooms || previewRaw?.items || (Array.isArray(previewRaw) ? previewRaw : []);
 
         if (cancelled) return;
 
@@ -157,6 +161,12 @@ export default function BillingPage() {
           meterMap[rid] = m;
         }
 
+        const previewMap: Record<string, any> = {};
+        for (const p of previewRooms) {
+          const rid = String(p.roomId || p.room_id || "");
+          if (rid) previewMap[rid] = p;
+        }
+
         const occupiedRooms = rooms.filter(
           (r: any) => r.occupancyStatus === "OCCUPIED"
         );
@@ -169,6 +179,7 @@ export default function BillingPage() {
 
           const m = meterMap[roomId];
           const inv = invoiceMap[roomId];
+          const preview = previewMap[roomId];
 
           const waterMeter = m
             ? {
@@ -186,15 +197,29 @@ export default function BillingPage() {
               }
             : undefined;
 
+          const previewItems: PreviewInvoiceItem[] = Array.isArray(preview?.items)
+            ? preview.items.map((x: any) => ({
+                itemType: String(x.itemType || x.item_type || ""),
+                itemName: String(x.itemName || x.item_name || x.name || ""),
+                amount: Number(x.amount ?? 0),
+                condoChargeId: x.condoChargeId ?? null,
+                extraChargeTemplateId: x.extraChargeTemplateId ?? null,
+                meterReadingId: x.meterReadingId ?? null,
+                facilityBookingId: x.facilityBookingId ?? null,
+              }))
+            : [];
+
           const waterCost = waterMeter ? waterMeter.totalUnits * wRate : 0;
           const elecCost = elecMeter ? elecMeter.totalUnits * eRate : 0;
-          const estimatedTotal = rentAmount + waterCost + elecCost;
+
+          const estimatedTotal =
+            preview?.totalAmount != null
+              ? Number(preview.totalAmount)
+              : rentAmount + waterCost + elecCost;
+
           const invStatus = String(inv?.status || "").toLowerCase();
           const isPaid = invStatus === "paid";
 
-          // ชำระแล้ว = invoice exists & paid
-          // รอการชำระ = invoice exists but not paid yet
-          // ค้างชำระ = no invoice at all
           const paymentStatus: PaymentStatus = inv
             ? isPaid
               ? "ชำระแล้ว"
@@ -219,6 +244,7 @@ export default function BillingPage() {
             tenantName: tenant || undefined,
             invoiceDate: inv?.createdAt || m?.recordedAt || undefined,
             dueDate: inv?.dueDate || undefined,
+            items: previewItems,
           };
         });
 
@@ -253,7 +279,6 @@ export default function BillingPage() {
       if (item.invoiceId) {
         // Invoice already exists — no need to create again
       } else {
-        // POST new invoice as ISSUED (รอการชำระ) — ยังไม่ mark เป็น PAID
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST",
           headers: authHeaders(),
@@ -261,7 +286,7 @@ export default function BillingPage() {
             roomId: item.id,
             totalAmount: item.estimatedTotal,
             status: "ISSUED",
-            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${(item.waterMeter?.totalUnits || 0) * item.waterRate}฿ + ค่าไฟ ${(item.elecMeter?.totalUnits || 0) * item.electricRate}฿`,
+            note: `สร้างใบแจ้งหนี้จากระบบ`,
           }),
         });
 
@@ -271,10 +296,16 @@ export default function BillingPage() {
         }
       }
 
-      // อัพเดต local state → รอการชำระ (ส้ม) เพราะสร้างบิลแล้วแต่ยังไม่ชำระ
       setBillingData((prev) =>
         prev.map((b) =>
-          b.id === id ? { ...b, isPaid: false, paymentStatus: 'รอการชำระ', invoiceId: newInvoiceId || b.invoiceId } : b
+          b.id === id
+            ? {
+                ...b,
+                isPaid: false,
+                paymentStatus: "รอการชำระ",
+                invoiceId: newInvoiceId || b.invoiceId,
+              }
+            : b
         )
       );
     } catch (e) {
@@ -352,8 +383,18 @@ export default function BillingPage() {
             <div className="flex-grow h-[1px] bg-gray-200 mx-4 -mt-7" />
 
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-white font-bold" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>2</div>
-              <span className="text-blue-600 text-sm font-bold">2. สร้างใบแจ้งหนี้</span>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-white font-bold"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))",
+                }}
+              >
+                2
+              </div>
+              <span className="text-blue-600 text-sm font-bold">
+                2. สร้างใบแจ้งหนี้
+              </span>
             </div>
           </div>
         </div>

@@ -318,7 +318,7 @@ export default function MonthlyContractPage() {
                 onChange={(e) => setDepositPaidBy(e.target.value)}
                 className={inputCls}
               >
-                <option value="CASH">เงินสด</option>
+                
                 <option value="TRANSFER">โอนเงิน</option>
               </select>
             </div>
