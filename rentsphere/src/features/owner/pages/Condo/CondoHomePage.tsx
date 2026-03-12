@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/shared/api/http";
 import { useCondoStore } from "@/features/owner/stores/condoStore";
-import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
+import PopupModal, {
+  type PopupState,
+  defaultPopup,
+} from "@/shared/components/PopupModal";
 
 type CondoApiItem = any;
-
 
 function normalizeCondo(x: any) {
   const id = String(x.id ?? x.condoId ?? "");
@@ -13,60 +15,56 @@ function normalizeCondo(x: any) {
     x.name ?? x.nameTh ?? x.nameTH ?? x.condoName ?? x.title ?? "—"
   );
 
-  // ----- roomsTotal -----
   const roomsTotal =
     Number(
       x.roomsTotal ??
-      x.totalRooms ??
-      x.rooms_total ??
-      x.roomsCount ??
-      x.stats?.roomsTotal ??
-      x.stats?.totalRooms ??
-      x._count?.rooms ??
-      x.countRooms ??
-      0
+        x.totalRooms ??
+        x.rooms_total ??
+        x.roomsCount ??
+        x.stats?.roomsTotal ??
+        x.stats?.totalRooms ??
+        x._count?.rooms ??
+        x.countRooms ??
+        0
     ) ||
     (Array.isArray(x.rooms) ? x.rooms.length : 0) ||
     (Array.isArray(x.room) ? x.room.length : 0) ||
     0;
 
-
   const roomsActiveDirect = Number(
     x.roomsActive ??
-    x.activeRooms ??
-    x.rooms_active ??
-    x.activeCount ??
-    x.stats?.roomsActive ??
-    x.stats?.activeRooms ??
-    x._count?.activeRooms ??
-    0
+      x.activeRooms ??
+      x.rooms_active ??
+      x.activeCount ??
+      x.stats?.roomsActive ??
+      x.stats?.activeRooms ??
+      x._count?.activeRooms ??
+      0
   );
 
-  const roomsActiveFromRooms =
-    Array.isArray(x.rooms)
-      ? x.rooms.filter((r: any) => {
+  const roomsActiveFromRooms = Array.isArray(x.rooms)
+    ? x.rooms.filter((r: any) => {
         if (typeof r?.isActive === "boolean") return r.isActive;
         if (typeof r?.active === "boolean") return r.active;
         const s = String(r?.status ?? r?.state ?? "").toUpperCase();
         return s === "ACTIVE" || s === "OCCUPIED" || s === "IN_USE";
       }).length
-      : 0;
+    : 0;
 
   const roomsActive = roomsActiveDirect || roomsActiveFromRooms || 0;
 
-  // ----- unpaidBills -----
   const unpaidBills =
     Number(
       x.unpaidBills ??
-      x.unpaid ??
-      x.unpaid_bills ??
-      x.unpaidCount ??
-      x.stats?.unpaidBills ??
-      x.stats?.unpaid ??
-      x.stats?.unpaidCount ??
-      x.billStats?.unpaidBills ??
-      x.billStats?.unpaidCount ??
-      0
+        x.unpaid ??
+        x.unpaid_bills ??
+        x.unpaidCount ??
+        x.stats?.unpaidBills ??
+        x.stats?.unpaid ??
+        x.stats?.unpaidCount ??
+        x.billStats?.unpaidBills ??
+        x.billStats?.unpaidCount ??
+        0
     ) || 0;
 
   return { id, name, roomsTotal, roomsActive, unpaidBills };
@@ -75,14 +73,13 @@ function normalizeCondo(x: any) {
 async function fetchCondosFromApi(): Promise<CondoItem[]> {
   const data = await api<any>(`/owner/condos`, { method: "GET" });
 
-  const list =
-    Array.isArray(data)
-      ? data
-      : Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data?.data)
-          ? data.data
-          : [];
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
 
   return list.map(normalizeCondo);
 }
@@ -96,32 +93,6 @@ type CondoItem = {
   unpaidBills: number;
 };
 
-/* ====== Staff permissions (modules) ====== */
-type PermissionModule =
-  | "DASHBOARD"
-  | "ROOMS"
-  | "BILLING"
-  | "PAYMENT"
-  | "PARCEL"
-  | "REPAIR"
-  | "FACILITY"
-  | "ANNOUNCE"
-  | "CHAT"
-  | "STAFF";
-
-const MODULES: { code: PermissionModule; label: string }[] = [
-  { code: "DASHBOARD", label: "Dashboard" },
-  { code: "ROOMS", label: "Rooms" },
-  { code: "BILLING", label: "Billing" },
-  { code: "PAYMENT", label: "Payment" },
-  { code: "PARCEL", label: "Parcel" },
-  { code: "REPAIR", label: "Repair" },
-  { code: "FACILITY", label: "Facility" },
-  { code: "ANNOUNCE", label: "Announce" },
-  { code: "CHAT", label: "Chat" },
-  { code: "STAFF", label: "Staff" },
-];
-
 type StaffItem = {
   id: string; // membershipId
   staffUserId: string;
@@ -130,7 +101,6 @@ type StaffItem = {
   email?: string;
   staffPosition?: string;
   isActive: boolean;
-  allowedModules: PermissionModule[];
 };
 
 type StaffForm = {
@@ -138,7 +108,6 @@ type StaffForm = {
   phone: string;
   email: string;
   staffPosition: string;
-  allowedModules: PermissionModule[];
   isActive: boolean;
 };
 
@@ -147,11 +116,10 @@ const emptyStaffForm: StaffForm = {
   phone: "",
   email: "",
   staffPosition: "นิติ",
-  allowedModules: MODULES.map((m) => m.code),
   isActive: true,
 };
 
-/* ====== icons / helpers  ====== */
+/* ====== icons / helpers ====== */
 function CondoIcon() {
   return (
     <svg
@@ -226,7 +194,13 @@ function selectPill() {
   ].join(" ");
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <div className="text-sm font-extrabold text-gray-800 mb-3">{label}</div>
@@ -234,7 +208,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-
 
 function getTokenFromStorage(): string | null {
   try {
@@ -264,7 +237,6 @@ function isHtmlError(e: any) {
   return raw.startsWith("<!doctype") || raw.startsWith("<html");
 }
 
-
 function UserManagementPanel({
   condoId,
   condoName,
@@ -278,7 +250,7 @@ function UserManagementPanel({
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
-  const [editingId, setEditingId] = useState<string | null>(null); // membershipId
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<StaffForm>(emptyStaffForm);
 
   const [tempPassword, setTempPassword] = useState<string | null>(null);
@@ -293,6 +265,7 @@ function UserManagementPanel({
       setUsers([]);
       return;
     }
+
     try {
       setError(null);
       setLoading(true);
@@ -301,14 +274,13 @@ function UserManagementPanel({
         method: "GET",
       });
 
-      const list: any[] =
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+      const list: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
 
       setUsers(
         list.map((x: any) => ({
@@ -319,7 +291,6 @@ function UserManagementPanel({
           email: x.email ? String(x.email) : "",
           staffPosition: x.staffPosition ? String(x.staffPosition) : "",
           isActive: Boolean(x.isActive ?? true),
-          allowedModules: Array.isArray(x.allowedModules) ? x.allowedModules : [],
         }))
       );
     } catch (e: any) {
@@ -332,7 +303,6 @@ function UserManagementPanel({
 
   useEffect(() => {
     loadUsers();
-
   }, [condoId]);
 
   const openCreate = () => {
@@ -351,7 +321,6 @@ function UserManagementPanel({
       phone: u.phone ?? "",
       email: u.email ?? "",
       staffPosition: u.staffPosition ?? "นิติ",
-      allowedModules: u.allowedModules ?? [],
       isActive: u.isActive ?? true,
     });
     setTempPassword(null);
@@ -359,18 +328,6 @@ function UserManagementPanel({
   };
 
   const close = () => setOpen(false);
-
-  const toggleModule = (m: PermissionModule) => {
-    setForm((s) => {
-      const has = s.allowedModules.includes(m);
-      return {
-        ...s,
-        allowedModules: has
-          ? s.allowedModules.filter((x) => x !== m)
-          : [...s.allowedModules, m],
-      };
-    });
-  };
 
   const onSave = async () => {
     if (!condoId) return;
@@ -387,7 +344,6 @@ function UserManagementPanel({
           email: form.email.trim() || undefined,
           phone: form.phone.trim() || undefined,
           staffPosition: form.staffPosition.trim(),
-          allowedModules: form.allowedModules,
         };
 
         const res = await api<any>(`/owner/condos/${condoId}/staff`, {
@@ -408,7 +364,6 @@ function UserManagementPanel({
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
         staffPosition: form.staffPosition.trim(),
-        allowedModules: form.allowedModules,
         isActive: form.isActive,
       };
 
@@ -458,9 +413,8 @@ function UserManagementPanel({
           <div className="px-6 pt-6">
             <div className="grid grid-cols-12 gap-4 items-center px-6 py-4 rounded-2xl bg-[#EEF3FF] text-gray-700 font-extrabold">
               <div className="col-span-1 text-center">#</div>
-              <div className="col-span-4">ชื่อ/ตำแหน่ง</div>
-              <div className="col-span-3">เบอร์/อีเมล</div>
-              <div className="col-span-3">สิทธิ์ (Modules)</div>
+              <div className="col-span-5">ชื่อ/ตำแหน่ง</div>
+              <div className="col-span-5">เบอร์/อีเมล</div>
               <div className="col-span-1 text-right"></div>
             </div>
           </div>
@@ -489,7 +443,7 @@ function UserManagementPanel({
                       {u.no}
                     </div>
 
-                    <div className="col-span-4">
+                    <div className="col-span-5">
                       <div className="font-extrabold text-gray-900">
                         {u.fullName}
                       </div>
@@ -499,7 +453,7 @@ function UserManagementPanel({
                       </div>
                     </div>
 
-                    <div className="col-span-3">
+                    <div className="col-span-5">
                       <div className="font-extrabold text-gray-900">
                         {u.phone || "—"}
                       </div>
@@ -508,22 +462,11 @@ function UserManagementPanel({
                       </div>
                     </div>
 
-                    <div className="col-span-3">
-                      <div className="text-sm font-bold text-gray-700">
-                        {(u.allowedModules || []).slice(0, 4).join(", ")}
-                        {(u.allowedModules || []).length > 4
-                          ? ` +${u.allowedModules.length - 4}`
-                          : ""}
-                      </div>
-                    </div>
-
                     <div className="col-span-1 text-right">
                       <button
                         type="button"
                         onClick={() => openEdit(u)}
-                        className="h-[36px] px-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm
-                        shadow-sm hover:bg-gray-50 active:scale-[0.98] transition
-                        focus:outline-none focus:ring-2 focus:ring-gray-200"
+                        className="h-[36px] px-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-extrabold text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition focus:outline-none focus:ring-2 focus:ring-gray-200"
                       >
                         edit
                       </button>
@@ -540,8 +483,7 @@ function UserManagementPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/30" onClick={close} />
           <div
-            className="relative w-full max-w-[900px] rounded-2xl bg-white shadow-[0_18px_55px_rgba(0,0,0,0.35)]
-            border border-blue-100/60 overflow-hidden"
+            className="relative w-full max-w-[900px] rounded-2xl bg-white shadow-[0_18px_55px_rgba(0,0,0,0.35)] border border-blue-100/60 overflow-hidden"
             role="dialog"
             aria-modal="true"
           >
@@ -563,9 +505,7 @@ function UserManagementPanel({
                     </div>
                     <button
                       className="h-[38px] px-4 rounded-xl bg-white border border-amber-200 font-extrabold"
-                      onClick={() =>
-                        navigator.clipboard.writeText(tempPassword)
-                      }
+                      onClick={() => navigator.clipboard.writeText(tempPassword)}
                       type="button"
                     >
                       คัดลอก
@@ -621,29 +561,6 @@ function UserManagementPanel({
                   />
                 </Field>
 
-                <Field label="สิทธิ์เข้าถึง (Modules)">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {MODULES.map((m) => {
-                      const checked = form.allowedModules.includes(m.code);
-                      return (
-                        <label
-                          key={m.code}
-                          className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleModule(m.code)}
-                          />
-                          <span className="font-extrabold text-gray-800">
-                            {m.label}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </Field>
-
                 {mode === "edit" && (
                   <Field label="สถานะการใช้งาน">
                     <select
@@ -681,9 +598,7 @@ function UserManagementPanel({
                 </button>
               </div>
 
-              <div className="mt-3 text-xs font-bold text-gray-400">
-
-              </div>
+              <div className="mt-3 text-xs font-bold text-gray-400"></div>
             </div>
           </div>
         </div>
@@ -693,7 +608,7 @@ function UserManagementPanel({
 }
 
 /* =========================
-    CondoHomePage (production-safe)
+   CondoHomePage (production-safe)
    ========================= */
 type LocationState = { justCreated?: boolean; condoId?: string } | null;
 
@@ -715,7 +630,6 @@ export default function CondoHomePage() {
 
   const token = useMemo(() => getTokenFromStorage(), []);
 
-
   useEffect(() => {
     if (!token) {
       nav("/login", {
@@ -723,8 +637,7 @@ export default function CondoHomePage() {
         state: { from: location.pathname + location.search },
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, nav, location.pathname, location.search]);
 
   const loadCondos = async () => {
     if (!getTokenFromStorage()) {
@@ -740,14 +653,13 @@ export default function CondoHomePage() {
 
       const data = await api<any>("/owner/condos", { method: "GET" });
 
-      const listRaw =
-        Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items)
-            ? data.items
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+      const listRaw = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
 
       setCondos(listRaw.map(normalizeCondo));
     } catch (e: any) {
@@ -776,12 +688,10 @@ export default function CondoHomePage() {
 
   useEffect(() => {
     loadCondos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (justCreated) loadCondos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justCreated]);
 
   const sortedCondos = useMemo(() => {
@@ -792,8 +702,7 @@ export default function CondoHomePage() {
   }, [condos, createdCondoId]);
 
   const goDashboard = (condoId: string) => {
-    // Sync condo to Zustand store so sidebar pages (Repairs, Parcels, etc.) can access it
-    const condo = sortedCondos.find(c => c.id === condoId);
+    const condo = sortedCondos.find((c) => c.id === condoId);
     if (condo) {
       useCondoStore.getState().selectCondo(condo.id, condo.name);
     }
@@ -812,7 +721,9 @@ export default function CondoHomePage() {
         setPopup(defaultPopup);
         setDeletingId(condo.id);
         try {
-          await api(`/owner/condos/${encodeURIComponent(condo.id)}`, { method: "DELETE" });
+          await api(`/owner/condos/${encodeURIComponent(condo.id)}`, {
+            method: "DELETE",
+          });
           setPopup({
             open: true,
             type: "success",
@@ -839,7 +750,6 @@ export default function CondoHomePage() {
     });
   };
 
-
   const condoNameForUsers = sortedCondos[0]?.name ?? "—";
   const condoIdForUsers = sortedCondos[0]?.id ?? null;
 
@@ -855,7 +765,6 @@ export default function CondoHomePage() {
             </div>
 
             <div className="px-6 py-6">
-              {/* tabs */}
               <div className="flex items-center justify-center">
                 <div className="w-full max-w-3xl">
                   <div className="flex items-end justify-center gap-14">
@@ -968,7 +877,7 @@ export default function CondoHomePage() {
                 <button
                   type="button"
                   className="text-gray-500 font-bold underline underline-offset-4 hover:text-gray-700"
-                  onClick={() => { }}
+                  onClick={() => {}}
                 >
                   จัดเรียงลำดับ
                 </button>
@@ -1114,10 +1023,7 @@ export default function CondoHomePage() {
         </div>
       </div>
 
-      <PopupModal
-        {...popup}
-        onClose={() => setPopup(defaultPopup)}
-      />
+      <PopupModal {...popup} onClose={() => setPopup(defaultPopup)} />
     </div>
   );
 }
