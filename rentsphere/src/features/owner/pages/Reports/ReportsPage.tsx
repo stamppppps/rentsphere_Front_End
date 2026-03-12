@@ -258,7 +258,7 @@ export default function ReportsPage() {
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.electric.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.other.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-red-500">{pageTotals.unpaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className="py-5 px-6 text-right font-extrabold text-[#93C5FD]">{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="py-5 px-6 text-right font-extrabold" style={{ color: '#3478F6' }}>{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

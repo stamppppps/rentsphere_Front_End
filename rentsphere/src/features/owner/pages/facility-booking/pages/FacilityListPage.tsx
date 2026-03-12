@@ -108,8 +108,8 @@ const FacilityListPage: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-6">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-indigo-100 rounded-full"></div>
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+            <div className="w-16 h-16 border-4 border-blue-100 rounded-full"></div>
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
           </div>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-sm text-center">กำลังจัดเตรียมข้อมูลพื้นที่...</p>
         </div>

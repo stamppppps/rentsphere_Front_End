@@ -3,7 +3,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import BillingFilter from "./componentsbill/BillingFilter";
 import BillingTable from "./componentsbill/BillingTable";
 import InvoiceDetail from "./InvoiceDetail";
-import type { BillingItem } from "./types";
+import type { BillingItem, PaymentStatus } from "./types";
 import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
 
 /* ================================================================
@@ -130,12 +130,23 @@ export default function BillingPage() {
 
           // Check if invoice already exists for this room
           const inv = invoiceMap[roomId];
-          const isPaid = inv ? String(inv.status || "").toLowerCase() === "paid" : false;
+          const invStatus = String(inv?.status || "").toLowerCase();
+          const isPaid = invStatus === "paid";
+
+          // ชำระแล้ว = invoice exists & paid
+          // รอการชำระ = invoice exists but not paid yet
+          // ค้างชำระ = no invoice at all
+          const paymentStatus: PaymentStatus = inv
+            ? isPaid
+              ? "ชำระแล้ว"
+              : "รอการชำระ"
+            : "ค้างชำระ";
 
           return {
             id: roomId,
             roomNumber: roomNo,
             status: "ไม่ว่าง" as const,
+            paymentStatus,
             waterMeter,
             elecMeter,
             rentAmount,
@@ -168,41 +179,37 @@ export default function BillingPage() {
     if (!item || !condoId) { setSelectedItem(null); return; }
 
     try {
+      let newInvoiceId = item.invoiceId;
+
       if (item.invoiceId) {
-        // PATCH existing invoice to paid
-        await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices/${item.invoiceId}/pay`, {
-          method: "PATCH", headers: authHeaders(),
-        });
+        // Invoice already exists — no need to create again
       } else {
-        // POST new invoice + mark paid
+        // POST new invoice as ISSUED (รอการชำระ) — ยังไม่ mark เป็น PAID
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({
             roomId: item.id,
             totalAmount: item.estimatedTotal,
-            status: "PAID",
+            status: "ISSUED",
             note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${(item.waterMeter?.totalUnits || 0) * item.waterRate}฿ + ค่าไฟ ${(item.elecMeter?.totalUnits || 0) * item.electricRate}฿`,
           }),
         });
         if (res.ok) {
           const d = await res.json();
-          // Update invoiceId
-          setBillingData((prev) =>
-            prev.map((b) =>
-              b.id === id ? { ...b, isPaid: true, invoiceId: d.invoice?.id ? String(d.invoice.id) : b.invoiceId } : b
-            )
-          );
-          setSelectedItem(null);
-          return;
+          newInvoiceId = d.invoice?.id ? String(d.invoice.id) : item.invoiceId;
         }
       }
+
+      // อัพเดต local state → รอการชำระ (ส้ม) เพราะสร้างบิลแล้วแต่ยังไม่ชำระ
+      setBillingData((prev) =>
+        prev.map((b) =>
+          b.id === id ? { ...b, isPaid: false, paymentStatus: 'รอการชำระ', invoiceId: newInvoiceId || b.invoiceId } : b
+        )
+      );
     } catch (e) {
-      console.error("Payment error:", e);
+      console.error("Invoice creation error:", e);
     }
 
-    setBillingData((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, isPaid: true } : b))
-    );
     setSelectedItem(null);
   };
 
@@ -260,8 +267,8 @@ export default function BillingPage() {
             <div className="flex-grow h-[1px] bg-gray-200 mx-4 -mt-7" />
             {/* Step 2 */}
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center mb-2 text-white font-bold">2</div>
-              <span className="text-purple-600 text-sm font-bold">2. สร้างใบแจ้งหนี้</span>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-white font-bold" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>2</div>
+              <span className="text-blue-600 text-sm font-bold">2. สร้างใบแจ้งหนี้</span>
             </div>
           </div>
         </div>
@@ -278,7 +285,7 @@ export default function BillingPage() {
             placeholder="ค้นหาเลขห้อง"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white rounded-2xl border-0 py-4 pl-12 pr-4 shadow-sm focus:ring-1 focus:ring-purple-400 focus:outline-none text-gray-600"
+            className="w-full bg-white rounded-2xl border-0 py-4 pl-12 pr-4 shadow-sm focus:ring-1 focus:ring-blue-400 focus:outline-none text-gray-600"
           />
         </div>
 
@@ -301,4 +308,3 @@ export default function BillingPage() {
     </OwnerShell>
   );
 }
-

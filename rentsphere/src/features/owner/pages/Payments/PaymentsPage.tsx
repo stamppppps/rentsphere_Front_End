@@ -1,19 +1,8 @@
 import { useEffect, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
-
-/* ================================================================
-   Types
-   ================================================================ */
-interface PaymentRecord {
-    id: string;
-    invoiceNo: string;
-    roomNo: string;
-    tenantName: string;
-    sentDate: string | null;
-    amount: number;
-    status: "overdue" | "pending" | "paid";
-}
+import PaymentPreviewPopup from "./PaymentPreviewPopup";
+import type { PaymentRecord } from "./PaymentPreviewPopup";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -67,6 +56,8 @@ export default function PaymentsPage() {
     const [page, setPage] = useState(1);
     const [data, setData] = useState<PaymentRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [previewItem, setPreviewItem] = useState<PaymentRecord | null>(null);
     const PER_PAGE = 4;
 
     useEffect(() => {
@@ -133,16 +124,25 @@ export default function PaymentsPage() {
                         const inv = invoiceMap[r.id];
 
                         let total: number;
+                        const rent = Number(r.price || 0);
+                        const waterCost = m ? Number(m.waterUnits || 0) * wRate : 0;
+                        const elecCost = m ? Number(m.electricUnits || 0) * eRate : 0;
+                        const wUnits = m ? Number(m.waterUnits || 0) : 0;
+                        const eUnits = m ? Number(m.electricUnits || 0) : 0;
+
                         if (inv?.totalAmount != null) {
                             total = Number(inv.totalAmount);
                         } else {
-                            const rent = Number(r.price || 0);
-                            const waterCost = m ? Number(m.waterUnits || 0) * wRate : 0;
-                            const elecCost = m ? Number(m.electricUnits || 0) * eRate : 0;
                             total = rent + waterCost + elecCost;
                         }
 
                         const isPaid = inv ? String(inv.status || "").toUpperCase() === "PAID" : false;
+
+                        // 3-state: paid / pending (มี invoice ยังไม่ชำระ) / overdue (ไม่มี invoice)
+                        let status: PaymentRecord["status"];
+                        if (isPaid) status = "paid";
+                        else if (inv) status = "pending";
+                        else status = "overdue";
 
                         return {
                             id: r.id,
@@ -151,7 +151,14 @@ export default function PaymentsPage() {
                             tenantName: "มีผู้เช่า",
                             sentDate: m?.recordedAt ? new Date(m.recordedAt).toLocaleDateString("th-TH") : null,
                             amount: total,
-                            status: isPaid ? "paid" : "pending",
+                            status,
+                            rentAmount: rent,
+                            waterCost: waterCost,
+                            elecCost: elecCost,
+                            waterUnits: wUnits,
+                            elecUnits: eUnits,
+                            waterRate: wRate,
+                            electricRate: eRate,
                         };
                     });
 
@@ -317,13 +324,28 @@ export default function PaymentsPage() {
                                             </td>
 
                                             <td
-                                                className={`py-5 px-4 text-right font-extrabold ${
+                                                className={`py-5 px-4 text-right ${
                                                     r.amount > 0 ? "text-red-500" : "text-gray-400"
                                                 }`}
                                             >
-                                                {r.amount > 0
-                                                    ? r.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })
-                                                    : "0.00"}
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <span className="font-extrabold text-lg">
+                                                        {r.amount > 0
+                                                            ? r.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })
+                                                            : "0.00"}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); setPreviewItem(r); }}
+                                                        className="p-1.5 rounded-xl hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="ดูใบแจ้งหนี้"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </td>
 
                                             <td className="py-5 px-4 text-center">
@@ -397,6 +419,13 @@ export default function PaymentsPage() {
                             </div>
                         </div>
                     </>
+                )}
+                {/* ===== Invoice Preview Popup ===== */}
+                {previewItem && (
+                    <PaymentPreviewPopup
+                        item={previewItem}
+                        onClose={() => setPreviewItem(null)}
+                    />
                 )}
             </div>
         </OwnerShell>

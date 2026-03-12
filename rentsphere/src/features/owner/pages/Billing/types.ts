@@ -1,5 +1,8 @@
 export type RoomStatus = 'ว่าง' | 'ไม่ว่าง';
 
+/** Payment status derived from invoice state */
+export type PaymentStatus = 'ชำระแล้ว' | 'รอการชำระ' | 'ค้างชำระ';
+
 export interface MeterData {
   current: number;
   previous: number;
@@ -10,6 +13,7 @@ export interface BillingItem {
   id: string;
   roomNumber: string;
   status: RoomStatus;
+  paymentStatus: PaymentStatus;  // 🟢ชำระแล้ว | 🟠รอการชำระ | 🔴ค้างชำระ
   waterMeter?: MeterData;
   elecMeter?: MeterData;
   rentAmount: number;

@@ -68,9 +68,10 @@ const FilterButton = ({
   <button
     onClick={onClick}
     className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
-      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+      ? "text-white shadow-lg shadow-blue-200"
       : "text-slate-600 hover:bg-slate-50"
       }`}
+    style={active ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : undefined}
   >
     {icon}
     <span>{label}</span>
@@ -94,7 +95,7 @@ const ActionButton = ({
 }) => {
   const styles =
     variant === "primary"
-      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"
+      ? "text-white shadow-blue-200"
       : variant === "emerald"
         ? "bg-white border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 shadow-emerald-50"
         : variant === "rose"
@@ -106,6 +107,7 @@ const ActionButton = ({
       disabled={disabled}
       onClick={onClick}
       className={`flex-1 min-w-[140px] flex flex-col items-center justify-center p-4 rounded-3xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale ${styles}`}
+      style={variant === "primary" ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : undefined}
     >
       <div className="mb-2 p-2 rounded-2xl">{icon}</div>
       <span className="text-base">{label}</span>
@@ -179,7 +181,7 @@ export default function OwnerAdminRepairsPage() {
     <OwnerShell title="งานแจ้งซ่อม" activeKey="repairs" showSidebar={true}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
+          <div className="p-2 rounded-xl text-white shadow-lg shadow-blue-200" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
             <LayoutList size={22} />
           </div>
           <div>
@@ -189,7 +191,7 @@ export default function OwnerAdminRepairsPage() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-blue-100/60 bg-blue-to-b from-[#EAF2FF] to-white/60 p-6">
+      <div className="rounded-3xl border border-blue-100/60 bg-white p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm">
           <div className="flex flex-wrap items-center gap-1">
             <FilterButton active={filter === "new"} onClick={() => setFilter("new")} icon={<Search size={16} />} label="ใหม่" />

@@ -29,7 +29,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 
   // Form States
   const [paymentAmount, setPaymentAmount] = useState<string>(item.estimatedTotal.toString());
-  const [paymentMethod, setPaymentMethod] = useState<string>('เงินสด');
+  const [paymentMethod, setPaymentMethod] = useState<string>('เงินโอน');
   const [typedDate, setTypedDate] = useState<string>('');
 
   // Initialize date to today on mount
@@ -54,6 +54,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
       let invoiceId = item.invoiceId ? String(item.invoiceId) : "";
 
       if (!invoiceId) {
+        // สร้างใบแจ้งหนี้เป็น ISSUED (รอการชำระ) — ยังไม่ mark เป็น PAID
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({
@@ -70,17 +71,12 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 
       if (!invoiceId) throw new Error("Missing invoiceId");
 
-      const payRes = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices/${invoiceId}/pay`, {
-        method: "PATCH",
-        headers: authHeaders(),
-      });
-      if (!payRes.ok) throw new Error("Pay invoice failed");
-
+      // บันทึก invoiceId แล้วแสดงว่าสร้างบิลสำเร็จ (ยังไม่ชำระ → รอการชำระ ส้ม)
       setCreatedInvoiceId(invoiceId);
-      setIsPaid(true);
+      setIsPaid(true); // ใช้ flag นี้เพื่อแสดง success panel (ส่ง LINE / เสร็จสิ้น)
     } catch (e) {
-      console.error("Payment API error:", e);
-      alert("Payment save failed");
+      console.error("Invoice API error:", e);
+      alert("สร้างใบแจ้งหนี้ไม่สำเร็จ");
     }
   };
 
@@ -88,7 +84,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
     setIsPaid(false);
     setCreatedInvoiceId(item.invoiceId);
     setPaymentAmount(item.estimatedTotal.toString());
-    setPaymentMethod('เงินสด');
+    setPaymentMethod('เงินโอน');
     const today = new Date();
     const d = String(today.getDate()).padStart(2, '0');
     const m = String(today.getMonth() + 1).padStart(2, '0');

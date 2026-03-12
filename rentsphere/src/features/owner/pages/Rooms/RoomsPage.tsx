@@ -213,7 +213,7 @@ export default function RoomsPage() {
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-500">
-          คอนโดมิเนียม : <span className="text-gray-800">{condoName}</span>
+          คอนโดมีเนียม
         </div>
       </div>
 

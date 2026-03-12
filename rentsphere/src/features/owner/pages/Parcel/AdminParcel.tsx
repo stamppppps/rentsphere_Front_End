@@ -232,7 +232,7 @@ export default function AdminParcel() {
       <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
         <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+            <div className="w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-indigo-200" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
               <span className="text-lg">📦</span>
             </div>
             <div>
@@ -355,7 +355,8 @@ export default function AdminParcel() {
                 <button
                   onClick={submit}
                   disabled={loading}
-                  className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 transition disabled:opacity-50"
+                  className="w-full rounded-2xl text-white font-black py-3.5 transition disabled:opacity-50"
+                  style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
                 >
                   {loading ? "กำลังบันทึก..." : "ส่งแจ้งพัสดุเข้าสู่ระบบ"}
                 </button>
@@ -427,7 +428,8 @@ export default function AdminParcel() {
                             <div className="mt-3">
                               <button
                                 onClick={() => markPickedUp(h.id)}
-                                className="inline-flex px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 font-black text-white transition text-xs"
+                                className="inline-flex px-4 py-2 rounded-xl font-black text-white transition text-xs"
+                                style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
                               >
                                 กดเมื่อลูกบ้านมารับพัสดุ
                               </button>
