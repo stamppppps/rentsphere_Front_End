@@ -77,16 +77,22 @@ function normalizePreviewItems(items: any[]): PreviewInvoiceItem[] {
   }));
 }
 
-function extractMeter(items: PreviewInvoiceItem[], kind: "WATER" | "ELECTRIC") {
-  const row = items.find((it) => it.itemType === kind);
-  if (!row) return undefined;
-
-  return {
-    current: 0,
-    previous: 0,
-    totalUnits: 0,
-  };
-}
+type PreviewRoomResponse = {
+  roomId: string;
+  roomNo: string;
+  contractId?: string | null;
+  subtotal?: number;
+  totalAmount?: number;
+  items?: any[];
+  meterSummary?: {
+    prevWater?: number;
+    currWater?: number;
+    waterUnits?: number;
+    prevElectric?: number;
+    currElectric?: number;
+    electricUnits?: number;
+  } | null;
+};
 
 /* ================================================================
    Main Page
@@ -127,7 +133,9 @@ export default function BillingPage() {
         ]);
 
         const previewRaw = previewRes?.ok ? await previewRes.json() : {};
-        const previewRooms: any[] = Array.isArray(previewRaw?.rooms) ? previewRaw.rooms : [];
+        const previewRooms: PreviewRoomResponse[] = Array.isArray(previewRaw?.rooms)
+          ? previewRaw.rooms
+          : [];
 
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
         const configs: any[] =
@@ -161,10 +169,17 @@ export default function BillingPage() {
         const rows: BillingItem[] = previewRooms.map((room) => {
           const items = normalizePreviewItems(room.items || []);
           const invoice = invoiceMap[String(room.roomId)] || null;
+          const meter = room.meterSummary || null;
 
           const rentItem = items.find((it) => it.itemType === "RENT");
-          const waterItem = items.find((it) => it.itemType === "WATER");
-          const electricItem = items.find((it) => it.itemType === "ELECTRIC");
+
+          const hasWater =
+            items.some((it) => it.itemType === "WATER") ||
+            meter !== null;
+
+          const hasElectric =
+            items.some((it) => it.itemType === "ELECTRIC") ||
+            meter !== null;
 
           return {
             id: String(room.roomId),
@@ -176,19 +191,19 @@ export default function BillingPage() {
             waterRate: wRate,
             electricRate: eRate,
 
-            waterMeter: waterItem
+            waterMeter: hasWater
               ? {
-                  current: 0,
-                  previous: 0,
-                  totalUnits: 0,
+                  current: Number(meter?.currWater || 0),
+                  previous: Number(meter?.prevWater || 0),
+                  totalUnits: Number(meter?.waterUnits || 0),
                 }
               : undefined,
 
-            elecMeter: electricItem
+            elecMeter: hasElectric
               ? {
-                  current: 0,
-                  previous: 0,
-                  totalUnits: 0,
+                  current: Number(meter?.currElectric || 0),
+                  previous: Number(meter?.prevElectric || 0),
+                  totalUnits: Number(meter?.electricUnits || 0),
                 }
               : undefined,
 
@@ -230,9 +245,7 @@ export default function BillingPage() {
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return billingData;
-    return billingData.filter((b) =>
-      b.roomNumber.toLowerCase().includes(q)
-    );
+    return billingData.filter((b) => b.roomNumber.toLowerCase().includes(q));
   }, [billingData, search]);
 
   const handleCompletePayment = () => {
