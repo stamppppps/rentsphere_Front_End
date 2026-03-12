@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 type MeterType = "water" | "electric";
 
@@ -461,8 +461,10 @@ export default function MeterPage2() {
         }
     };
 
+    const condoName = useCondoStore(s => s.condoName);
+
     return (
-        <OwnerShell activeKey="meter">
+        <OwnerShell activeKey="meter" condoName={condoName || "คอนโดมิเนียม"}>
             <div className="w-full mx-auto animate-in fade-in duration-300 pt-6 px-8 pb-10">
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                     <div className="flex items-center gap-4">

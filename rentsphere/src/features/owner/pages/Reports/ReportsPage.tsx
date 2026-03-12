@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -156,8 +156,10 @@ export default function ReportsPage() {
         );
     }, [pageData]);
 
+    const condoName = useCondoStore(s => s.condoName);
+
     return (
-        <OwnerShell activeKey="reports">
+        <OwnerShell activeKey="reports" condoName={condoName || "คอนโดมิเนียม"}>
             <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#f8faff] p-8 pb-12">
 
                 {/* 1. Header Section */}

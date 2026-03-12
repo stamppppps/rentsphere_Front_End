@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 import PaymentPreviewPopup from "./PaymentPreviewPopup";
 import type { PaymentRecord } from "./PaymentPreviewPopup";
 
@@ -190,8 +190,10 @@ export default function PaymentsPage() {
     const now = new Date();
     const monthName = now.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
 
+    const condoName = useCondoStore(s => s.condoName);
+
     return (
-        <OwnerShell activeKey="payments">
+        <OwnerShell activeKey="payments" condoName={condoName || "คอนโดมิเนียม"}>
             <div className="w-full mx-auto animate-in fade-in duration-300 pt-6 px-8 pb-10">
                 <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
                     <div>

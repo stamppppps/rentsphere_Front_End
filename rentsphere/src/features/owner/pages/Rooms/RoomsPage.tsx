@@ -1,5 +1,5 @@
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -203,13 +203,15 @@ export default function RoomsPage() {
     setOpenPickRoom(true);
   };
 
+  const storeCondoName = useCondoStore(s => s.condoName);
+
   return (
     <OwnerShell
       title="ห้อง"
       activeKey="rooms"
       showSidebar
       condoId={condoId ?? undefined}
-      condoName={condoName}
+      condoName={storeCondoName || condoName || "คอนโดมิเนียม"}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-500">

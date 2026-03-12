@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import BookingTable from '../components/BookingTable';
 import { BOOKING_STATUS_CONFIG } from '../constants/bookingStatus';
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 
 
 const BookingHistoryPage: React.FC = () => {
@@ -67,8 +68,10 @@ const BookingHistoryPage: React.FC = () => {
     setDateFilter('');
   };
 
+  const condoName = useCondoStore(s => s.condoName);
+
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar>
+    <OwnerShell activeKey="common-area-booking" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
       <div className="max-w-7xl mx-auto px-6 py-12">
       {/* Back Button Section - Improved UI */}
       <div className="flex items-center gap-4 mb-8">

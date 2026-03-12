@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import EmptyState from '../components/EmptyState';
 
 import OwnerShell from "@/features/owner/components/OwnerShell";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 
 const FacilityListPage: React.FC = () => {
   const { facilities, loading } = useFacilities();
@@ -23,8 +24,10 @@ const FacilityListPage: React.FC = () => {
     return matchesType && matchesSearch;
   });
 
+  const condoName = useCondoStore(s => s.condoName);
+
   return (
-    <OwnerShell activeKey="common-area-booking" showSidebar>
+    <OwnerShell activeKey="common-area-booking" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
       <div className="max-w-7xl mx-auto px-6 py-12">
 
       {/* Header Section */}
