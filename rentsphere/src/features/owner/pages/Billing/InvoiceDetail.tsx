@@ -13,6 +13,35 @@ interface InvoiceDetailProps {
   condoId: string;
 }
 
+/* ---------- Popup Modal ---------- */
+interface PopupProps {
+  type: "success" | "error" | "warning";
+  message: string;
+  onClose: () => void;
+}
+const Popup: React.FC<PopupProps> = ({ type, message, onClose }) => {
+  const icon = type === "success" ? "✅" : type === "error" ? "❌" : "⚠️";
+  const borderColor = type === "success" ? "border-emerald-200" : type === "error" ? "border-rose-200" : "border-amber-200";
+  const bgColor = type === "success" ? "bg-emerald-50" : type === "error" ? "bg-rose-50" : "bg-amber-50";
+  const textColor = type === "success" ? "text-emerald-800" : type === "error" ? "text-rose-800" : "text-amber-800";
+  const btnBg = type === "success" ? "bg-emerald-600 hover:bg-emerald-700" : type === "error" ? "bg-rose-600 hover:bg-rose-700" : "bg-amber-600 hover:bg-amber-700";
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className={`w-[90%] max-w-sm rounded-3xl border ${borderColor} ${bgColor} p-6 shadow-2xl text-center animate-in zoom-in-95 duration-300`}>
+        <div className="text-4xl mb-3">{icon}</div>
+        <div className={`text-[15px] font-black ${textColor} leading-relaxed whitespace-pre-line`}>{message}</div>
+        <button
+          onClick={onClose}
+          className={`mt-5 px-8 py-2.5 rounded-2xl ${btnBg} text-white font-black text-sm transition active:scale-95`}
+        >
+          ตกลง
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function getAuthToken(): string {
@@ -26,6 +55,9 @@ function authHeaders() {
 const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete, condoId }) => {
   const [isPaid, setIsPaid] = useState(false);
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | undefined>(item.invoiceId);
+
+  // Popup state
+  const [popup, setPopup] = useState<{ type: "success" | "error" | "warning"; message: string } | null>(null);
 
   // Form States
   const [paymentAmount, setPaymentAmount] = useState<string>(item.estimatedTotal.toString());
@@ -76,7 +108,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
       setIsPaid(true); // ใช้ flag นี้เพื่อแสดง success panel (ส่ง LINE / เสร็จสิ้น)
     } catch (e) {
       console.error("Invoice API error:", e);
-      alert("สร้างใบแจ้งหนี้ไม่สำเร็จ");
+      setPopup({ type: "error", message: "สร้างใบแจ้งหนี้ไม่สำเร็จ" });
     }
   };
 
@@ -95,7 +127,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
   const handleNotifyLine = async () => {
     const invoiceId = createdInvoiceId;
     if (!invoiceId || !condoId) {
-      alert("ไม่พบ invoiceId — กรุณากดบันทึกก่อนส่ง LINE");
+      setPopup({ type: "warning", message: "ไม่พบ invoiceId — กรุณากดบันทึกก่อนส่ง LINE" });
       return;
     }
 
@@ -104,14 +136,17 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      alert(err?.error || "ส่ง LINE ไม่สำเร็จ");
+      setPopup({ type: "error", message: err?.error || "ส่ง LINE ไม่สำเร็จ" });
       return;
     }
-    alert("ส่ง LINE สำเร็จ! ✅");
+    setPopup({ type: "success", message: "ส่ง LINE สำเร็จ!" });
   };
 
   return (
     <div className="flex flex-col xl:flex-row gap-8 items-start animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
+      {/* Popup Modal */}
+      {popup && <Popup type={popup.type} message={popup.message} onClose={() => setPopup(null)} />}
+
       {/* Left Panel: Invoice Details Container */}
       <div className="w-full xl:flex-grow bg-white rounded-[40px] shadow-sm border border-gray-100 p-6 sm:p-12 relative overflow-hidden">
         <InvoiceHeader onBack={onBack} />
@@ -143,5 +178,3 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 };
 
 export default InvoiceDetail;
-
-

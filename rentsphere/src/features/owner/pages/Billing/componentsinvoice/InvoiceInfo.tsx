@@ -30,9 +30,9 @@ const InvoiceInfo: React.FC<InvoiceInfoProps> = ({ item, isPaid }) => {
           <span className="text-gray-400 text-sm">สถานะ:</span>
           {(() => {
             const ps = item.paymentStatus;
-            if (isPaid || item.isPaid || ps === 'ชำระแล้ว')
+            if (item.isPaid || ps === 'ชำระแล้ว')
               return <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-md font-bold">ชำระแล้ว</span>;
-            if (ps === 'รอการชำระ')
+            if (isPaid || ps === 'รอการชำระ')
               return <span className="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-md font-bold">รอการชำระ</span>;
             return <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-md font-bold">ค้างชำระ</span>;
           })()}
