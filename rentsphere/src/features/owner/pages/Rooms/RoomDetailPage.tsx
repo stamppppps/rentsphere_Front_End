@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 type OccupancyStatus = "VACANT" | "OCCUPIED";
@@ -227,9 +228,11 @@ export default function RoomDetailPage() {
   const roomPrice = room?.price ?? null;
   const roomStatus = room?.occupancyStatus ?? "VACANT";
 
+  const storeCondoName = useCondoStore(s => s.condoName);
+
   if (loading) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูลห้อง...</div>
         </div>
@@ -239,7 +242,7 @@ export default function RoomDetailPage() {
 
   if (!roomId || error || !room) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูลห้องนี้</div>
           <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
@@ -269,7 +272,7 @@ export default function RoomDetailPage() {
 
   return (
     <>
-    <OwnerShell activeKey="rooms" showSidebar>
+    <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
       {/* breadcrumb */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3 text-sm font-bold text-gray-600">

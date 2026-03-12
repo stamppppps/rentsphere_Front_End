@@ -4,7 +4,7 @@ import BillingFilter from "./componentsbill/BillingFilter";
 import BillingTable from "./componentsbill/BillingTable";
 import InvoiceDetail from "./InvoiceDetail";
 import type { BillingItem, PaymentStatus, PreviewInvoiceItem } from "./types";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 /* ================================================================
    API helpers
@@ -63,7 +63,6 @@ async function resolveCondoId(): Promise<string> {
    Main Page
    ================================================================ */
 export default function BillingPage() {
-  /* ==================== state ==================== */
   const [billingData, setBillingData] = useState<BillingItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<BillingItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +71,8 @@ export default function BillingPage() {
   const [electricRate, setElectricRate] = useState(8);
   const [condoId, setCondoId] = useState("");
 
-  /* ==================== load data from backend ==================== */
+  const condoName = useCondoStore((s) => s.condoName);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -108,19 +108,27 @@ export default function BillingPage() {
 
         const metersRaw = meterRes?.ok ? await meterRes.json() : {};
         const meters: any[] =
-          metersRaw?.readings || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
+          metersRaw?.readings ||
+          metersRaw?.items ||
+          (Array.isArray(metersRaw) ? metersRaw : []);
 
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
         const configs: any[] =
-          utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
+          utilsRaw?.configs ||
+          utilsRaw?.items ||
+          (Array.isArray(utilsRaw) ? utilsRaw : []);
 
         const invoicesRaw = invRes?.ok ? await invRes.json() : {};
         const invoices: any[] =
-          invoicesRaw?.invoices || invoicesRaw?.items || (Array.isArray(invoicesRaw) ? invoicesRaw : []);
+          invoicesRaw?.invoices ||
+          invoicesRaw?.items ||
+          (Array.isArray(invoicesRaw) ? invoicesRaw : []);
 
         const previewRaw = previewRes?.ok ? await previewRes.json() : {};
         const previewRooms: any[] =
-          previewRaw?.rooms || previewRaw?.items || (Array.isArray(previewRaw) ? previewRaw : []);
+          previewRaw?.rooms ||
+          previewRaw?.items ||
+          (Array.isArray(previewRaw) ? previewRaw : []);
 
         if (cancelled) return;
 
@@ -265,7 +273,6 @@ export default function BillingPage() {
     };
   }, []);
 
-  /* ==================== handlers ==================== */
   const handleCompletePayment = async (id: string) => {
     const item = billingData.find((b) => b.id === id);
     if (!item || !condoId) {
@@ -276,9 +283,7 @@ export default function BillingPage() {
     try {
       let newInvoiceId = item.invoiceId;
 
-      if (item.invoiceId) {
-        // Invoice already exists — no need to create again
-      } else {
+      if (!item.invoiceId) {
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST",
           headers: authHeaders(),
@@ -315,17 +320,15 @@ export default function BillingPage() {
     setSelectedItem(null);
   };
 
-  /* ==================== search filter ==================== */
   const filteredData = search.trim()
     ? billingData.filter((b) =>
         b.roomNumber.toLowerCase().includes(search.trim().toLowerCase())
       )
     : billingData;
 
-  /* ==================== loading ==================== */
   if (loading) {
     return (
-      <OwnerShell activeKey="billing" showSidebar>
+      <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
         <div className="max-w-7xl mx-auto pt-10 px-6">
           <div className="rounded-2xl bg-white border border-purple-100 shadow-sm px-6 py-12 text-center">
             <div className="text-sm font-extrabold text-gray-600">
@@ -337,10 +340,9 @@ export default function BillingPage() {
     );
   }
 
-  /* ==================== invoice detail ==================== */
   if (selectedItem) {
     return (
-      <OwnerShell activeKey="billing" showSidebar>
+      <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
         <div className="max-w-7xl mx-auto pt-10 px-6">
           <InvoiceDetail
             item={selectedItem}
@@ -353,9 +355,8 @@ export default function BillingPage() {
     );
   }
 
-  /* ==================== billing list ==================== */
   return (
-    <OwnerShell activeKey="billing" showSidebar>
+    <OwnerShell activeKey="billing" showSidebar condoName={condoName || "คอนโดมิเนียม"}>
       <div className="max-w-7xl mx-auto animate-in fade-in duration-300 pt-10 px-6">
         <div className="flex justify-center items-center mb-12">
           <div className="flex items-center w-full max-w-xl">

@@ -2,6 +2,7 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { api } from "@/shared/api/http";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useCondoStore } from "@/features/owner/stores/condoStore";
 import PopupModal, { type PopupState, defaultPopup } from "@/shared/components/PopupModal";
 
 /* =========================
@@ -208,9 +209,11 @@ export default function RoomMeterPage() {
     }
   };
 
+  const storeCondoName = useCondoStore(s => s.condoName);
+
   if (loading) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-sm font-extrabold text-gray-600">กำลังโหลดข้อมูลมิเตอร์...</div>
         </div>
@@ -220,7 +223,7 @@ export default function RoomMeterPage() {
 
   if (!roomId || error) {
     return (
-      <OwnerShell activeKey="rooms" showSidebar>
+      <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
         <div className="rounded-2xl border border-blue-100/70 bg-white p-8">
           <div className="text-xl font-extrabold text-gray-900 mb-2">ไม่พบข้อมูล</div>
           <div className="text-gray-600 font-bold mb-2">roomId: {roomId}</div>
@@ -248,7 +251,7 @@ export default function RoomMeterPage() {
   }
 
   return (<>
-    <OwnerShell activeKey="rooms" showSidebar>
+    <OwnerShell activeKey="rooms" showSidebar condoName={storeCondoName || "คอนโดมิเนียม"}>
       {/* header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm font-bold text-gray-600">

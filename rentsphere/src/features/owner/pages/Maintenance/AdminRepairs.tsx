@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 import {
   LayoutList,
   Search,
@@ -191,8 +191,10 @@ export default function OwnerAdminRepairsPage() {
     return true;
   });
 
+  const condoName = useCondoStore(s => s.condoName);
+
   return (
-    <OwnerShell title="งานแจ้งซ่อม" activeKey="repairs" showSidebar={true}>
+    <OwnerShell title="งานแจ้งซ่อม" activeKey="maintenance" showSidebar={true} condoName={condoName || "คอนโดมิเนียม"}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl text-white shadow-lg shadow-blue-200" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>

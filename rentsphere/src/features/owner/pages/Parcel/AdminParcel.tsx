@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 type Tenant = {
   id: string;
@@ -227,8 +227,10 @@ export default function AdminParcel() {
     }
   };
 
+  const condoName = useCondoStore(s => s.condoName);
+
   return (
-    <OwnerShell title="จัดการพัสดุ" activeKey="parcel" showSidebar={true}>
+    <OwnerShell title="จัดการพัสดุ" activeKey="parcel" showSidebar={true} condoName={condoName || "คอนโดมิเนียม"}>
       <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
         <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">

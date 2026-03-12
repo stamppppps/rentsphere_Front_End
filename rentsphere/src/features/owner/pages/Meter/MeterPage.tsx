@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OwnerShell from "@/features/owner/components/OwnerShell";
-import { getSelectedCondoId } from "@/features/owner/stores/condoStore";
+import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -544,8 +544,10 @@ function HistoryView() {
 export default function MeterPage() {
     const navigate = useNavigate();
 
+    const condoName = useCondoStore(s => s.condoName);
+
     return (
-        <OwnerShell activeKey="meter">
+        <OwnerShell activeKey="meter" condoName={condoName || "คอนโดมิเนียม"}>
            <div className="w-full max-w-[1680px] mx-auto animate-in fade-in duration-300 pt-6 px-6 pb-10">
                 <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
                     <div>
