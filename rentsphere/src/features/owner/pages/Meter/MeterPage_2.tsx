@@ -502,6 +502,7 @@ export default function MeterPage2() {
                     <div className="flex items-center gap-3 flex-wrap">
                         <input
                             type="month"
+                            aria-label="เลือกเดือนและปี"
                             value={selectedMonth}
                             onChange={(e) => {
                                 setSelectedMonth(e.target.value);

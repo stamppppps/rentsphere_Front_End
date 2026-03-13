@@ -26,7 +26,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <Icon size={56} strokeWidth={1.2} className="text-slate-200" />
       </div>
       
-      <div className="absolute -bottom-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200 border-4 border-white" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
+      <div className="absolute -bottom-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200 border-4 border-white bg-gradient-to-r from-blue-600 to-sky-500">
         <Inbox size={22} />
       </div>
     </div>

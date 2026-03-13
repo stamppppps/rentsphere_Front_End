@@ -153,6 +153,7 @@ const BookingDetailPage: React.FC = () => {
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => navigate(-1)}
+            aria-label="\u0e01\u0e25\u0e31\u0e1a"
             className="p-3.5 bg-white border border-slate-200 rounded-[20px] text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm active:scale-90"
           >
             <ChevronLeft size={22} />

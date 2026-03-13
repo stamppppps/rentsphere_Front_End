@@ -87,13 +87,26 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({ item, onBack, onComplete,
 
       if (!invoiceId) {
         // สร้างใบแจ้งหนี้เป็น ISSUED (รอการชำระ) — ยังไม่ mark เป็น PAID
+        const noteItems = Array.isArray(item.items) && item.items.length > 0
+          ? item.items.map(x => `${x.itemName} ${x.amount}฿`).join(" + ")
+          : `รวม ${parseFloat(paymentAmount)}฿`;
+
         const res = await fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, {
           method: "POST", headers: authHeaders(),
           body: JSON.stringify({
             roomId: item.id,
             totalAmount: parseFloat(paymentAmount),
             status: "ISSUED",
-            note: `ค่าเช่า ${item.rentAmount}฿ + ค่าน้ำ ${((item.waterMeter?.totalUnits || 0) * item.waterRate).toFixed(2)}฿ + ค่าไฟ ${((item.elecMeter?.totalUnits || 0) * item.electricRate).toFixed(2)}฿ (${paymentMethod})`,
+            note: `${noteItems} (${paymentMethod})`,
+            items: Array.isArray(item.items) ? item.items.map(i => ({
+               itemType: i.itemType,
+               itemName: i.itemName,
+               amount: i.amount,
+               condoChargeId: i.condoChargeId,
+               extraChargeTemplateId: i.extraChargeTemplateId,
+               meterReadingId: i.meterReadingId,
+               facilityBookingId: i.facilityBookingId,
+            })) : [],
           }),
         });
         if (!res.ok) throw new Error("Create invoice failed");

@@ -99,6 +99,7 @@ export default function AdminParcel() {
       if (!res.ok) throw new Error("Failed to load history");
       const data = await res.json();
       setHistory(data.items || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setErr(e.message || "Error loading history");
     } finally {

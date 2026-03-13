@@ -13,6 +13,8 @@ export interface PaymentRecord {
     elecUnits: number;
     waterRate: number;
     electricRate: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    items?: any[];
 }
 
 interface PaymentPreviewPopupProps {
@@ -52,26 +54,69 @@ export default function PaymentPreviewPopup({ item, onClose }: PaymentPreviewPop
 
     const lineItems: { name: string; pricePerUnit: number; amount: number }[] = [];
 
-    if (item.rentAmount > 0) {
-        lineItems.push({
-            name: "ค่าเช่าห้อง/Rent",
-            pricePerUnit: item.rentAmount,
-            amount: item.rentAmount,
+    if (item.items && item.items.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        item.items.forEach((x: any) => {
+            const itemType = String(x.itemType || x.item_type || "").toUpperCase();
+            const itemName = String(x.itemName || x.item_name || x.name || "");
+            const amount = Number(x.amount ?? 0);
+            const prevMeter = x.previousReading ?? x.prev_reading ?? null;
+            const currMeter = x.currentReading ?? x.curr_reading ?? null;
+
+            if (itemType === "RENT") {
+                lineItems.push({
+                    name: itemName || "ค่าเช่าห้อง",
+                    pricePerUnit: amount,
+                    amount,
+                });
+            } else if (itemType === "WATER") {
+                const rangeLabel = prevMeter != null && currMeter != null
+                    ? `(${prevMeter} - ${currMeter})`
+                    : item.waterUnits > 0 ? `(${item.waterUnits} หน่วย)` : "";
+                lineItems.push({
+                    name: `ค่าน้ำ ${rangeLabel}`.trim(),
+                    pricePerUnit: item.waterRate,
+                    amount,
+                });
+            } else if (itemType === "ELECTRIC") {
+                const rangeLabel = prevMeter != null && currMeter != null
+                    ? `(${prevMeter} - ${currMeter})`
+                    : item.elecUnits > 0 ? `(${item.elecUnits} หน่วย)` : "";
+                lineItems.push({
+                    name: `ค่าไฟ ${rangeLabel}`.trim(),
+                    pricePerUnit: item.electricRate,
+                    amount,
+                });
+            } else {
+                lineItems.push({
+                    name: itemName,
+                    pricePerUnit: amount,
+                    amount,
+                });
+            }
         });
-    }
-    if (item.waterCost > 0) {
-        lineItems.push({
-            name: `ค่าน้ำ (${item.waterUnits} หน่วย × ${item.waterRate}฿)`,
-            pricePerUnit: item.waterRate,
-            amount: item.waterCost,
-        });
-    }
-    if (item.elecCost > 0) {
-        lineItems.push({
-            name: `ค่าไฟ (${item.elecUnits} หน่วย × ${item.electricRate}฿)`,
-            pricePerUnit: item.electricRate,
-            amount: item.elecCost,
-        });
+    } else {
+        if (item.rentAmount > 0) {
+            lineItems.push({
+                name: "ค่าเช่าห้อง/Rent",
+                pricePerUnit: item.rentAmount,
+                amount: item.rentAmount,
+            });
+        }
+        if (item.waterCost > 0) {
+            lineItems.push({
+                name: `ค่าน้ำ (${item.waterUnits} หน่วย × ${item.waterRate}฿)`,
+                pricePerUnit: item.waterRate,
+                amount: item.waterCost,
+            });
+        }
+        if (item.elecCost > 0) {
+            lineItems.push({
+                name: `ค่าไฟ (${item.elecUnits} หน่วย × ${item.electricRate}฿)`,
+                pricePerUnit: item.electricRate,
+                amount: item.elecCost,
+            });
+        }
     }
 
     return (
@@ -88,14 +133,11 @@ export default function PaymentPreviewPopup({ item, onClose }: PaymentPreviewPop
             <div className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div
-                    className="px-8 py-5 flex items-center gap-3"
-                    style={{
-                        background:
-                            "linear-gradient(90deg, rgba(37,99,235,0.08), rgba(14,165,233,0.08))",
-                    }}
+                    className="px-8 py-5 flex items-center gap-3 bg-gradient-to-r from-blue-600/10 to-sky-500/10"
                 >
                     <button
                         onClick={onClose}
+                        aria-label="ปิด"
                         className="text-gray-500 hover:text-gray-800 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -8,10 +8,7 @@ import {
   CheckCircle2,
   RefreshCcw,
   XCircle,
-  MapPin,
   MessageSquare,
-  Maximize2,
-  Send,
   Package,
   User,
 } from "lucide-react";
@@ -67,14 +64,10 @@ const FilterButton = ({
   label: string;
   colorScheme?: "blue" | "amber" | "emerald";
 }) => {
-  let bgGradient = "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))"; 
   let shadowColor = "shadow-blue-200";
-
   if (colorScheme === "amber") {
-    bgGradient = "linear-gradient(90deg, rgba(245,158,11,0.9), rgba(251,191,36,0.9))";
     shadowColor = "shadow-amber-200";
   } else if (colorScheme === "emerald") {
-    bgGradient = "linear-gradient(90deg, rgba(16,185,129,0.9), rgba(52,211,153,0.9))";
     shadowColor = "shadow-emerald-200";
   }
 
@@ -82,9 +75,16 @@ const FilterButton = ({
     <button
       onClick={onClick}
       className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? `text-white shadow-lg ${shadowColor}` : "text-slate-600 hover:bg-slate-50"
+        active 
+          ? `text-white shadow-lg ${shadowColor} ${
+              colorScheme === "amber" 
+                ? "bg-gradient-to-r from-amber-500 to-yellow-400" 
+                : colorScheme === "emerald" 
+                  ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                  : "bg-gradient-to-r from-blue-600 to-sky-500"
+            }` 
+          : "text-slate-600 hover:bg-slate-50"
       }`}
-      style={active ? { background: bgGradient } : undefined}
     >
       {icon}
       <span>{label}</span>
@@ -120,8 +120,7 @@ const ActionButton = ({
     <button
       disabled={disabled}
       onClick={onClick}
-      className={`flex-1 min-w-[140px] flex flex-col items-center justify-center p-4 rounded-3xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale ${styles}`}
-      style={variant === "primary" ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : undefined}
+      className={`flex-1 min-w-[140px] flex flex-col items-center justify-center p-4 rounded-3xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale ${styles} ${variant === "primary" ? "bg-gradient-to-r from-blue-600 to-sky-500" : ""}`}
     >
       <div className="mb-2 p-2 rounded-2xl">{icon}</div>
       <span className="text-base">{label}</span>
@@ -133,9 +132,11 @@ const ActionButton = ({
 };
 
 export default function OwnerAdminRepairsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [repairs, setRepairs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRepair, setSelectedRepair] = useState<any>(null);
   const [filter, setFilter] = useState("all");
 
@@ -152,6 +153,7 @@ export default function OwnerAdminRepairsPage() {
 
       const data = await res.json();
       setRepairs(data.items || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setErr(e.message || "Error loading repairs");
     } finally {
@@ -177,6 +179,7 @@ export default function OwnerAdminRepairsPage() {
       if (selectedRepair && selectedRepair.id === id) {
         setSelectedRepair({ ...selectedRepair, status });
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       alert(e.message || "Failed to update status");
     }
@@ -197,7 +200,7 @@ export default function OwnerAdminRepairsPage() {
     <OwnerShell title="งานแจ้งซ่อม" activeKey="maintenance" showSidebar={true} condoName={condoName || "คอนโดมิเนียม"}>
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl text-white shadow-lg shadow-blue-200" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
+          <div className="p-2 rounded-xl text-white shadow-lg shadow-blue-200 bg-gradient-to-r from-blue-600 to-sky-500">
             <LayoutList size={22} />
           </div>
           <div>

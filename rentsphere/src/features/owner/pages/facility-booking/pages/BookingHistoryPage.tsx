@@ -235,6 +235,7 @@ const BookingHistoryPage: React.FC = () => {
                     type="date"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
+                    aria-label="\u0e01\u0e23\u0e2d\u0e07\u0e15\u0e32\u0e21\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48"
                     className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
