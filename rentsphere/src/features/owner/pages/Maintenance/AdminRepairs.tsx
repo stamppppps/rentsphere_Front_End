@@ -74,17 +74,15 @@ const FilterButton = ({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-        active 
-          ? `text-white shadow-lg ${shadowColor} ${
-              colorScheme === "amber" 
-                ? "bg-gradient-to-r from-amber-500 to-yellow-400" 
-                : colorScheme === "emerald" 
-                  ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
-                  : "bg-gradient-to-r from-blue-600 to-sky-500"
-            }` 
+      className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${active
+          ? `text-white shadow-lg ${shadowColor} ${colorScheme === "amber"
+            ? "bg-gradient-to-r from-amber-500 to-yellow-400"
+            : colorScheme === "emerald"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+              : "bg-gradient-to-r from-blue-600 to-sky-500"
+          }`
           : "text-slate-600 hover:bg-slate-50"
-      }`}
+        }`}
     >
       {icon}
       <span>{label}</span>
@@ -153,7 +151,7 @@ export default function OwnerAdminRepairsPage() {
 
       const data = await res.json();
       setRepairs(data.items || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setErr(e.message || "Error loading repairs");
     } finally {
@@ -179,7 +177,7 @@ export default function OwnerAdminRepairsPage() {
       if (selectedRepair && selectedRepair.id === id) {
         setSelectedRepair({ ...selectedRepair, status });
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       alert(e.message || "Failed to update status");
     }

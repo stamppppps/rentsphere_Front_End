@@ -103,25 +103,32 @@ export default function RoomMeterPage() {
   // reading
   const [prevWater, setPrevWater] = useState<number | null>(null);
   const [prevElectric, setPrevElectric] = useState<number | null>(null);
+  const [hasPrevReading, setHasPrevReading] = useState(false);
+
+  // editable initial values (when no previous reading exists)
+  const [initWater, setInitWater] = useState<string>("0");
+  const [initElectric, setInitElectric] = useState<string>("0");
 
   const [currWater, setCurrWater] = useState<string>("");
   const [currElectric, setCurrElectric] = useState<string>("");
 
   const [note, setNote] = useState("");
 
+  // Effective previous value: use init values if no previous reading
+  const effectivePrevWater = hasPrevReading ? (prevWater ?? 0) : Math.max(0, Number(initWater) || 0);
+  const effectivePrevElectric = hasPrevReading ? (prevElectric ?? 0) : Math.max(0, Number(initElectric) || 0);
+
   const waterUnits = useMemo(() => {
     const c = Number(currWater);
     if (!Number.isFinite(c) || c < 0) return null;
-    const p = prevWater ?? 0;
-    return Math.max(0, c - p);
-  }, [currWater, prevWater]);
+    return Math.max(0, c - effectivePrevWater);
+  }, [currWater, effectivePrevWater]);
 
   const electricUnits = useMemo(() => {
     const c = Number(currElectric);
     if (!Number.isFinite(c) || c < 0) return null;
-    const p = prevElectric ?? 0;
-    return Math.max(0, c - p);
-  }, [currElectric, prevElectric]);
+    return Math.max(0, c - effectivePrevElectric);
+  }, [currElectric, effectivePrevElectric]);
 
   const loadAll = async () => {
     if (!roomId) return;
@@ -139,8 +146,13 @@ export default function RoomMeterPage() {
       setElectricMeterNo(nums.electricMeterNo ?? "");
 
       const meters = await getCurrentMeters(roomId);
-      setPrevWater(meters.prevWater ?? 0);
-      setPrevElectric(meters.prevElectric ?? 0);
+      const pw = meters.prevWater ?? 0;
+      const pe = meters.prevElectric ?? 0;
+      setPrevWater(pw);
+      setPrevElectric(pe);
+      setHasPrevReading(pw > 0 || pe > 0);
+      setInitWater(String(pw));
+      setInitElectric(String(pe));
 
       // ถ้ามีค่าเดิมเดือนนี้ ให้เติม curr ให้เลย
       setCurrWater(meters.currWater != null ? String(meters.currWater) : "");
@@ -191,16 +203,23 @@ export default function RoomMeterPage() {
   const onSubmit = async () => {
     if (!roomId) return;
 
-    const cw = Number(currWater);
-    const ce = Number(currElectric);
+    const iw = Math.max(0, Number(initWater) || 0);
+    const ie = Math.max(0, Number(initElectric) || 0);
 
-    if (!Number.isFinite(cw) || cw < 0) return setPopup({ open: true, type: "warning", message: "กรอกเลขมิเตอร์น้ำ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
-    if (!Number.isFinite(ce) || ce < 0) return setPopup({ open: true, type: "warning", message: "กรอกเลขมิเตอร์ไฟ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
+    if (!Number.isFinite(iw) || iw < 0) return setPopup({ open: true, type: "warning", message: "กรอกค่าตั้งต้นน้ำ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
+    if (!Number.isFinite(ie) || ie < 0) return setPopup({ open: true, type: "warning", message: "กรอกค่าตั้งต้นไฟ (ตัวเลข >= 0)", title: "กรุณาตรวจสอบ" });
 
     try {
       setSaving(true);
-      await submitCurrentMeters(roomId, { currWater: cw, currElectric: ce, note: note.trim() ? note.trim() : undefined });
-      setPopup({ open: true, type: "success", message: "บันทึกหน่วยเดือนนี้แล้ว", title: "สำเร็จ" });
+      const body: any = {
+        currWater: iw,
+        currElectric: ie,
+        note: note.trim() ? note.trim() : undefined,
+        initWater: iw,
+        initElectric: ie,
+      };
+      await submitCurrentMeters(roomId, body);
+      setPopup({ open: true, type: "success", message: "บันทึกค่าตั้งต้นแล้ว", title: "สำเร็จ" });
       await loadAll();
     } catch (e: any) {
       setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกหน่วยไม่สำเร็จ", title: "ผิดพลาด" });
@@ -313,44 +332,39 @@ export default function RoomMeterPage() {
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-xl border border-gray-200 p-4">
-                <div className="text-xs font-extrabold text-gray-500">น้ำ (ก่อนหน้า)</div>
-                <div className="mt-1 text-xl font-extrabold text-gray-900">{moneyOrDash(prevWater)}</div>
+                <div className="text-xs font-extrabold text-gray-500">
+                  {hasPrevReading ? "น้ำ (ก่อนหน้า)" : "น้ำ (ค่าตั้งต้น)"}
+                </div>
+                {hasPrevReading ? (
+                  <div className="mt-1 text-xl font-extrabold text-gray-900">{moneyOrDash(prevWater)}</div>
+                ) : (
+                  <input
+                    value={initWater}
+                    onChange={(e) => setInitWater(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="mt-1 w-full rounded-lg border border-blue-200 bg-blue-50/50 px-3 py-2 text-lg font-extrabold text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                  />
+                )}
               </div>
               <div className="rounded-xl border border-gray-200 p-4">
-                <div className="text-xs font-extrabold text-gray-500">ไฟ (ก่อนหน้า)</div>
-                <div className="mt-1 text-xl font-extrabold text-gray-900">{moneyOrDash(prevElectric)}</div>
+                <div className="text-xs font-extrabold text-gray-500">
+                  {hasPrevReading ? "ไฟ (ก่อนหน้า)" : "ไฟ (ค่าตั้งต้น)"}
+                </div>
+                {hasPrevReading ? (
+                  <div className="mt-1 text-xl font-extrabold text-gray-900">{moneyOrDash(prevElectric)}</div>
+                ) : (
+                  <input
+                    value={initElectric}
+                    onChange={(e) => setInitElectric(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="mt-1 w-full rounded-lg border border-blue-200 bg-blue-50/50 px-3 py-2 text-lg font-extrabold text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
+                  />
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-extrabold text-gray-800 mb-2">น้ำ (ปัจจุบัน)</div>
-                <input
-                  value={currWater}
-                  onChange={(e) => setCurrWater(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="เช่น 120"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-                />
-                <div className="mt-2 text-xs font-bold text-gray-500">
-                  หน่วยที่ใช้: <span className="font-extrabold text-gray-900">{moneyOrDash(waterUnits)}</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-extrabold text-gray-800 mb-2">ไฟ (ปัจจุบัน)</div>
-                <input
-                  value={currElectric}
-                  onChange={(e) => setCurrElectric(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="เช่น 340"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
-                />
-                <div className="mt-2 text-xs font-bold text-gray-500">
-                  หน่วยที่ใช้: <span className="font-extrabold text-gray-900">{moneyOrDash(electricUnits)}</span>
-                </div>
-              </div>
-            </div>
 
             <div>
               <div className="text-sm font-bold text-gray-700 mb-2">Note</div>
