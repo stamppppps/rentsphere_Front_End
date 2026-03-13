@@ -46,6 +46,8 @@ export default function AdminParcel() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
+  const [pickupConfirmId, setPickupConfirmId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetMessages = () => {
@@ -217,13 +219,20 @@ export default function AdminParcel() {
   };
 
   const markPickedUp = async (id: string) => {
-    if (!window.confirm("ยืนยันว่าลูกบ้านรับพัสดุแล้ว?")) return;
+    setPickupConfirmId(id);
+  };
+
+  const confirmPickup = async () => {
+    if (!pickupConfirmId) return;
     try {
-      const res = await fetch(`${API}/parcel/${id}/pickup`, { method: "PATCH" });
+      const res = await fetch(`${API}/parcel/${pickupConfirmId}/pickup`, { method: "PATCH" });
       if (!res.ok) throw new Error("อัพเดตไม่สำเร็จ");
       loadHistory();
+      setOk("อัพเดตสถานะสำเร็จ");
     } catch (e: any) {
-      alert(e.message);
+      setErr(e.message || "อัพเดตสถานะไม่สำเร็จ");
+    } finally {
+      setPickupConfirmId(null);
     }
   };
 
@@ -447,6 +456,38 @@ export default function AdminParcel() {
           </div>
         )}
       </div>
+      
+      {/* Pickup Confirmation Popup */}
+      {pickupConfirmId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
+                <span className="text-3xl">📦</span>
+              </div>
+              <h3 className="text-lg font-black text-slate-800 mb-2">ยืนยันการรับพัสดุ</h3>
+              <p className="text-sm font-medium text-slate-500 mb-6">
+                ลูกบ้านได้รับพัสดุชิ้นนี้เรียบร้อยแล้วใช่หรือไม่?
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPickupConfirmId(null)}
+                  className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={confirmPickup}
+                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 transition-all active:scale-95"
+                >
+                  ยืนยัน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </OwnerShell>
   );
 }
