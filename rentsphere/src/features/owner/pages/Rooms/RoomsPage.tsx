@@ -31,6 +31,7 @@ function moneyTHB(n?: number | null) {
 async function fetchMyCondos(): Promise<CondoPick[]> {
   const data = await api<any>("/owner/condos"); // GET /owner/condos
   const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.map((c: any) => ({
     id: String(c?.id),
     name: String(c?.nameTh ?? c?.nameEn ?? c?.condoName ?? "—"),
@@ -40,6 +41,7 @@ async function fetchMyCondos(): Promise<CondoPick[]> {
 async function fetchRooms(condoId: string): Promise<RoomRow[]> {
   const data = await api<any>(`/owner/condos/${encodeURIComponent(condoId)}/rooms`);
   const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.map((r: any) => ({
     id: String(r?.id),
     floor: Number(r?.floor ?? 0),
@@ -49,6 +51,7 @@ async function fetchRooms(condoId: string): Promise<RoomRow[]> {
     occupancyStatus: String(r?.occupancyStatus ?? "VACANT").toUpperCase() === "OCCUPIED" ? "OCCUPIED" : "VACANT",
     roomStatus: r?.roomStatus ?? null,
     serviceId: r?.serviceId ?? null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     serviceIds: Array.isArray(r?.serviceIds) ? r.serviceIds.map((x: any) => String(x)) : [],
   }));
 }
@@ -128,6 +131,7 @@ export default function RoomsPage() {
           setCondoId(condos[0].id);
           setCondoName(condos[0].name);
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message ?? "โหลดคอนโดไม่สำเร็จ");
@@ -164,6 +168,7 @@ export default function RoomsPage() {
 
         setRooms(Array.isArray(data) ? data : []);
         setLoading(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (cancelled) return;
         setRooms([]);
@@ -197,6 +202,7 @@ export default function RoomsPage() {
     return Math.round(sum / list.length);
   }, [rooms]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const openAccessCodeModal = () => {
     const first = rooms[0];
     setPickRoomId(first?.id ?? "");
@@ -358,6 +364,8 @@ export default function RoomsPage() {
 
             <div className="p-6 space-y-5">
               <select
+                title="เลือกห้อง"
+                aria-label="เลือกห้องที่ต้องการ"
                 value={pickRoomId}
                 onChange={(e) => setPickRoomId(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"

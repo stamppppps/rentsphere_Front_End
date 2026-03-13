@@ -42,7 +42,7 @@ async function resolveCondoId(): Promise<string> {
       const id = JSON.parse(raw)?.state?.condoId;
       if (id) return id;
     }
-  } catch {}
+  } catch { /* ignore */ }
 
   try {
     const r = await fetch(`${API}/api/v1/condos/mine`, {
@@ -54,7 +54,7 @@ async function resolveCondoId(): Promise<string> {
       const c = d.condo || (d.condos && d.condos[0]);
       if (c?.id) return String(c.id);
     }
-  } catch {}
+  } catch { /* ignore */ }
 
   throw new Error("ไม่พบ condoId");
 }
@@ -102,29 +102,34 @@ export default function BillingPage() {
         ]);
 
         const roomsRaw = roomRes?.ok ? await roomRes.json() : [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rooms: any[] = Array.isArray(roomsRaw)
           ? roomsRaw
           : roomsRaw?.rooms || roomsRaw?.items || [];
 
         const metersRaw = meterRes?.ok ? await meterRes.json() : {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const meters: any[] =
           metersRaw?.readings ||
           metersRaw?.items ||
           (Array.isArray(metersRaw) ? metersRaw : []);
 
         const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const configs: any[] =
           utilsRaw?.configs ||
           utilsRaw?.items ||
           (Array.isArray(utilsRaw) ? utilsRaw : []);
 
         const invoicesRaw = invRes?.ok ? await invRes.json() : {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invoices: any[] =
           invoicesRaw?.invoices ||
           invoicesRaw?.items ||
           (Array.isArray(invoicesRaw) ? invoicesRaw : []);
 
         const previewRaw = previewRes?.ok ? await previewRes.json() : {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const previewRooms: any[] =
           previewRaw?.rooms ||
           previewRaw?.items ||
@@ -191,38 +196,46 @@ export default function BillingPage() {
 
           const waterMeter = m
             ? {
-                current: Number(m.currWater ?? 0),
-                previous: Number(m.prevWater ?? 0),
-                totalUnits: Number(m.waterUnits ?? 0),
-              }
+              current: Number(m.currWater ?? 0),
+              previous: Number(m.prevWater ?? 0),
+              totalUnits: Number(m.waterUnits ?? 0),
+            }
             : undefined;
 
           const elecMeter = m
             ? {
-                current: Number(m.currElectric ?? 0),
-                previous: Number(m.prevElectric ?? 0),
-                totalUnits: Number(m.electricUnits ?? 0),
-              }
+              current: Number(m.currElectric ?? 0),
+              previous: Number(m.prevElectric ?? 0),
+              totalUnits: Number(m.electricUnits ?? 0),
+            }
             : undefined;
-
-          const previewItems: PreviewInvoiceItem[] = Array.isArray(preview?.items)
-            ? preview.items.map((x: any) => ({
-                itemType: String(x.itemType || x.item_type || ""),
-                itemName: String(x.itemName || x.item_name || x.name || ""),
-                amount: Number(x.amount ?? 0),
-                condoChargeId: x.condoChargeId ?? null,
-                extraChargeTemplateId: x.extraChargeTemplateId ?? null,
-                meterReadingId: x.meterReadingId ?? null,
-                facilityBookingId: x.facilityBookingId ?? null,
-              }))
-            : [];
 
           const waterCost = waterMeter ? waterMeter.totalUnits * wRate : 0;
           const elecCost = elecMeter ? elecMeter.totalUnits * eRate : 0;
 
+          const previewItems: PreviewInvoiceItem[] = Array.isArray(preview?.items)
+            ? preview.items.map((x: any) => {
+                const itemType = String(x.itemType || x.item_type || "");
+                let amount = Number(x.amount ?? 0);
+
+                if (itemType === "WATER" && waterCost > 0) amount = waterCost;
+                if (itemType === "ELECTRIC" && elecCost > 0) amount = elecCost;
+
+                return {
+                  itemType,
+                  itemName: String(x.itemName || x.item_name || x.name || ""),
+                  amount,
+                  condoChargeId: x.condoChargeId ?? null,
+                  extraChargeTemplateId: x.extraChargeTemplateId ?? null,
+                  meterReadingId: x.meterReadingId ?? null,
+                  facilityBookingId: x.facilityBookingId ?? null,
+                };
+              })
+            : [];
+
           const estimatedTotal =
-            preview?.totalAmount != null
-              ? Number(preview.totalAmount)
+            previewItems.length > 0
+              ? previewItems.reduce((sum, current) => sum + current.amount, 0)
               : rentAmount + waterCost + elecCost;
 
           const invStatus = String(inv?.status || "").toLowerCase();
@@ -292,6 +305,15 @@ export default function BillingPage() {
             totalAmount: item.estimatedTotal,
             status: "ISSUED",
             note: `สร้างใบแจ้งหนี้จากระบบ`,
+            items: Array.isArray(item.items) ? item.items.map((i: PreviewInvoiceItem) => ({
+              itemType: i.itemType,
+              itemName: i.itemName,
+              amount: i.amount,
+              condoChargeId: i.condoChargeId,
+              extraChargeTemplateId: i.extraChargeTemplateId,
+              meterReadingId: i.meterReadingId,
+              facilityBookingId: i.facilityBookingId,
+            })) : [],
           }),
         });
 
@@ -305,11 +327,11 @@ export default function BillingPage() {
         prev.map((b) =>
           b.id === id
             ? {
-                ...b,
-                isPaid: false,
-                paymentStatus: "รอการชำระ",
-                invoiceId: newInvoiceId || b.invoiceId,
-              }
+              ...b,
+              isPaid: false,
+              paymentStatus: "รอการชำระ",
+              invoiceId: newInvoiceId || b.invoiceId,
+            }
             : b
         )
       );
@@ -322,8 +344,8 @@ export default function BillingPage() {
 
   const filteredData = search.trim()
     ? billingData.filter((b) =>
-        b.roomNumber.toLowerCase().includes(search.trim().toLowerCase())
-      )
+      b.roomNumber.toLowerCase().includes(search.trim().toLowerCase())
+    )
     : billingData;
 
   if (loading) {

@@ -79,8 +79,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <label className="block text-[#64748B] text-sm font-medium mb-2.5">
               จำนวนเงินที่ชำระ <span className="text-red-400">* จำเป็น</span>
             </label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder="ระบุจำนวนเงิน"
@@ -93,9 +93,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               ชำระเงินโดย <span className="text-red-400">* จำเป็น</span>
             </label>
             <div className="relative">
-              <select 
+              <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
+                aria-label="ชำระเงินโดย"
                 className="appearance-none w-full bg-[#F8FAFC] border-0 rounded-2xl py-4 px-6 text-[#1E293B] font-medium focus:ring-2 focus:ring-blue-100 transition-all outline-none pr-12 cursor-pointer"
               >
                 <option value="เงินโอน">เงินโอน</option>
@@ -113,25 +114,27 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
               วันที่รับเงิน <span className="text-red-400">* จำเป็น</span>
             </label>
             <div className="relative bg-[#F8FAFC] rounded-2xl flex items-center min-h-[64px] transition-all focus-within:ring-2 focus-within:ring-blue-100 overflow-hidden">
-              <button 
+              <button
                 onClick={triggerDatePicker}
                 className="pl-5 pr-4 h-full flex items-center group cursor-pointer"
                 type="button"
+                aria-label="เลือกวันที่"
               >
                 <svg className="w-6 h-6 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
 
-              <input 
+              <input
                 ref={dateInputRef}
-                type="date" 
+                type="date"
                 onChange={handlePickerChange}
+                aria-label="วันที่รับเงิน"
                 className="absolute opacity-0 pointer-events-none w-0 h-0"
                 tabIndex={-1}
               />
 
-              <input 
+              <input
                 type="text"
                 placeholder="วว/ดด/ปปปป"
                 value={typedDate}
@@ -141,14 +144,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             </div>
           </div>
 
-          <button 
+          <button
             onClick={handlePayment}
             disabled={!isFormValid}
-            className={`w-full py-5 !rounded-[24px] font-bold text-lg transition-all transform mt-4 shadow-lg ${
-              isFormValid 
-              ? 'text-white shadow-blue-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90' 
-              : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-80 shadow-none'
-            }`}
+            className={`w-full py-5 !rounded-[24px] font-bold text-lg transition-all transform mt-4 shadow-lg ${isFormValid
+                ? 'text-white shadow-blue-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-80 shadow-none'
+              }`}
             style={isFormValid ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : { backgroundColor: "#F3F4F6" }}
           >
             บันทึกการชำระเงิน

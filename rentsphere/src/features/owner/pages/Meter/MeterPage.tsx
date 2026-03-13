@@ -193,6 +193,7 @@ function FilterPanel({
                     <label className="block text-xs font-bold text-gray-400 mb-2">เดือนที่ต้องการดู</label>
                     <input
                         type="month"
+                        aria-label="เลือกเดือนและปี"
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         className="w-full h-[46px] rounded-2xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"

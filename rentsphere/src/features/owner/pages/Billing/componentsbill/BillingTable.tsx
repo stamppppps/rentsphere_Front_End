@@ -68,10 +68,9 @@ export default function BillingTable({ data, onSelect }: BillingTableProps) {
                 key={p}
                 onClick={() => setPage(p)}
                 className={`w-9 h-9 flex items-center justify-center !rounded-xl text-sm font-bold transition-colors ${page === p
-                  ? 'text-white shadow-sm shadow-blue-200'
+                  ? 'text-white shadow-sm shadow-blue-200 bg-gradient-to-r from-blue-600 to-sky-500'
                   : '!border !border-gray-100 text-[#64748B] font-medium hover:bg-gray-50'
                   }`}
-                style={page === p ? { background: 'linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))' } : undefined}
               >
                 {p}
               </button>

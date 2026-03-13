@@ -88,8 +88,8 @@ export default function BillingRow({ item, onSelect }: BillingRowProps) {
               !shadow-sm
               !transition-all
               !hover:bg-[#7C3AED]
+              bg-gradient-to-r from-blue-600 to-sky-500
             "
-            style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
           >
             {item.paymentStatus === 'ค้างชำระ' ? "สร้างใบแจ้งหนี้" : "ดูใบแจ้งหนี้"}
           </button>

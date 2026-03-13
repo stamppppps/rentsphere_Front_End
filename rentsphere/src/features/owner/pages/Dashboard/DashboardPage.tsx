@@ -2,11 +2,9 @@ import OwnerShell from "@/features/owner/components/OwnerShell";
 import { useCondoStore } from "@/features/owner/stores/condoStore";
 import { api } from "@/shared/api/http";
 import {
-  BadgeDollarSign,
   Building2,
   CircleDollarSign,
   Droplets,
-  Home,
   Users,
   Zap,
 } from "lucide-react";
@@ -203,8 +201,6 @@ function DonutChart({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  let cumulative = 0;
-
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
       <div className="relative mx-auto shrink-0">
@@ -220,27 +216,35 @@ function DonutChart({
 
           {safeItems
             .filter((item) => item.value > 0)
-            .map((item) => {
-              const fraction = item.value / safeTotal;
-              const dashLength = fraction * circumference;
-              const dashOffset = circumference - cumulative * circumference;
-              cumulative += fraction;
+            .reduce(
+              (acc, item) => {
+                const fraction = item.value / safeTotal;
+                const dashLength = fraction * circumference;
+                const dashOffset =
+                  circumference - acc.cumulative * circumference;
 
-              return (
-                <circle
-                  key={item.label}
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  fill="none"
-                  stroke={item.color}
-                  strokeWidth={strokeWidth}
-                  strokeLinecap="round"
-                  strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-                  strokeDashoffset={dashOffset}
-                />
-              );
-            })}
+                acc.elements.push(
+                  <circle
+                    key={item.label}
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke={item.color}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={`${dashLength} ${
+                      circumference - dashLength
+                    }`}
+                    strokeDashoffset={dashOffset}
+                  />
+                );
+
+                acc.cumulative += fraction;
+                return acc;
+              },
+              { elements: [] as React.ReactNode[], cumulative: 0 }
+            ).elements}
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -440,7 +444,9 @@ type AuthMeResponse = {
 
 /* ================= Backend calls ================= */
 async function fetchMyCondos(): Promise<CondoLite[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const condos = await api<any[]>("/owner/condos");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (condos ?? []).map((c: any) => ({
     id: String(c.id),
     name: String(c.nameTh ?? c.nameEn ?? c.name ?? "—"),
@@ -542,6 +548,7 @@ export default function DashboardPage() {
 
         setCondoId(condos[0].id);
         useCondoStore.getState().selectCondo(condos[0].id, condos[0].name);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (cancelled) return;
         setError(e?.message ?? "เกิดข้อผิดพลาด");
@@ -575,6 +582,7 @@ export default function DashboardPage() {
         }
 
         setLoading(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (cancelled) return;
         setData(null);
@@ -632,19 +640,19 @@ export default function DashboardPage() {
         icon: <Users size={22} />,
       },
       {
-        label: "ห้องว่าง",
-        value: summary.vacantRooms,
-        sub: "พร้อมปล่อยเช่า",
-        icon: <Home size={22} />,
+        label: "ค่าน้ำสะสม",
+        value: `${totalWater.toLocaleString()}`,
+        sub: "สะสม 12 เดือน (บาท)",
+        icon: <Droplets size={22} />,
       },
       {
-        label: "ค่าเช่าเฉลี่ย",
-        value: `${Math.round(summary.avgRentPrice).toLocaleString()}`,
-        sub: "บาท / ห้อง",
-        icon: <BadgeDollarSign size={22} />,
+        label: "ค่าไฟสะสม",
+        value: `${totalElec.toLocaleString()}`,
+        sub: "สะสม 12 เดือน (บาท)",
+        icon: <Zap size={22} />,
       },
     ];
-  }, [summary]);
+  }, [summary, totalWater, totalElec]);
 
   const donutItems = useMemo(() => {
     return [
@@ -921,22 +929,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="rounded-[26px] border border-slate-200/70 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
-                    <BadgeDollarSign size={20} />
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-black text-slate-500">
-                      ค่าบริการเพิ่มเติม
-                    </div>
-                    <div className="text-[22px] font-black text-slate-900">
-                      {totalOther.toLocaleString()} ฿
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* END EXTRA SERVICES */}
             </div>
           </div>
         )}

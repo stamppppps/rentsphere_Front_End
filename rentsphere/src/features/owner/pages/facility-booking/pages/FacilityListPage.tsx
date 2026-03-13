@@ -123,9 +123,9 @@ const FacilityListPage: React.FC = () => {
 
       alert("บันทึกกติกาการจองเรียบร้อย");
       setIsPolicyOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("SAVE BOOKING POLICY ERROR:", err);
-      alert(err?.message ?? "บันทึกไม่สำเร็จ");
+      alert((err instanceof Error ? err.message : null) ?? "บันทึกไม่สำเร็จ");
     } finally {
       setIsSavingPolicy(false);
     }
@@ -213,6 +213,7 @@ const FacilityListPage: React.FC = () => {
                 min={1}
                 step={1}
                 inputMode="numeric"
+                aria-label="สิทธิ์ต่อห้องต่อวัน"
                 value={policyInput}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -275,6 +276,7 @@ const FacilityListPage: React.FC = () => {
           <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl">
             <button
               onClick={() => setViewMode("grid")}
+              aria-label="มุมมองตาราง"
               className={`p-2 rounded-xl ${viewMode === "grid" ? "bg-white shadow-sm" : ""
                 }`}
             >
@@ -283,6 +285,7 @@ const FacilityListPage: React.FC = () => {
 
             <button
               onClick={() => setViewMode("list")}
+              aria-label="มุมมองรายการ"
               className={`p-2 rounded-xl ${viewMode === "list" ? "bg-white shadow-sm" : ""
                 }`}
             >

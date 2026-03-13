@@ -50,57 +50,111 @@ export default function ReportsPage() {
                 const condoId = getSelectedCondoId();
                 if (!condoId) { setLoading(false); return; }
 
-                const [roomRes, meterRes, utilRes, invRes] = await Promise.all([
+                const [roomRes, meterRes, utilRes, invRes, previewRes] = await Promise.all([
                     fetch(`${API}/api/v1/owner/condos/${condoId}/rooms`, { headers: authHeaders() }),
                     fetch(`${API}/api/v1/owner/condos/${condoId}/meters`, { headers: authHeaders() }).catch(() => null),
                     fetch(`${API}/api/v1/owner/condos/${condoId}/utilities`, { headers: authHeaders() }).catch(() => null),
                     fetch(`${API}/api/v1/owner/condos/${condoId}/invoices`, { headers: authHeaders() }).catch(() => null),
+                    fetch(`${API}/api/v1/owner/condos/${condoId}/invoices/generate-preview`, { headers: authHeaders() }).catch(() => null),
                 ]);
 
                 if (cancelled) return;
 
                 const roomsRaw = await roomRes.json();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const rooms: any[] = Array.isArray(roomsRaw) ? roomsRaw : (roomsRaw?.rooms || []);
                 const metersRaw = meterRes?.ok ? await meterRes.json() : {};
-                const meters: any[] = metersRaw?.meters || [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const meters: any[] = metersRaw?.readings || metersRaw?.meters || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
                 const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
                 const configs: any[] = utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
                 const invoicesRaw = invRes?.ok ? await invRes.json() : {};
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const invoices: any[] = invoicesRaw?.invoices || [];
+                const previewRaw = previewRes?.ok ? await previewRes.json() : {};
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const previewRooms: any[] = previewRaw?.previewInvoices || [];
 
                 let wRate = 18, eRate = 8;
                 for (const c of configs) {
-                    if (c.utility_type === "water" || c.utilityType === "water") wRate = Number(c.rate || c.pricePerUnit || 18);
-                    if (c.utility_type === "electricity" || c.utilityType === "electricity") eRate = Number(c.rate || c.pricePerUnit || 8);
+                    const ut = String(c.utility_type || c.utilityType || "").toUpperCase();
+                    if (ut === "WATER") wRate = Number(c.rate || c.pricePerUnit || 18);
+                    if (ut === "ELECTRIC" || ut === "ELECTRICITY") eRate = Number(c.rate || c.pricePerUnit || 8);
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const meterMap: Record<string, any> = {};
                 for (const m of meters) {
-                    if (m.roomId) meterMap[m.roomId] = m;
+                    const rid = String(m.roomId || m.room_id || "");
+                    if (rid) meterMap[rid] = m;
                 }
 
                 // Invoice map: roomId → latest invoice
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const invoiceMap: Record<string, any> = {};
                 for (const inv of invoices) {
                     const rid = String(inv.room_id || inv.roomId || "");
                     if (rid) invoiceMap[rid] = inv;
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const previewMap: Record<string, any> = {};
+                for (const p of previewRooms) {
+                    const rid = String(p.roomId || p.room_id || "");
+                    if (rid) previewMap[rid] = p;
+                }
+
                 const records: BillingRecord[] = rooms
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .filter((r: any) => r.occupancyStatus === "OCCUPIED")
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((r: any) => {
                         const m = meterMap[r.id];
                         const inv = invoiceMap[r.id];
+                        const preview = previewMap[r.id];
 
-                        // Use actual invoice amount if available
-                        let rentFee = Number(r.price || 0);
-                        let waterFee = m ? Number(m.waterUnits || 0) * wRate : 0;
-                        let electricFee = m ? Number(m.electricUnits || 0) * eRate : 0;
-                        let totalFee = rentFee + waterFee + electricFee;
+                        const rentCost = Number(r.price || r.rentPrice || 0);
+                        const waterCost = m ? Number(m.waterUnits || 0) * wRate : 0;
+                        const elecCost = m ? Number(m.electricUnits || 0) * eRate : 0;
 
-                        if (inv?.totalAmount != null) {
-                            totalFee = Number(inv.totalAmount);
+                        // 1. Gather items from preview first, then fallback to invoice
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const previewItems: any[] = Array.isArray(preview?.items) ? preview.items : [];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const invoiceItems: any[] = inv?.items || [];
+
+                        // 2. Pick the best source of items
+                        const sourceItems = previewItems.length > 0 ? previewItems : invoiceItems;
+
+                        // 3. Extract exact fees
+                        let rentFee = rentCost;
+                        let waterFee = 0;
+                        let electricFee = 0;
+                        let otherFee = 0;
+
+                        if (sourceItems.length > 0) {
+                            rentFee = 0;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            sourceItems.forEach((x: any) => {
+                                const itemType = String(x.itemType || x.item_type || "").toUpperCase();
+                                let amount = Number(x.amount ?? 0);
+
+                                if (itemType === "WATER" && waterCost > 0) { amount = waterCost; waterFee += amount; }
+                                else if (itemType === "ELECTRIC" && elecCost > 0) { amount = elecCost; electricFee += amount; }
+                                else if (itemType === "WATER") { amount = waterCost; waterFee += amount; }
+                                else if (itemType === "ELECTRIC") { amount = elecCost; electricFee += amount; }
+                                else if (itemType === "RENT" || itemType === "ROOM") rentFee += amount;
+                                else otherFee += amount;
+                            });
+                        } else {
+                            // Basic fallback
+                            rentFee = rentCost;
+                            waterFee = waterCost;
+                            electricFee = elecCost;
+                            otherFee = 0;
                         }
+
+                        const totalFee = rentFee + waterFee + electricFee + otherFee;
 
                         const isPaid = inv ? String(inv.status || "").toUpperCase() === "PAID" : false;
 
@@ -111,7 +165,7 @@ export default function ReportsPage() {
                             waterFee,
                             electricFee,
                             rentFee,
-                            otherFee: 0,
+                            otherFee,
                             totalFee,
                             unpaidAmount: isPaid ? 0 : totalFee,
                             status: isPaid ? "paid" as const : "pending" as const,
