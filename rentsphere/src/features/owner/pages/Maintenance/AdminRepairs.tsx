@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Package,
   User,
+  Image as ImageIcon,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -333,6 +334,28 @@ export default function OwnerAdminRepairsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {selectedRepair.images && selectedRepair.images.length > 0 && (
+                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <ImageIcon size={16} />
+                        <h4 className="text-sm font-black uppercase tracking-wider">
+                          รูปประกอบ ({selectedRepair.images.length} รูป)
+                        </h4>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {selectedRepair.images.map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={url}
+                              alt={`repair-${idx}`}
+                              className="w-full h-48 object-cover rounded-2xl border border-slate-200 hover:opacity-80 hover:shadow-lg transition-all cursor-pointer"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="pt-6 border-t border-slate-100 space-y-4">
                     <div className="flex items-center gap-2 text-slate-800 font-black mb-2">
