@@ -8,41 +8,52 @@ interface BookingStatusConfig {
   description: string;
 }
 
-export const BOOKING_STATUS_CONFIG: Record<BookingStatus, BookingStatusConfig> =
-  {
-    [BookingStatus.PENDING]: {
-      label: "รออนุมัติ",
-      actionLabel: "อนุมัติการจอง",
-      color: "bg-amber-100 text-amber-700 border-amber-200",
-      iconColor: "text-amber-500",
-      description: "คำขอใหม่จากลูกบ้านที่รอการตรวจสอบ",
-    },
-    [BookingStatus.APPROVED]: {
-      label: "อนุมัติแล้ว",
-      actionLabel: "ยืนยันอนุมัติ",
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      iconColor: "text-emerald-500",
-      description: "รายการที่ได้รับการยืนยันและพร้อมเข้าใช้งาน",
-    },
-    [BookingStatus.REJECTED]: {
-      label: "ถูกปฏิเสธ",
-      actionLabel: "ปฏิเสธคำขอ",
-      color: "bg-rose-100 text-rose-700 border-rose-200",
-      iconColor: "text-rose-500",
-      description: "รายการที่ไม่ผ่านการอนุมัติโดยแอดมิน",
-    },
-    [BookingStatus.CANCELLED]: {
-      label: "ยกเลิก",
-      actionLabel: "ยกเลิกการจอง",
-      color: "bg-slate-100 text-slate-500 border-slate-200",
-      iconColor: "text-slate-400",
-      description: "รายการที่ถูกยกเลิกโดยลูกบ้านหรือแอดมิน",
-    },
-    [BookingStatus.COMPLETED]: {
-      label: "เสร็จสิ้น",
-      actionLabel: "เสร็จสิ้น",
-      color: "bg-green-100 text-green-700 border-green-200",
-      iconColor: "text-green-600",
-      description: "ลูกบ้านเข้าใช้งานและจบรายการเรียบร้อยแล้ว",
-    },
-  };
+export const BOOKING_STATUS_CONFIG: Record<BookingStatus, BookingStatusConfig> = {
+  PENDING: {
+    label: "รออนุมัติ",
+    actionLabel: "อนุมัติ",
+    color: "yellow",
+    iconColor: "text-yellow-600",
+    description: "กำลังรอการอนุมัติ",
+  },
+
+  APPROVED: {
+    label: "อนุมัติแล้ว",
+    actionLabel: "เช็คอิน",
+    color: "blue",
+    iconColor: "text-blue-600",
+    description: "การจองได้รับการอนุมัติ",
+  },
+
+  REJECTED: {
+    label: "ถูกปฏิเสธ",
+    actionLabel: "ปฏิเสธ",
+    color: "red",
+    iconColor: "text-red-600",
+    description: "การจองถูกปฏิเสธ",
+  },
+
+  CANCELLED: {
+    label: "ยกเลิก",
+    actionLabel: "ยกเลิก",
+    color: "gray",
+    iconColor: "text-gray-500",
+    description: "การจองถูกยกเลิก",
+  },
+
+  COMPLETED: {
+    label: "เสร็จสิ้น",
+    actionLabel: "เสร็จสิ้น",
+    color: "green",
+    iconColor: "text-green-600",
+    description: "การใช้งานเสร็จสิ้น",
+  },
+
+  LATE: {
+    label: "มาสาย",
+    actionLabel: "มาสาย",
+    color: "orange",
+    iconColor: "text-orange-500",
+    description: "ผู้ใช้งานมาช้ากว่าเวลาที่จอง",
+  },
+};

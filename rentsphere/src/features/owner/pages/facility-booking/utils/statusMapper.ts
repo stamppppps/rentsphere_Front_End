@@ -3,6 +3,7 @@ import {
   Ban,
   Check,
   CheckCircle,
+  Clock,
   Edit3,
   Eye,
   LogIn,
@@ -74,6 +75,7 @@ export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
       ];
 
     case BookingStatus.APPROVED:
+    case BookingStatus.LATE:
       if (isExpired) {
         return [
           {
@@ -134,6 +136,12 @@ export const getAllowedActions = (booking: Booking): BookingActionItem[] => {
           icon: CheckCircle,
           action: 'complete',
           primary: true,
+        },
+        {
+          label: getStatusConfig(BookingStatus.LATE).actionLabel,
+          icon: Clock,
+          action: 'late',
+          hidden: status === BookingStatus.LATE,
         },
         {
           label: 'ไม่ปรากฏตัวตามนัด',

@@ -1,12 +1,6 @@
 import { type Booking, BookingStatus } from '../types/booking';
 import { type Facility, FacilityStatus } from '../types/facility';
 
-type FacilityWithRules = Facility & {
-  capacity?: number;
-  openTime?: string;
-  closeTime?: string;
-};
-
 export const bookingRules = {
   /**
    * Basic permission checks
@@ -19,27 +13,30 @@ export const bookingRules = {
   },
 
   canCheckIn: (booking: Booking) => {
-    return ([BookingStatus.APPROVED] as BookingStatus[]).includes(booking.status);
+    return ([BookingStatus.APPROVED, BookingStatus.LATE] as BookingStatus[]).includes(
+      booking.status
+    );
   },
 
   /**
    * Business Logic Validations
    */
   isCapacityExceeded: (booking: Booking, facility: Facility) => {
-    const f = facility as FacilityWithRules;
-    return typeof f.capacity === 'number'
-      ? booking.participants > f.capacity
-      : false;
+    const maxPeople = facility.bookingSetting?.maxPeople;
+    if (typeof maxPeople !== 'number') return false;
+    return booking.participants > maxPeople;
   },
 
   isOutsideOperatingHours: (booking: Booking, facility: Facility) => {
-    const f = facility as FacilityWithRules;
-    if (!f.openTime || !f.closeTime) return false;
+    const openTime = facility.bookingSetting?.openTime;
+    const closeTime = facility.bookingSetting?.closeTime;
+
+    if (!openTime || !closeTime) return false;
 
     const bStart = booking.startTime;
     const bEnd = booking.endTime;
 
-    return bStart < f.openTime || bEnd > f.closeTime;
+    return bStart < openTime || bEnd > closeTime;
   },
 
   isTimeOverlap: (target: Booking, allBookings: Booking[]) => {
@@ -47,7 +44,7 @@ export const bookingRules = {
       (b) =>
         b.id !== target.id &&
         b.date === target.date &&
-        ([BookingStatus.APPROVED, BookingStatus.COMPLETED] as BookingStatus[]).includes(
+        ([BookingStatus.APPROVED, BookingStatus.COMPLETED, BookingStatus.LATE] as BookingStatus[]).includes(
           b.status
         )
     );
@@ -59,17 +56,18 @@ export const bookingRules = {
 
   getValidationErrors: (booking: Booking, facility: Facility, allBookings: Booking[]) => {
     const errors: string[] = [];
-    const f = facility as FacilityWithRules;
 
-    if (bookingRules.isCapacityExceeded(booking, facility) && typeof f.capacity === 'number') {
-      errors.push(
-        `จำนวนผู้ใช้งาน (${booking.participants}) เกินความจุของพื้นที่ (${f.capacity})`
-      );
+    const maxPeople = facility.bookingSetting?.maxPeople;
+    const openTime = facility.bookingSetting?.openTime;
+    const closeTime = facility.bookingSetting?.closeTime;
+
+    if (bookingRules.isCapacityExceeded(booking, facility) && typeof maxPeople === 'number') {
+      errors.push(`จำนวนผู้ใช้งาน (${booking.participants}) เกินความจุของพื้นที่ (${maxPeople})`);
     }
 
-    if (bookingRules.isOutsideOperatingHours(booking, facility) && f.openTime && f.closeTime) {
+    if (bookingRules.isOutsideOperatingHours(booking, facility) && openTime && closeTime) {
       errors.push(
-        `เวลาที่จอง (${booking.startTime}-${booking.endTime}) อยู่นอกเวลาทำการ (${f.openTime}-${f.closeTime})`
+        `เวลาที่จอง (${booking.startTime}-${booking.endTime}) อยู่นอกเวลาทำการ (${openTime}-${closeTime})`
       );
     }
 
@@ -78,5 +76,5 @@ export const bookingRules = {
     }
 
     return errors;
-  }
+  },
 };

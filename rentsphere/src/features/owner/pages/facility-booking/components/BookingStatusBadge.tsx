@@ -19,6 +19,7 @@ const STATUS_ICONS: Record<BookingStatus, React.ElementType> = {
   [BookingStatus.REJECTED]: XCircle,
   [BookingStatus.CANCELLED]: Ban,
   [BookingStatus.COMPLETED]: CheckCircle,
+  [BookingStatus.LATE]: Clock,
 };
 
 const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status }) => {

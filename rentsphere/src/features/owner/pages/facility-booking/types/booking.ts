@@ -4,6 +4,7 @@ export const BookingStatus = {
   REJECTED: "REJECTED",
   CANCELLED: "CANCELLED",
   COMPLETED: "COMPLETED",
+  LATE: "LATE",
 } as const;
 
 export type BookingStatus =
