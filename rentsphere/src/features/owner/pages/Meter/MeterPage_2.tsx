@@ -454,8 +454,8 @@ export default function MeterPage2() {
             }
 
             setReloadKey((prev) => prev + 1);
-        } catch (e: any) {
-            setMsg(`เกิดข้อผิดพลาด: ${e.message}`);
+        } catch (e: unknown) {
+            setMsg(`เกิดข้อผิดพลาด: ${e instanceof Error ? e.message : "Unknown error"}`);
         } finally {
             setSaving(false);
         }

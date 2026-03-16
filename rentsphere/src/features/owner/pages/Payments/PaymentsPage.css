@@ -1,0 +1,5 @@
+/* PaymentsPage dynamic styles using CSS custom properties */
+
+.progress-bar-fill {
+  width: var(--bar-width);
+}

@@ -29,6 +29,7 @@ function moneyTHB(n?: number | null) {
    API
    ========================= */
 async function fetchMyCondos(): Promise<CondoPick[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>("/owner/condos"); // GET /owner/condos
   const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +40,7 @@ async function fetchMyCondos(): Promise<CondoPick[]> {
 }
 
 async function fetchRooms(condoId: string): Promise<RoomRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>(`/owner/condos/${encodeURIComponent(condoId)}/rooms`);
   const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,7 +304,8 @@ export default function RoomsPage() {
                       key={r.id}
                       className="border-b border-blue-50 hover:bg-blue-50/30 cursor-pointer"
                       onClick={() => nav(`/owner/rooms/${r.id}`)}
-                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') nav(`/owner/rooms/${r.id}`); }}
                     >
                       <td className="px-6 py-4 font-bold">{r.floor}</td>
                       <td className="px-6 py-4 font-extrabold text-gray-900">{r.roomNo}</td>

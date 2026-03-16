@@ -148,10 +148,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             onClick={handlePayment}
             disabled={!isFormValid}
             className={`w-full py-5 !rounded-[24px] font-bold text-lg transition-all transform mt-4 shadow-lg ${isFormValid
-                ? 'text-white shadow-blue-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90'
+                ? 'text-white shadow-blue-100 hover:scale-[1.01] active:scale-[0.99] hover:opacity-90 bg-gradient-to-r from-blue-600/90 to-sky-500/90'
                 : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-80 shadow-none'
               }`}
-            style={isFormValid ? { background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" } : { backgroundColor: "#F3F4F6" }}
           >
             บันทึกการชำระเงิน
           </button>

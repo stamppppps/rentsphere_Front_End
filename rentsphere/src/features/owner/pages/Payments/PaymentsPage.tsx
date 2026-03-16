@@ -1,3 +1,4 @@
+import "./PaymentsPage.css";
 import { useEffect, useState } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
@@ -319,8 +320,8 @@ export default function PaymentsPage() {
                                 <div className="mt-3 flex items-center gap-3">
                                     <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-green-500 transition-all"
-                                            style={{ width: `${paidPct}%` }}
+                                            className="progress-bar-fill h-full rounded-full bg-green-500 transition-all"
+                                            style={{ '--bar-width': `${paidPct}%` } as React.CSSProperties}
                                         />
                                     </div>
                                     <span className="text-xs font-extrabold text-green-600">{paidPct}%</span>
@@ -451,6 +452,7 @@ export default function PaymentsPage() {
                                             type="button"
                                             onClick={() => setPage(Math.max(1, page - 1))}
                                             disabled={page === 1}
+                                            aria-label="หน้าก่อนหน้า"
                                             className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -478,6 +480,7 @@ export default function PaymentsPage() {
                                             type="button"
                                             onClick={() => setPage(Math.min(totalPages, page + 1))}
                                             disabled={page === totalPages}
+                                            aria-label="หน้าถัดไป"
                                             className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 disabled:opacity-40 transition"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
