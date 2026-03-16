@@ -161,12 +161,14 @@ export default function BillingPage() {
           }
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invoiceMap: Record<string, any> = {};
         for (const inv of invoices) {
           const rid = String(inv.room_id || inv.roomId || "");
           if (rid) invoiceMap[rid] = inv;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const meterMap: Record<string, any> = {};
         for (const m of meters) {
           const rid = String(m.roomId || m.room_id || "");
@@ -174,6 +176,7 @@ export default function BillingPage() {
           meterMap[rid] = m;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const previewMap: Record<string, any> = {};
         for (const p of previewRooms) {
           const rid = String(p.roomId || p.room_id || "");
@@ -181,9 +184,11 @@ export default function BillingPage() {
         }
 
         const occupiedRooms = rooms.filter(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (r: any) => r.occupancyStatus === "OCCUPIED"
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const items: BillingItem[] = occupiedRooms.map((r: any) => {
           const roomId = String(r.id);
           const roomNo = String(r.roomNo || r.room_no || "—");
@@ -214,6 +219,7 @@ export default function BillingPage() {
           const elecCost = elecMeter ? elecMeter.totalUnits * eRate : 0;
 
           const previewItems: PreviewInvoiceItem[] = Array.isArray(preview?.items)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ? preview.items.map((x: any) => {
                 const itemType = String(x.itemType || x.item_type || "");
                 let amount = Number(x.amount ?? 0);
@@ -407,11 +413,7 @@ export default function BillingPage() {
 
             <div className="flex flex-col items-center">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-white font-bold"
-                style={{
-                  background:
-                    "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))",
-                }}
+                className="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-white font-bold bg-gradient-to-r from-blue-600/90 to-sky-500/90"
               >
                 2
               </div>

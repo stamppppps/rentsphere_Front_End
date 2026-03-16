@@ -19,8 +19,8 @@ const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ onComplete, onReset, on
     try {
       await onNotifyLine();
       setSent(true);
-    } catch (e: any) {
-      setSendError(e?.message || "ส่งไม่สำเร็จ");
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : "ส่งไม่สำเร็จ");
     } finally {
       setSending(false);
     }

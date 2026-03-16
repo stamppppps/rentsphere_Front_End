@@ -2,12 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { getSelectedCondoId, useCondoStore } from "@/features/owner/stores/condoStore";
 
-type Tenant = {
-  id: string;
-  full_name: string;
-  room?: string | null;
-  line_user_id: string | null;
-};
+
 
 type ParcelRecord = {
   id: string;
@@ -28,6 +23,7 @@ export default function AdminParcel() {
   const [activeTab, setActiveTab] = useState<TabType>("send");
 
   // ===== Send tab state =====
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rooms, setRooms] = useState<any[]>([]);
   const [roomId, setRoomId] = useState("");
   const [search, setSearch] = useState("");
@@ -87,6 +83,7 @@ export default function AdminParcel() {
       }
     };
     fetchRooms();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadHistory = async () => {
@@ -99,9 +96,8 @@ export default function AdminParcel() {
       if (!res.ok) throw new Error("Failed to load history");
       const data = await res.json();
       setHistory(data.items || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      setErr(e.message || "Error loading history");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Error loading history");
     } finally {
       setLoading(false);
     }
@@ -111,6 +107,7 @@ export default function AdminParcel() {
     if (activeTab === "history") {
       loadHistory();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
 
@@ -212,8 +209,8 @@ export default function AdminParcel() {
       setFile(null);
       setPreview("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (e: any) {
-      setErr(e.message || "Failed to submit parcel");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to submit parcel");
     } finally {
       setLoading(false);
     }
@@ -230,8 +227,8 @@ export default function AdminParcel() {
       if (!res.ok) throw new Error("อัพเดตไม่สำเร็จ");
       loadHistory();
       setOk("อัพเดตสถานะสำเร็จ");
-    } catch (e: any) {
-      setErr(e.message || "อัพเดตสถานะไม่สำเร็จ");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "อัพเดตสถานะไม่สำเร็จ");
     } finally {
       setPickupConfirmId(null);
     }
@@ -244,7 +241,7 @@ export default function AdminParcel() {
       <div className="rounded-3xl border border-blue-100/60 bg-gradient-to-b from-[#EAF2FF] to-white/60 p-6">
         <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-indigo-200" style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}>
+            <div className="w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-indigo-200 bg-gradient-to-r from-blue-600/90 to-sky-500/90">
               <span className="text-lg">📦</span>
             </div>
             <div>
@@ -287,6 +284,7 @@ export default function AdminParcel() {
                 <div className="flex-1">
                   <div className="text-sm font-black text-slate-900 mb-2">เลือกห้องผู้รับ</div>
                   <select
+                    aria-label="เลือกห้องผู้รับ"
                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition"
                     value={roomId}
                     onChange={(e) => { resetMessages(); setRoomId(e.target.value); }}
@@ -335,7 +333,7 @@ export default function AdminParcel() {
                   </button>
                 </div>
 
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onPickFile(e.target.files?.[0] || null)} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onPickFile(e.target.files?.[0] || null)} className="hidden" aria-label="เลือกรูปพัสดุ" />
 
                 <div onDragOver={(e) => e.preventDefault()} onDrop={onDrop} onClick={() => fileInputRef.current?.click()} className={`rounded-3xl border-2 border-dashed p-5 md:p-6 cursor-pointer transition ${preview ? "border-indigo-200 bg-indigo-50/30" : "border-slate-200 bg-slate-50 hover:bg-slate-100"}`}>
                   {!preview ? (
@@ -369,8 +367,7 @@ export default function AdminParcel() {
                 <button
                   onClick={submit}
                   disabled={loading}
-                  className="w-full rounded-2xl text-white font-black py-3.5 transition disabled:opacity-50"
-                  style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
+                  className="w-full rounded-2xl text-white font-black py-3.5 transition disabled:opacity-50 bg-gradient-to-r from-blue-600/90 to-sky-500/90"
                 >
                   {loading ? "กำลังบันทึก..." : "ส่งแจ้งพัสดุเข้าสู่ระบบ"}
                 </button>
@@ -440,8 +437,7 @@ export default function AdminParcel() {
                             <div className="mt-3">
                               <button
                                 onClick={() => markPickedUp(h.id)}
-                                className="inline-flex px-4 py-2 rounded-xl font-black text-white transition text-xs"
-                                style={{ background: "linear-gradient(90deg, rgba(37,99,235,0.9), rgba(14,165,233,0.9))" }}
+                                className="inline-flex px-4 py-2 rounded-xl font-black text-white transition text-xs bg-gradient-to-r from-blue-600/90 to-sky-500/90"
                               >
                                 กดเมื่อลูกบ้านมารับพัสดุ
                               </button>

@@ -42,6 +42,7 @@ type SaveMetersBody = {
    ========================= */
 async function fetchRoomDetailMini(roomId: string) {
   // เพื่อเอาชื่อห้อง/คอนโด (คุยกับ endpoint room detail)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}`);
   const room = data?.room ?? data;
   const condo = data?.condo ?? room?.condo ?? null;
@@ -53,6 +54,7 @@ async function fetchRoomDetailMini(roomId: string) {
 }
 
 async function getMeterNumbers(roomId: string): Promise<MeterNumbers> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}/meter-numbers`);
   return {
     waterMeterNo: typeof data?.waterMeterNo === "string" ? data.waterMeterNo : data?.waterMeterNo ?? null,
@@ -61,6 +63,7 @@ async function getMeterNumbers(roomId: string): Promise<MeterNumbers> {
 }
 
 async function saveMeterNumbers(roomId: string, body: MeterNumbers) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}/meter-numbers`, {
     method: "PUT",
     body: JSON.stringify(body),
@@ -72,6 +75,7 @@ async function getCurrentMeters(roomId: string): Promise<MeterReadingResponse> {
 }
 
 async function submitCurrentMeters(roomId: string, body: SaveMetersBody) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}/meters`, {
     method: "POST",
     body: JSON.stringify(body),
@@ -118,13 +122,15 @@ export default function RoomMeterPage() {
   const effectivePrevWater = hasPrevReading ? (prevWater ?? 0) : Math.max(0, Number(initWater) || 0);
   const effectivePrevElectric = hasPrevReading ? (prevElectric ?? 0) : Math.max(0, Number(initElectric) || 0);
 
-  const waterUnits = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _waterUnits = useMemo(() => {
     const c = Number(currWater);
     if (!Number.isFinite(c) || c < 0) return null;
     return Math.max(0, c - effectivePrevWater);
   }, [currWater, effectivePrevWater]);
 
-  const electricUnits = useMemo(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _electricUnits = useMemo(() => {
     const c = Number(currElectric);
     if (!Number.isFinite(c) || c < 0) return null;
     return Math.max(0, c - effectivePrevElectric);
@@ -160,8 +166,8 @@ export default function RoomMeterPage() {
       setNote(meters.note ?? "");
 
       setLoading(false);
-    } catch (e: any) {
-      setError(e?.message ?? "โหลดข้อมูลไม่สำเร็จ");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
       setLoading(false);
     }
   };
@@ -193,8 +199,8 @@ export default function RoomMeterPage() {
         electricMeterNo: electricMeterNo.trim() ? electricMeterNo.trim() : null,
       });
       setPopup({ open: true, type: "success", message: "บันทึกเลขมิเตอร์แล้ว", title: "สำเร็จ" });
-    } catch (e: any) {
-      setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกเลขมิเตอร์ไม่สำเร็จ", title: "ผิดพลาด" });
+    } catch (e: unknown) {
+      setPopup({ open: true, type: "error", message: e instanceof Error ? e.message : "บันทึกเลขมิเตอร์ไม่สำเร็จ", title: "ผิดพลาด" });
     } finally {
       setNumbersSaving(false);
     }
@@ -211,6 +217,7 @@ export default function RoomMeterPage() {
 
     try {
       setSaving(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body: any = {
         currWater: iw,
         currElectric: ie,
@@ -221,8 +228,8 @@ export default function RoomMeterPage() {
       await submitCurrentMeters(roomId, body);
       setPopup({ open: true, type: "success", message: "บันทึกค่าตั้งต้นแล้ว", title: "สำเร็จ" });
       await loadAll();
-    } catch (e: any) {
-      setPopup({ open: true, type: "error", message: e?.message ?? "บันทึกหน่วยไม่สำเร็จ", title: "ผิดพลาด" });
+    } catch (e: unknown) {
+      setPopup({ open: true, type: "error", message: e instanceof Error ? e.message : "บันทึกหน่วยไม่สำเร็จ", title: "ผิดพลาด" });
     } finally {
       setSaving(false);
     }
@@ -372,6 +379,7 @@ export default function RoomMeterPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
+                aria-label="หมายเหตุ"
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 font-bold text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-200/60"
               />
             </div>

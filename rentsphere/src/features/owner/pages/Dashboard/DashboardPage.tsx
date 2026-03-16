@@ -1,3 +1,4 @@
+import "./DashboardPage.css";
 import OwnerShell from "@/features/owner/components/OwnerShell";
 import { useCondoStore } from "@/features/owner/stores/condoStore";
 import { api } from "@/shared/api/http";
@@ -171,8 +172,8 @@ function OccupancyCard({
           </div>
           <div className="h-4 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#2F6BFF] to-emerald-500"
-              style={{ width: `${occupiedPct}%` }}
+              className="occupancy-bar h-full rounded-full bg-gradient-to-r from-[#2F6BFF] to-emerald-500"
+              ref={(el) => { if (el) el.style.setProperty('--bar-width', `${occupiedPct}%`); }}
             />
           </div>
         </div>
@@ -276,8 +277,8 @@ function DonutChart({
             >
               <div className="flex items-center gap-3">
                 <span
-                  className="h-3.5 w-3.5 rounded-full"
-                  style={{ backgroundColor: item.color }}
+                  className="legend-dot h-3.5 w-3.5 rounded-full"
+                  ref={(el) => { if (el) el.style.setProperty('--dot-color', item.color); }}
                 />
                 <span className="text-[14px] font-extrabold text-slate-700">
                   {item.label}
@@ -322,8 +323,8 @@ function Bars1Series({
   return (
     <div className="w-full overflow-x-auto">
       <div
-        className="rounded-[24px] border border-slate-200 bg-[#FCFDFF] p-5"
-        style={{ minWidth: Math.max(860, labels.length * 90) }}
+        className="chart-container rounded-[24px] border border-slate-200 bg-[#FCFDFF] p-5"
+        ref={(el) => { if (el) el.style.setProperty('--chart-min-width', `${Math.max(860, labels.length * 90)}px`); }}
       >
         <div className="relative pl-14 pr-2">
           {yTicks.map((tick, idx) => {
@@ -331,8 +332,8 @@ function Bars1Series({
             return (
               <div
                 key={`y-label-${idx}`}
-                className="absolute left-0 -translate-y-1/2 text-[11px] font-bold text-slate-400"
-                style={{ top: `${top}%` }}
+                className="y-axis-label absolute left-0 -translate-y-1/2 text-[11px] font-bold text-slate-400"
+                ref={(el) => { if (el) el.style.setProperty('--label-top', `${top}%`); }}
               >
                 {tick.toLocaleString()}
               </div>
@@ -344,18 +345,15 @@ function Bars1Series({
             return (
               <div
                 key={`grid-${idx}`}
-                className="absolute left-14 right-0 border-t border-dashed border-slate-200"
-                style={{ top: `${top}%` }}
+                className="y-axis-grid absolute left-14 right-0 border-t border-dashed border-slate-200"
+                ref={(el) => { if (el) el.style.setProperty('--grid-top', `${top}%`); }}
               />
             );
           })}
 
           <div
-            className="grid items-end gap-4"
-            style={{
-              gridTemplateColumns: `repeat(${labels.length}, minmax(58px, 1fr))`,
-              height: 300,
-            }}
+            className="chart-grid grid items-end gap-4"
+            ref={(el) => { if (el) el.style.setProperty('--grid-cols', `repeat(${labels.length}, minmax(58px, 1fr))`); }}
           >
             {labels.map((lb, i) => {
               const value = safeV[i] ?? 0;
@@ -376,8 +374,8 @@ function Bars1Series({
                               {value.toLocaleString()}
                             </div>
                             <div
-                              className={`w-8 rounded-t-xl shadow-sm ${colorClass}`}
-                              style={{ height: `${finalHeight}%` }}
+                              className={`chart-bar w-8 rounded-t-xl shadow-sm ${colorClass}`}
+                              ref={(el) => { if (el) el.style.setProperty('--bar-height', `${finalHeight}%`); }}
                               title={`${value.toLocaleString()} ${unit}`}
                             />
                           </>

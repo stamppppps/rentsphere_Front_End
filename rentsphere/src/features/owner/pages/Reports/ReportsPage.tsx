@@ -67,6 +67,7 @@ export default function ReportsPage() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const meters: any[] = metersRaw?.readings || metersRaw?.meters || metersRaw?.items || (Array.isArray(metersRaw) ? metersRaw : []);
                 const utilsRaw = utilRes?.ok ? await utilRes.json() : {};
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const configs: any[] = utilsRaw?.configs || utilsRaw?.items || (Array.isArray(utilsRaw) ? utilsRaw : []);
                 const invoicesRaw = invRes?.ok ? await invRes.json() : {};
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,6 +183,7 @@ export default function ReportsPage() {
             }
         })();
         return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const SUMMARY = useMemo(() => ({
@@ -314,7 +316,7 @@ export default function ReportsPage() {
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.electric.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-gray-900">{pageTotals.other.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             <td className="py-5 px-6 text-right font-bold text-red-500">{pageTotals.unpaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                            <td className="py-5 px-6 text-right font-extrabold" style={{ color: '#3478F6' }}>{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="py-5 px-6 text-right font-extrabold text-[#3478F6]">{pageTotals.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -331,6 +333,7 @@ export default function ReportsPage() {
                                         <button
                                             onClick={() => setPage(Math.max(1, page - 1))}
                                             disabled={page === 1}
+                                            aria-label="หน้าก่อนหน้า"
                                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#EAF2FF] text-gray-600 hover:bg-blue-100 disabled:opacity-50 transition"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -352,6 +355,7 @@ export default function ReportsPage() {
                                         <button
                                             onClick={() => setPage(Math.min(totalPages, page + 1))}
                                             disabled={page === totalPages}
+                                            aria-label="หน้าถัดไป"
                                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#EAF2FF] text-gray-600 hover:bg-blue-100 disabled:opacity-50 transition"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

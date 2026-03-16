@@ -90,6 +90,7 @@ function StatusPill({ status }: { status?: string }) {
 }
 
 /* ====== API ====== */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeRoom(roomId: string, data: any): RoomDetail {
   const room = data?.room ?? data;
   const condo = data?.condo ?? room?.condo ?? null;
@@ -116,11 +117,13 @@ function normalizeRoom(roomId: string, data: any): RoomDetail {
 }
 
 async function fetchRoomDetail(roomId: string): Promise<RoomDetail> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}`);
   return normalizeRoom(roomId, data);
 }
 
 async function fetchContractDetail(roomId: string): Promise<ContractDetail> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = await api<any>(`/owner/rooms/${encodeURIComponent(roomId)}/contract-detail`);
   return data as ContractDetail;
 }
@@ -169,10 +172,10 @@ export default function RoomDetailPage() {
         }
 
         setLoading(false);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
         setRoom(null);
-        setError(e?.message ?? "เกิดข้อผิดพลาด");
+        setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
         setLoading(false);
       }
     };
@@ -208,12 +211,12 @@ export default function RoomDetailPage() {
             message: "ยุติสัญญาสำเร็จ",
             onConfirm: () => window.location.reload(),
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
           setPopup({
             open: true,
             type: "error",
             title: "ผิดพลาด",
-            message: e?.message ?? "ไม่สามารถยุติสัญญาได้",
+            message: e instanceof Error ? e.message : "ไม่สามารถยุติสัญญาได้",
           });
         } finally {
           setTerminating(false);

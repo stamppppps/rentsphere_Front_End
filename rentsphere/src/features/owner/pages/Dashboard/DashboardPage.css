@@ -1,0 +1,30 @@
+/* DashboardPage dynamic styles using CSS custom properties */
+
+.occupancy-bar {
+  width: var(--bar-width);
+}
+
+.legend-dot {
+  background-color: var(--dot-color);
+}
+
+.chart-container {
+  min-width: var(--chart-min-width);
+}
+
+.y-axis-label {
+  top: var(--label-top);
+}
+
+.y-axis-grid {
+  top: var(--grid-top);
+}
+
+.chart-grid {
+  grid-template-columns: var(--grid-cols);
+  height: 300px;
+}
+
+.chart-bar {
+  height: var(--bar-height);
+}
