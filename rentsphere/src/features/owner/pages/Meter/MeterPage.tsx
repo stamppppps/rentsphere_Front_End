@@ -191,13 +191,47 @@ function FilterPanel({
             <div className="mt-4 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 items-start">
                 <div>
                     <label className="block text-xs font-bold text-gray-400 mb-2">เดือนที่ต้องการดู</label>
-                    <input
-                        type="month"
-                        aria-label="เลือกเดือนและปี"
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="w-full h-[46px] rounded-2xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    />
+                    <div className="flex gap-2">
+                        <select
+                            aria-label="เลือกเดือน"
+                            value={value.split("-")[1] || "01"}
+                            onChange={(e) => {
+                                const year = value.split("-")[0] || String(new Date().getFullYear());
+                                onChange(`${year}-${e.target.value}`);
+                            }}
+                            className="flex-1 h-[46px] rounded-2xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+                        >
+                            {[
+                                { value: "01", label: "มกราคม" },
+                                { value: "02", label: "กุมภาพันธ์" },
+                                { value: "03", label: "มีนาคม" },
+                                { value: "04", label: "เมษายน" },
+                                { value: "05", label: "พฤษภาคม" },
+                                { value: "06", label: "มิถุนายน" },
+                                { value: "07", label: "กรกฎาคม" },
+                                { value: "08", label: "สิงหาคม" },
+                                { value: "09", label: "กันยายน" },
+                                { value: "10", label: "ตุลาคม" },
+                                { value: "11", label: "พฤศจิกายน" },
+                                { value: "12", label: "ธันวาคม" },
+                            ].map((m) => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            aria-label="เลือกปี"
+                            value={value.split("-")[0] || String(new Date().getFullYear())}
+                            onChange={(e) => {
+                                const month = value.split("-")[1] || "01";
+                                onChange(`${e.target.value}-${month}`);
+                            }}
+                            className="h-[46px] rounded-2xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+                        >
+                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                                <option key={y} value={String(y)}>{y + 543}</option>
+                            ))}
+                        </select>
+                    </div>
 
                     <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4">
                         <div className="text-xs font-bold text-gray-400">รอบบิลที่เลือก</div>

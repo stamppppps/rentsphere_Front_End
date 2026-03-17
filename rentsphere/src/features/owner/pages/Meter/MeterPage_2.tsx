@@ -500,16 +500,47 @@ export default function MeterPage2() {
                     </div>
 
                     <div className="flex items-center gap-3 flex-wrap">
-                        <input
-                            type="month"
-                            aria-label="เลือกเดือนและปี"
-                            value={selectedMonth}
+                        <select
+                            aria-label="เลือกเดือน"
+                            value={selectedMonth.split("-")[1] || "01"}
                             onChange={(e) => {
-                                setSelectedMonth(e.target.value);
+                                const year = selectedMonth.split("-")[0] || String(new Date().getFullYear());
+                                setSelectedMonth(`${year}-${e.target.value}`);
                                 setPage(1);
                             }}
-                            className="h-[42px] rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                        />
+                            className="h-[42px] rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+                        >
+                            {[
+                                { value: "01", label: "มกราคม" },
+                                { value: "02", label: "กุมภาพันธ์" },
+                                { value: "03", label: "มีนาคม" },
+                                { value: "04", label: "เมษายน" },
+                                { value: "05", label: "พฤษภาคม" },
+                                { value: "06", label: "มิถุนายน" },
+                                { value: "07", label: "กรกฎาคม" },
+                                { value: "08", label: "สิงหาคม" },
+                                { value: "09", label: "กันยายน" },
+                                { value: "10", label: "ตุลาคม" },
+                                { value: "11", label: "พฤศจิกายน" },
+                                { value: "12", label: "ธันวาคม" },
+                            ].map((m) => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            aria-label="เลือกปี"
+                            value={selectedMonth.split("-")[0] || String(new Date().getFullYear())}
+                            onChange={(e) => {
+                                const month = selectedMonth.split("-")[1] || "01";
+                                setSelectedMonth(`${e.target.value}-${month}`);
+                                setPage(1);
+                            }}
+                            className="h-[42px] rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 appearance-none cursor-pointer"
+                        >
+                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                                <option key={y} value={String(y)}>{y + 543}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 

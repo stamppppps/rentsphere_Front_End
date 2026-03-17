@@ -321,7 +321,7 @@ export default function PaymentsPage() {
                                     <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                                         <div
                                             className="progress-bar-fill h-full rounded-full bg-green-500 transition-all"
-                                            style={{ '--bar-width': `${paidPct}%` } as React.CSSProperties}
+                                            ref={(el) => { if (el) el.style.setProperty('--bar-width', `${paidPct}%`); }}
                                         />
                                     </div>
                                     <span className="text-xs font-extrabold text-green-600">{paidPct}%</span>
